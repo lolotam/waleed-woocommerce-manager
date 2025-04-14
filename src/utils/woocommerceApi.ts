@@ -32,7 +32,14 @@ const woocommerceApi = async (endpoint: string, method = 'GET', data = null) => 
     throw new Error('WooCommerce API not configured');
   }
 
-  const url = new URL(`${config.url}/wp-json/wc/v3/${endpoint}`);
+  // Clean the URL to ensure proper format
+  const cleanUrl = config.url.trim().replace(/\/+$/, '');
+  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+    toast.error('WooCommerce URL must start with http:// or https://');
+    throw new Error('Invalid WooCommerce URL format');
+  }
+
+  const url = new URL(`${cleanUrl}/wp-json/wc/v3/${endpoint}`);
   
   // Add authentication
   url.searchParams.append('consumer_key', config.consumerKey);
@@ -135,7 +142,7 @@ export const testConnection = async (): Promise<boolean> => {
     toast.success('WooCommerce connection successful!');
     return true;
   } catch (error) {
-    toast.error('WooCommerce connection failed.');
+    toast.error('WooCommerce connection failed. Please check your URL and API credentials.');
     return false;
   }
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,13 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { testConnection } from "@/utils/woocommerceApi";
 import { toast } from "sonner";
-import { Info, CheckCircle2 } from "lucide-react";
+import { Info, CheckCircle2, AlertCircle } from "lucide-react";
 
 const Settings = () => {
   // WooCommerce settings
   const [woocommerceUrl, setWoocommerceUrl] = useState('');
   const [consumerKey, setConsumerKey] = useState('');
   const [consumerSecret, setConsumerSecret] = useState('');
+  const [isConnecting, setIsConnecting] = useState(false);
   
   // AI settings
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -69,16 +69,21 @@ const Settings = () => {
       return;
     }
     
-    // Validate URL format
+    // Validate and clean URL format
+    let cleanUrl = woocommerceUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    
     try {
-      new URL(woocommerceUrl);
+      new URL(cleanUrl);
     } catch (e) {
       toast.error('Please enter a valid URL');
       return;
     }
     
     const config = {
-      url: woocommerceUrl,
+      url: cleanUrl,
       consumerKey,
       consumerSecret
     };
@@ -87,7 +92,12 @@ const Settings = () => {
     toast.success('WooCommerce settings saved');
     
     // Test connection
-    await testConnection();
+    setIsConnecting(true);
+    try {
+      await testConnection();
+    } finally {
+      setIsConnecting(false);
+    }
   };
   
   const saveAiSettings = () => {
@@ -144,12 +154,22 @@ const Settings = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="woocommerce-url">Store URL</Label>
-                <Input
-                  id="woocommerce-url"
-                  placeholder="https://your-store.com"
-                  value={woocommerceUrl}
-                  onChange={(e) => setWoocommerceUrl(e.target.value)}
-                />
+                <div className="flex gap-2 items-center">
+                  <Input
+                    id="woocommerce-url"
+                    placeholder="yourstore.com"
+                    value={woocommerceUrl}
+                    onChange={(e) => setWoocommerceUrl(e.target.value)}
+                  />
+                  <div className="text-xs text-muted-foreground whitespace-nowrap">
+                    {!woocommerceUrl.startsWith('http') && woocommerceUrl && (
+                      <span className="flex items-center">
+                        <AlertCircle className="h-3 w-3 mr-1" />
+                        https:// will be added
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="space-y-2">
@@ -174,8 +194,11 @@ const Settings = () => {
               </div>
               
               <div className="pt-4 space-y-2">
-                <Button onClick={saveWooCommerceSettings}>
-                  Save WooCommerce Settings
+                <Button 
+                  onClick={saveWooCommerceSettings}
+                  disabled={isConnecting}
+                >
+                  {isConnecting ? 'Connecting...' : 'Save & Test Connection'}
                 </Button>
                 <p className="text-sm text-muted-foreground mt-2 flex items-center">
                   <Info className="h-4 w-4 mr-1" />
