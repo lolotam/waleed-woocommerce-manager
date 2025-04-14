@@ -65,6 +65,11 @@ interface ProductsListProps {
   onRefresh: () => void;
 }
 
+// Define a custom filter interface to handle filter values that don't directly map to Product fields
+interface ProductFilters {
+  [key: string]: string;
+}
+
 const ProductsList: React.FC<ProductsListProps> = ({ 
   products, 
   isLoading, 
@@ -90,7 +95,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
     { id: 'stock_status', name: 'Stock', visible: true, sortable: true, width: 'w-[100px]', align: 'center' },
     { id: 'actions', name: 'Actions', visible: true, sortable: false, width: 'w-[100px]', align: 'right' }
   ]);
-  const [filters, setFilters] = useState<{[key: string]: string}>({});
+  const [filters, setFilters] = useState<ProductFilters>({});
 
   // Load columns configuration from localStorage on component mount
   useEffect(() => {
@@ -122,7 +127,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
     setColumns(columns.map(col => ({ ...col, visible: true })));
   };
 
-  const applyFilter = (field: keyof Product, value: string) => {
+  const applyFilter = (field: string, value: string) => {
     if (value) {
       setFilters({ ...filters, [field]: value });
     } else {
@@ -142,23 +147,41 @@ const ProductsList: React.FC<ProductsListProps> = ({
     // Apply column-specific filters
     const matchesFilters = Object.entries(filters).every(([field, filterValue]) => {
       if (!filterValue) return true;
-      
-      const fieldValue = product[field as keyof Product];
-      
-      // Handle special cases
-      if (field === 'categories' && Array.isArray(product.categories)) {
-        return product.categories.some(cat => 
-          cat.name.toLowerCase().includes(filterValue.toLowerCase())
-        );
+
+      // Handle price range filters separately
+      if (field === 'min_price' && product.regular_price) {
+        const productPrice = parseFloat(product.regular_price);
+        const minPrice = parseFloat(filterValue);
+        return !isNaN(productPrice) && !isNaN(minPrice) && productPrice >= minPrice;
+      }
+
+      if (field === 'max_price' && product.regular_price) {
+        const productPrice = parseFloat(product.regular_price);
+        const maxPrice = parseFloat(filterValue);
+        return !isNaN(productPrice) && !isNaN(maxPrice) && productPrice <= maxPrice;
       }
       
-      if (fieldValue === undefined) return false;
-      
-      if (typeof fieldValue === 'string') {
-        return fieldValue.toLowerCase().includes(filterValue.toLowerCase());
+      // Check if the field exists on the product
+      if (field in product) {
+        const fieldValue = product[field as keyof Product];
+        
+        // Handle special cases
+        if (field === 'categories' && Array.isArray(product.categories)) {
+          return product.categories.some(cat => 
+            cat.name.toLowerCase().includes(filterValue.toLowerCase())
+          );
+        }
+        
+        if (fieldValue === undefined) return false;
+        
+        if (typeof fieldValue === 'string') {
+          return fieldValue.toLowerCase().includes(filterValue.toLowerCase());
+        }
+        
+        return String(fieldValue).toLowerCase().includes(filterValue.toLowerCase());
       }
       
-      return String(fieldValue).toLowerCase().includes(filterValue.toLowerCase());
+      return true; // Skip filtering for fields that don't exist on the product
     });
     
     return matchesSearch && matchesFilters;
