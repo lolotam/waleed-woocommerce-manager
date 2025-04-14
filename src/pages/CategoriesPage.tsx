@@ -1,20 +1,22 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, extractData } from '@/utils/api';
 import { toast } from "sonner";
 import { Button } from '@/components/ui/button';
-import { Plus, RefreshCw } from 'lucide-react';
+import { Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CategoriesList from '@/components/Categories/CategoriesList';
 import CategoryForm from '@/components/Categories/CategoryForm';
 import { Category } from '@/types/category';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const CategoriesPage = () => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: categoriesResponse, isLoading, refetch } = useQuery({
+  const { data: categoriesResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await categoriesApi.getAll({ per_page: 100 });
@@ -60,6 +62,21 @@ const CategoriesPage = () => {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Authentication Error</AlertTitle>
+          <AlertDescription>
+            Unable to fetch categories. Your WooCommerce API keys may not have sufficient permissions.
+            <ul className="list-disc ml-6 mt-2">
+              <li>Ensure your API keys have read/write access to the WooCommerce REST API</li>
+              <li>Verify the API credentials in Settings are correct</li>
+              <li>Check that your WooCommerce site has REST API enabled</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {(isAddingCategory || editingCategory) ? (
         <div className="mb-8">

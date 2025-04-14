@@ -1,3 +1,4 @@
+
 /**
  * WooCommerce Core API utilities
  */
@@ -72,6 +73,25 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      
+      // Enhanced error handling for specific WooCommerce errors
+      if (errorData.code === 'woocommerce_rest_cannot_view' || 
+          errorData.message?.includes('cannot list resources') ||
+          response.status === 401) {
+        
+        toast.error('Authentication error: Your WooCommerce API keys don\'t have sufficient permissions', {
+          description: 'Make sure your API keys have read/write access and are properly configured.',
+          duration: 6000,
+          action: {
+            label: 'Learn More',
+            onClick: () => window.open('https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication', '_blank')
+          }
+        });
+        
+        console.error('WooCommerce API Permission Error:', errorData);
+        throw new Error('WooCommerce authentication failed: Insufficient permissions');
+      }
+      
       throw new Error(errorData.message || `HTTP error ${response.status}`);
     }
 
@@ -102,7 +122,8 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
       toast.error('Connection timed out. Please check your store URL and try again.');
     } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
       toast.error('Network error. Make sure your store URL is accessible and has proper CORS settings.');
-    } else {
+    } else if (!error.message.includes('authentication failed')) {
+      // Don't show duplicate error messages for authentication errors (already handled above)
       toast.error(`WooCommerce API error: ${error.message || 'Unknown error'}`);
     }
     
