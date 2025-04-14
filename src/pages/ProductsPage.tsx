@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Plus, ChevronRight, ChevronLeft, Loader2, ListFilter } from 'lucide-react';
+import { Plus, ChevronRight, ChevronLeft, Loader2, ListFilter, FolderInput } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
@@ -13,10 +13,11 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+  PaginationEllipsis,
 } from '@/components/ui/pagination';
 import ProductsList from '@/components/Products/ProductsList';
 import ProductForm from '@/components/Products/ProductForm';
-import { productsApi } from '@/utils/api';
+import { productsApi, extractData, extractDataWithPagination } from '@/utils/api';
 import { Product } from '@/types/product';
 import { toast } from 'sonner';
 
@@ -46,13 +47,14 @@ const ProductsPage = () => {
         };
         
         const response = await productsApi.getAll(params);
+        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination(response);
         
-        const total = response.totalItems || response.data.length;
+        const total = totalItems || data.length;
         setTotalProducts(total);
         
-        setTotalPages(response.totalPages || Math.max(1, Math.ceil(total / safePerPage)));
+        setTotalPages(responseTotalPages || Math.max(1, Math.ceil(total / safePerPage)));
         
-        return response.data || [];
+        return data || [];
       } catch (err) {
         console.error('Error fetching products:', err);
         toast.error('Failed to load products. Please check your WooCommerce connection.');
@@ -88,12 +90,41 @@ const ProductsPage = () => {
 
   const applyCustomPerPage = () => {
     const value = parseInt(customPerPage);
-    if (!isNaN(value) && value >= 1) {
+    if (!isNaN(value) && value > 0) {
       setPerPage(Math.min(value, MAX_PER_PAGE));
       setCurrentPage(1);
-      setCustomPerPage('');
+      toast.success(`Showing ${Math.min(value, MAX_PER_PAGE)} products per page`);
     } else {
       toast.error('Please enter a valid number greater than 0');
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      applyCustomPerPage();
+    }
+  };
+
+  const [goToPage, setGoToPage] = useState<string>('');
+  
+  const handleGoToPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setGoToPage(e.target.value);
+  };
+  
+  const handleGoToPageSubmit = () => {
+    const pageNum = parseInt(goToPage);
+    if (!isNaN(pageNum) && pageNum > 0 && pageNum <= totalPages) {
+      setCurrentPage(pageNum);
+      setGoToPage('');
+      toast.success(`Navigated to page ${pageNum}`);
+    } else {
+      toast.error(`Please enter a valid page number between 1 and ${totalPages}`);
+    }
+  };
+  
+  const handleGoToPageKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleGoToPageSubmit();
     }
   };
 
@@ -202,6 +233,35 @@ const ProductsPage = () => {
 
   const displayProducts = allProducts.length > 0 ? allProducts : (productsResponse || []);
 
+  const getPaginationRange = () => {
+    const range: (number | 'ellipsis')[] = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        range.push(i);
+      }
+    } else {
+      range.push(1);
+      
+      if (currentPage <= 3) {
+        range.push(2, 3, 4);
+        range.push('ellipsis');
+      } else if (currentPage >= totalPages - 2) {
+        range.push('ellipsis');
+        range.push(totalPages - 3, totalPages - 2, totalPages - 1);
+      } else {
+        range.push('ellipsis');
+        range.push(currentPage - 1, currentPage, currentPage + 1);
+        range.push('ellipsis');
+      }
+      
+      range.push(totalPages);
+    }
+    
+    return range;
+  };
+
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
@@ -251,19 +311,38 @@ const ProductsPage = () => {
                 </p>
               </div>
               
-              <div className="flex items-center space-x-2">
-                <Input
-                  type="number"
-                  placeholder="Custom count"
-                  className="w-32"
-                  value={customPerPage}
-                  onChange={handleCustomPerPageChange}
-                  min={1}
-                  max={MAX_PER_PAGE}
-                />
-                <Button variant="outline" size="sm" onClick={applyCustomPerPage}>
-                  Apply
-                </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="number"
+                    placeholder="Custom count"
+                    className="w-32"
+                    value={customPerPage}
+                    onChange={handleCustomPerPageChange}
+                    onKeyDown={handleKeyDown}
+                    min={1}
+                    max={MAX_PER_PAGE}
+                  />
+                  <Button variant="outline" size="sm" onClick={applyCustomPerPage}>
+                    Apply
+                  </Button>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Input
+                    type="number" 
+                    placeholder="Go to page"
+                    className="w-32"
+                    value={goToPage}
+                    onChange={handleGoToPageChange}
+                    onKeyDown={handleGoToPageKeyDown}
+                    min={1}
+                    max={totalPages}
+                  />
+                  <Button variant="outline" size="sm" onClick={handleGoToPageSubmit}>
+                    Go
+                  </Button>
+                </div>
                 
                 {isLoadingAll ? (
                   <div className="flex items-center space-x-2 ml-2">
@@ -288,7 +367,7 @@ const ProductsPage = () => {
                     size="sm" 
                     onClick={handleLoadAll} 
                     disabled={isLoadingAll}
-                    className="ml-2"
+                    className="ml-auto"
                   >
                     {isLoadingAll ? (
                       <>
@@ -314,24 +393,6 @@ const ProductsPage = () => {
             onRefresh={refetch}
           />
           
-          {!allProducts.length && currentPage < totalPages && (
-            <div className="mt-6 flex justify-center">
-              <Button 
-                onClick={handleLoadMore} 
-                variant="outline"
-                className="w-full max-w-xs"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <ChevronRight className="h-4 w-4 mr-2" />
-                )}
-                Load More Products
-              </Button>
-            </div>
-          )}
-          
           {!allProducts.length && (
             <Pagination className="mt-6">
               <PaginationContent>
@@ -348,29 +409,22 @@ const ProductsPage = () => {
                   )}
                 </PaginationItem>
                 
-                {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                  let pageNum;
-                  if (totalPages <= 5) {
-                    pageNum = i + 1;
-                  } else if (currentPage <= 3) {
-                    pageNum = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    pageNum = totalPages - 4 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                  
-                  return (
-                    <PaginationItem key={i}>
+                {getPaginationRange().map((page, index) => (
+                  page === 'ellipsis' ? (
+                    <PaginationItem key={`ellipsis-${index}`}>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                  ) : (
+                    <PaginationItem key={`page-${page}`}>
                       <PaginationLink
-                        onClick={() => setCurrentPage(pageNum)}
-                        isActive={currentPage === pageNum}
+                        onClick={() => setCurrentPage(page as number)}
+                        isActive={currentPage === page}
                       >
-                        {pageNum}
+                        {page}
                       </PaginationLink>
                     </PaginationItem>
-                  );
-                })}
+                  )
+                ))}
                 
                 <PaginationItem>
                   {currentPage === totalPages || isLoading ? (
