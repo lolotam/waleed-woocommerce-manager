@@ -532,6 +532,16 @@ const Settings = () => {
                     variant="outline" 
                     size="sm"
                     onClick={() => {
+                      setCorsProxyUrl('https://cors-anywhere.herokuapp.com/');
+                    }}
+                    className="text-xs"
+                  >
+                    Use cors-anywhere
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
                       window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank');
                     }}
                     className="text-xs"

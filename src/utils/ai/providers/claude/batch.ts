@@ -28,7 +28,19 @@ export const processBatchWithClaude = async (
     // Check for CORS proxy configuration
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/messages/batches';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
+    
+    // Properly format the URL based on proxy type
+    let fetchUrl;
+    if (proxyUrl.includes('cors-anywhere.herokuapp.com')) {
+      // For cors-anywhere, just concatenate the URLs
+      fetchUrl = `${proxyUrl}${targetUrl}`;
+    } else if (proxyUrl) {
+      // For other proxies that expect the target URL to be URL-encoded (like corsproxy.io)
+      fetchUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
+    } else {
+      // Direct connection (will likely fail due to CORS)
+      fetchUrl = targetUrl;
+    }
     
     console.log('Connecting to Claude Batch API via:', proxyUrl ? `CORS proxy (${proxyUrl})` : 'Direct connection');
     console.log('Batch API URL being used:', fetchUrl);

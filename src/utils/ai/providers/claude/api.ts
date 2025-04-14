@@ -27,7 +27,19 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     // Check for CORS proxy configuration
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/messages';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
+    
+    // Properly format the URL based on proxy type
+    let fetchUrl;
+    if (proxyUrl.includes('cors-anywhere.herokuapp.com')) {
+      // For cors-anywhere, just concatenate the URLs
+      fetchUrl = `${proxyUrl}${targetUrl}`;
+    } else if (proxyUrl) {
+      // For other proxies that expect the target URL to be URL-encoded (like corsproxy.io)
+      fetchUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
+    } else {
+      // Direct connection (will likely fail due to CORS)
+      fetchUrl = targetUrl;
+    }
     
     console.log('Connecting to Claude API via:', proxyUrl ? `CORS proxy (${proxyUrl})` : 'Direct connection');
     console.log('Using URL:', fetchUrl);
@@ -102,11 +114,12 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       throw new Error(
         'Network error when connecting to Claude API. ' +
         'This is likely due to CORS restrictions in your browser. ' +
-        (proxyUrl ? 'The current CORS proxy may not be working. ' : 'No CORS proxy is currently configured. ') +
+        (proxyUrl ? 'The current CORS proxy may not be working correctly. ' : 'No CORS proxy is currently configured. ') +
         'Please try the following solutions:\n\n' +
         '1. Set a CORS proxy in Settings → AI Configuration → CORS Proxy URL\n' +
-        '2. Try a different proxy like "https://corsproxy.io/?" or "https://cors-anywhere.herokuapp.com/"\n' +
-        '3. If behind a corporate network, consider using a VPN or ask IT to whitelist api.anthropic.com'
+        '2. For cors-anywhere.herokuapp.com, make sure you\'ve requested temporary access\n' +
+        '3. Try a different proxy like "https://corsproxy.io/?"\n' +
+        '4. If behind a corporate network, consider using a VPN or ask IT to whitelist api.anthropic.com'
       );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       throw new Error('Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.');

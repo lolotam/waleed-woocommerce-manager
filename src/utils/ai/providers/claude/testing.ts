@@ -24,7 +24,19 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     // Add a proxy endpoint if available in the environment
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/models';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
+    
+    // Properly format the URL based on proxy type
+    let fetchUrl;
+    if (proxyUrl.includes('cors-anywhere.herokuapp.com')) {
+      // For cors-anywhere, just concatenate the URLs
+      fetchUrl = `${proxyUrl}${targetUrl}`;
+    } else if (proxyUrl) {
+      // For other proxies that expect the target URL to be URL-encoded (like corsproxy.io)
+      fetchUrl = `${proxyUrl}${encodeURIComponent(targetUrl)}`;
+    } else {
+      // Direct connection (will likely fail due to CORS)
+      fetchUrl = targetUrl;
+    }
     
     console.log('Using endpoint:', fetchUrl, proxyUrl ? `(via CORS proxy: ${proxyUrl})` : '(direct connection)');
     
@@ -109,11 +121,15 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
       
       if (!proxyUrl) {
         proxyMessage = '\n\nTry these CORS proxies in Settings → AI Configuration → CORS Proxy URL:' +
-          '\n• https://corsproxy.io/?' +
-          '\n• https://cors-anywhere.herokuapp.com/ (requires activation)' + 
+          '\n• https://cors-anywhere.herokuapp.com/ (requires activation - which you\'ve already done!)' +
+          '\n• https://corsproxy.io/?' + 
           '\n• https://thingproxy.freeboard.io/fetch/';
+      } else if (proxyUrl.includes('cors-anywhere.herokuapp.com')) {
+        proxyMessage = '\n\nFor cors-anywhere.herokuapp.com to work, make sure:' +
+          '\n1. You\'ve requested temporary access at cors-anywhere.herokuapp.com/corsdemo' +
+          '\n2. The URL is correctly formatted as "https://cors-anywhere.herokuapp.com/"';
       } else {
-        proxyMessage = '\n\nThe current CORS proxy may not be working properly. Try an alternative proxy in Settings.';
+        proxyMessage = '\n\nThe current CORS proxy may not be working properly. Try cors-anywhere.herokuapp.com instead.';
       }
       
       return { 
