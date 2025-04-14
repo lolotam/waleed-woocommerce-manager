@@ -14,6 +14,7 @@ import About from "./pages/About";
 import ImportExportPage from "./pages/ImportExportPage";
 import PromptsPage from "./pages/PromptsPage";
 import LogsPage from "./pages/LogsPage";
+import ProductsPage from "./pages/ProductsPage";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 
@@ -56,6 +57,7 @@ const App = () => {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/brands" element={<BrandsManager />} />
+                <Route path="/products" element={<ProductsPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/import-export" element={<ImportExportPage />} />

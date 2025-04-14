@@ -90,6 +90,11 @@ export const productsApi = {
   create: (data: any) => woocommerceApi('products', 'POST', data),
   update: (id: number, data: any) => woocommerceApi(`products/${id}`, 'PUT', data),
   delete: (id: number) => woocommerceApi(`products/${id}`, 'DELETE'),
+  // SEO metadata
+  updateSeoMeta: (id: number, data: any) => woocommerceApi(`products/${id}/meta`, 'PUT', data),
+  // Tags
+  getTags: (params = {}) => woocommerceApi(`products/tags?${new URLSearchParams(params).toString()}`),
+  createTag: (data: any) => woocommerceApi('products/tags', 'POST', data)
 };
 
 export const categoriesApi = {
@@ -149,7 +154,75 @@ export const mediaApi = {
       toast.error(`Media upload error: ${error.message || 'Unknown error'}`);
       throw error;
     }
-  }
+  },
+  
+  // Get all media
+  getAll: (params = {}) => {
+    const config = getWooCommerceConfig();
+    
+    if (!config.url || !config.consumerKey || !config.consumerSecret) {
+      toast.error('WooCommerce API not configured. Please check settings.');
+      throw new Error('WooCommerce API not configured');
+    }
+
+    const url = new URL(`${config.url}/wp-json/wp/v2/media`);
+    // Add authentication
+    url.searchParams.append('consumer_key', config.consumerKey);
+    url.searchParams.append('consumer_secret', config.consumerSecret);
+    
+    // Add additional params
+    Object.entries(params).forEach(([key, value]) => {
+      url.searchParams.append(key, value.toString());
+    });
+
+    return fetch(url.toString())
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        return response.json();
+      })
+      .catch(error => {
+        console.error('Media fetch error:', error);
+        toast.error(`Media fetch error: ${error.message || 'Unknown error'}`);
+        throw error;
+      });
+  },
+  
+  // Update media metadata
+  update: async (id: number, metadata: any) => {
+    const config = getWooCommerceConfig();
+    
+    if (!config.url || !config.consumerKey || !config.consumerSecret) {
+      toast.error('WooCommerce API not configured. Please check settings.');
+      throw new Error('WooCommerce API not configured');
+    }
+
+    const url = new URL(`${config.url}/wp-json/wp/v2/media/${id}`);
+    url.searchParams.append('consumer_key', config.consumerKey);
+    url.searchParams.append('consumer_secret', config.consumerSecret);
+
+    try {
+      const response = await fetch(url.toString(), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(metadata),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Media update error');
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('Media update error:', error);
+      toast.error(`Media update error: ${error.message || 'Unknown error'}`);
+      throw error;
+    }
+  },
 };
 
 export const testConnection = async (): Promise<boolean> => {
