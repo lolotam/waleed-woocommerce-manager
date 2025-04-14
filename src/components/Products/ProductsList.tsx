@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Table, 
@@ -94,7 +93,6 @@ interface ProductsListProps {
   tags?: ProductTag[];
 }
 
-// Define a custom filter interface to handle filter values that don't directly map to Product fields
 interface ProductFilters {
   [key: string]: string | DateRange | undefined;
 }
@@ -118,7 +116,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
   const [dragColumnId, setDragColumnId] = useState<string | null>(null);
   const [enableHorizontalScroll, setEnableHorizontalScroll] = useState(true);
   
-  // Initialize columns with order property
   const [columns, setColumns] = useState<Column[]>([
     { id: 'selection', name: '', visible: true, sortable: false, width: 'w-[40px]', align: 'center', order: 0 },
     { id: 'image', name: 'Image', visible: true, sortable: false, width: 'w-[60px]', order: 1 },
@@ -140,7 +137,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [advancedSearchMode, setAdvancedSearchMode] = useState(false);
 
-  // Load columns configuration from localStorage on component mount
   useEffect(() => {
     const savedColumns = localStorage.getItem('product_columns');
     if (savedColumns) {
@@ -158,12 +154,10 @@ const ProductsList: React.FC<ProductsListProps> = ({
     }
   }, []);
 
-  // Save columns configuration to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('product_columns', JSON.stringify(columns));
   }, [columns]);
   
-  // Save horizontal scroll preference
   useEffect(() => {
     localStorage.setItem('horizontal_scroll', String(enableHorizontalScroll));
   }, [enableHorizontalScroll]);
@@ -193,7 +187,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
       const dropIndex = updatedColumns.findIndex(col => col.id === columnId);
       
       if (dragIndex !== -1 && dropIndex !== -1) {
-        // Swap order values
         const dragOrder = updatedColumns[dragIndex].order;
         const dropOrder = updatedColumns[dropIndex].order;
         
@@ -228,7 +221,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
   const hasActiveFilters = Object.keys(filters).length > 0;
 
   const filteredProducts = products.filter(product => {
-    // Search filter - check name, sku, description, brand, permalink
     const matchesSearch = !searchTerm || 
       product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.sku?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -236,11 +228,9 @@ const ProductsList: React.FC<ProductsListProps> = ({
       (product.brand && product.brand.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (product.permalink && product.permalink.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Apply column-specific filters
     const matchesFilters = Object.entries(filters).every(([field, filterValue]) => {
       if (!filterValue) return true;
 
-      // Handle date range filter
       if (field === 'date_created' && filterValue && typeof filterValue !== 'string') {
         const { from, to } = filterValue;
         if (!from) return true;
@@ -254,7 +244,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
         return productDate >= from;
       }
 
-      // Handle price range filters separately
       if (field === 'min_price' && product.regular_price) {
         const productPrice = parseFloat(product.regular_price);
         const minPrice = parseFloat(filterValue as string);
@@ -267,16 +256,13 @@ const ProductsList: React.FC<ProductsListProps> = ({
         return !isNaN(productPrice) && !isNaN(maxPrice) && productPrice <= maxPrice;
       }
       
-      // Handle tag filter
       if (field === 'tag_id' && product.tags) {
         return product.tags.some(tag => tag.id === parseInt(filterValue as string));
       }
       
-      // Check if the field exists on the product
       if (field in product) {
         const fieldValue = product[field as keyof Product];
         
-        // Handle special cases
         if (field === 'categories' && Array.isArray(product.categories)) {
           return product.categories.some(cat => 
             cat.name.toLowerCase().includes((filterValue as string).toLowerCase())
@@ -298,7 +284,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
         return String(fieldValue).toLowerCase().includes((filterValue as string).toLowerCase());
       }
       
-      return true; // Skip filtering for fields that don't exist on the product
+      return true;
     });
     
     return matchesSearch && matchesFilters;
@@ -308,7 +294,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
     let aValue: any = a[sortField];
     let bValue: any = b[sortField];
     
-    // Handle special cases for sorting
     if (sortField === 'categories' && a.categories && b.categories) {
       aValue = a.categories[0]?.name || '';
       bValue = b.categories[0]?.name || '';
@@ -406,10 +391,8 @@ const ProductsList: React.FC<ProductsListProps> = ({
   const toggleBulkEditMode = () => {
     setBulkEditMode(!bulkEditMode);
     if (!bulkEditMode) {
-      // Entering bulk edit mode
       toast.info("Bulk edit mode enabled. Select products to edit.");
     } else {
-      // Exiting bulk edit mode
       setSelectedProducts({});
     }
   };
@@ -603,10 +586,8 @@ const ProductsList: React.FC<ProductsListProps> = ({
     );
   }
   
-  // Sort columns by order for display
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
   
-  // Only show visible columns
   const visibleColumns = sortedColumns.filter(column => column.visible);
 
   if (bulkEditMode && selectedProductCount > 0) {
@@ -689,7 +670,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any type</SelectItem>
+                        <SelectItem value="any">Any type</SelectItem>
                         <SelectItem value="simple">Simple</SelectItem>
                         <SelectItem value="variable">Variable</SelectItem>
                         <SelectItem value="grouped">Grouped</SelectItem>
@@ -719,7 +700,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
                           <SelectValue placeholder="Select tag" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Any tag</SelectItem>
+                          <SelectItem value="any">Any tag</SelectItem>
                           {tags.map(tag => (
                             <SelectItem key={tag.id} value={tag.id.toString()}>
                               {tag.name}
@@ -747,7 +728,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Any status</SelectItem>
+                        <SelectItem value="any">Any status</SelectItem>
                         <SelectItem value="instock">In Stock</SelectItem>
                         <SelectItem value="outofstock">Out of Stock</SelectItem>
                         <SelectItem value="onbackorder">On Backorder</SelectItem>
@@ -837,7 +818,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
               <DropdownMenuSeparator />
               <ScrollArea className="h-80">
                 {columns
-                  .filter(column => column.id !== 'selection') // Don't allow toggling selection column
+                  .filter(column => column.id !== 'selection')
                   .map((column) => (
                     <DropdownMenuCheckboxItem
                       key={column.id}
@@ -891,7 +872,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
         </div>
       </div>
       
-      {/* Table component rendering goes here */}
       <div className={enableHorizontalScroll ? "overflow-x-auto" : ""}>
         <Table>
           <TableHeader>
