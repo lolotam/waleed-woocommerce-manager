@@ -1,11 +1,10 @@
-
 import React, { useState } from 'react';
 import { 
   Table, 
   TableBody, 
   TableCell, 
   TableHead, 
-  TableHeader, a
+  TableHeader, 
   TableRow 
 } from '@/components/ui/table';
 import { Product } from '@/types/product';
@@ -62,15 +61,12 @@ const ProductsList: React.FC<ProductsListProps> = ({
   const [sortField, setSortField] = useState<keyof Product>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // Filter products based on search term
   const filteredProducts = products.filter(product => 
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Sort products
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    // Handle null or undefined values
     const aValue = a[sortField] || '';
     const bValue = b[sortField] || '';
     
@@ -280,7 +276,6 @@ const ProductsList: React.FC<ProductsListProps> = ({
         </div>
       )}
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
