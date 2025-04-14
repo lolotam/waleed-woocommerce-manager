@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -37,6 +36,7 @@ import {
 import { useQuery } from '@tanstack/react-query';
 import ImageUploader from './ImageUploader';
 import { WooCommerceResponse } from '@/utils/api/woocommerceCore';
+import AiGenerateButton from './AiGenerateButton';
 
 interface ProductFormProps {
   product: Product | null;
@@ -198,6 +198,15 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
+  const getPrimaryCategoryName = () => {
+    const categories = form.getValues('categories');
+    return categories && categories.length > 0 ? categories[0].name : '';
+  };
+
+  const getBrandName = () => {
+    return form.getValues('brand') || '';
+  };
+
   const handleAddTag = (tagName: string) => {
     const currentTags = form.getValues('tags') || [];
     
@@ -323,7 +332,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Long Description</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Long Description</FormLabel>
+                        <AiGenerateButton 
+                          onGenerate={(text) => form.setValue('description', text)}
+                          productName={form.getValues('name')}
+                          category={getPrimaryCategoryName()}
+                          brand={getBrandName()}
+                          fieldType="description"
+                        />
+                      </div>
                       <FormControl>
                         <Textarea 
                           placeholder="Detailed product description..."
@@ -341,7 +359,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   name="short_description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Short Description</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Short Description</FormLabel>
+                        <AiGenerateButton 
+                          onGenerate={(text) => form.setValue('short_description', text)}
+                          productName={form.getValues('name')}
+                          category={getPrimaryCategoryName()}
+                          brand={getBrandName()}
+                          fieldType="short_description"
+                        />
+                      </div>
                       <FormControl>
                         <Textarea 
                           placeholder="Brief summary of the product..."
@@ -355,7 +382,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 />
 
                 <div className="space-y-2">
-                  <FormLabel>Tags</FormLabel>
+                  <div className="flex justify-between items-center">
+                    <FormLabel>Tags</FormLabel>
+                    <AiGenerateButton 
+                      onGenerate={(text) => {
+                        const tagsList = text.split(',').map(tag => tag.trim()).filter(tag => tag);
+                        tagsList.forEach(tag => handleAddTag(tag));
+                      }}
+                      productName={form.getValues('name')}
+                      category={getPrimaryCategoryName()}
+                      brand={getBrandName()}
+                      fieldType="tags"
+                    />
+                  </div>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {form.watch('tags')?.map((tag, index) => (
                       <Badge key={tag.id || index} variant="secondary">
@@ -563,24 +602,66 @@ const ProductForm: React.FC<ProductFormProps> = ({
                           </div>
                           
                           <div className="mt-2 space-y-2">
-                            <Input 
-                              placeholder="Alt text"
-                              value={image.alt}
-                              onChange={(e) => handleUpdateImageMetadata(index, { alt: e.target.value })}
-                              className="text-xs"
-                            />
-                            <Input 
-                              placeholder="Title"
-                              value={image.title || ''}
-                              onChange={(e) => handleUpdateImageMetadata(index, { title: e.target.value })}
-                              className="text-xs"
-                            />
-                            <Input 
-                              placeholder="Caption"
-                              value={image.caption || ''}
-                              onChange={(e) => handleUpdateImageMetadata(index, { caption: e.target.value })}
-                              className="text-xs"
-                            />
+                            <div className="flex items-center gap-1">
+                              <Input 
+                                placeholder="Alt text"
+                                value={image.alt}
+                                onChange={(e) => handleUpdateImageMetadata(index, { alt: e.target.value })}
+                                className="text-xs"
+                              />
+                              <AiGenerateButton
+                                onGenerate={(text) => handleUpdateImageMetadata(index, { alt: text })}
+                                productName={form.getValues('name')}
+                                category={getPrimaryCategoryName()}
+                                brand={getBrandName()}
+                                fieldType="alt_text"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Input 
+                                placeholder="Title"
+                                value={image.title || ''}
+                                onChange={(e) => handleUpdateImageMetadata(index, { title: e.target.value })}
+                                className="text-xs"
+                              />
+                              <AiGenerateButton
+                                onGenerate={(text) => handleUpdateImageMetadata(index, { title: text })}
+                                productName={form.getValues('name')}
+                                category={getPrimaryCategoryName()}
+                                brand={getBrandName()}
+                                fieldType="image_title"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Input 
+                                placeholder="Caption"
+                                value={image.caption || ''}
+                                onChange={(e) => handleUpdateImageMetadata(index, { caption: e.target.value })}
+                                className="text-xs"
+                              />
+                              <AiGenerateButton
+                                onGenerate={(text) => handleUpdateImageMetadata(index, { caption: text })}
+                                productName={form.getValues('name')}
+                                category={getPrimaryCategoryName()}
+                                brand={getBrandName()}
+                                fieldType="caption"
+                              />
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Input 
+                                placeholder="Description"
+                                value={image.description || ''}
+                                onChange={(e) => handleUpdateImageMetadata(index, { description: e.target.value })}
+                                className="text-xs"
+                              />
+                              <AiGenerateButton
+                                onGenerate={(text) => handleUpdateImageMetadata(index, { description: text })}
+                                productName={form.getValues('name')}
+                                category={getPrimaryCategoryName()}
+                                brand={getBrandName()}
+                                fieldType="image_description"
+                              />
+                            </div>
                           </div>
                           
                           <Button
@@ -618,7 +699,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   name="rankmath_seo.focus_keyword"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Focus Keyword</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Focus Keyword</FormLabel>
+                        <AiGenerateButton 
+                          onGenerate={(text) => form.setValue('rankmath_seo.focus_keyword', text)}
+                          productName={form.getValues('name')}
+                          category={getPrimaryCategoryName()}
+                          brand={getBrandName()}
+                          fieldType="focus_keyword"
+                        />
+                      </div>
                       <FormControl>
                         <Input 
                           placeholder="Main keyword for SEO" 
@@ -638,7 +728,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   name="rankmath_seo.meta_title"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Title</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Meta Title</FormLabel>
+                        <AiGenerateButton 
+                          onGenerate={(text) => form.setValue('rankmath_seo.meta_title', text)}
+                          productName={form.getValues('name')}
+                          category={getPrimaryCategoryName()}
+                          brand={getBrandName()}
+                          fieldType="meta_title"
+                        />
+                      </div>
                       <FormControl>
                         <Input 
                           placeholder="SEO Title" 
@@ -658,7 +757,16 @@ const ProductForm: React.FC<ProductFormProps> = ({
                   name="rankmath_seo.meta_description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Meta Description</FormLabel>
+                      <div className="flex justify-between items-center">
+                        <FormLabel>Meta Description</FormLabel>
+                        <AiGenerateButton 
+                          onGenerate={(text) => form.setValue('rankmath_seo.meta_description', text)}
+                          productName={form.getValues('name')}
+                          category={getPrimaryCategoryName()}
+                          brand={getBrandName()}
+                          fieldType="meta_description"
+                        />
+                      </div>
                       <FormControl>
                         <Textarea 
                           placeholder="SEO Description" 
