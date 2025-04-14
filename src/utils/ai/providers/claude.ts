@@ -1,3 +1,4 @@
+
 /**
  * Claude (Anthropic) API Integration
  */
@@ -91,6 +92,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
 
 // Test connections to Claude
 export const testClaudeConnection = async (apiKey: string): Promise<{ success: boolean; message: string }> => {
+  // Basic API key validation
   if (!apiKey || !isValidAPIKey(apiKey, 'anthropic')) {
     return { 
       success: false, 
@@ -102,7 +104,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
-    // Detailed logging for debugging
+    // Enhanced logging for network debugging
     console.log('Testing Claude connection with API key:', apiKey.substring(0, 10) + '...');
     
     const response = await fetch('https://api.anthropic.com/v1/models', {
@@ -113,13 +115,13 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
         'Content-Type': 'application/json'
       },
       signal: controller.signal,
-      mode: 'cors', // Explicitly request CORS mode
-      credentials: 'omit' // Prevent sending credentials
+      mode: 'cors',     // Allow cross-origin requests
+      credentials: 'omit'  // Prevent sending browser credentials
     });
 
     clearTimeout(timeoutId);
 
-    // Detailed response logging
+    // Log full response details for debugging
     const responseText = await response.text();
     console.log('Claude API response status:', response.status);
     console.log('Claude API response text:', responseText);
@@ -138,16 +140,16 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           errorMsg = errorJson.error.message || errorMsg;
         }
       } catch (e) {
-        // If JSON parsing fails, use the raw error text
         if (responseText) {
           errorMsg = `Claude API error: ${responseText}`;
         }
       }
       
+      // Enhanced error handling
       if (response.status === 401) {
         return { 
           success: false, 
-          message: 'Invalid API key. Please check your Claude API key.' 
+          message: 'Invalid API key. Please verify your Claude API credentials.' 
         };
       }
       
@@ -159,7 +161,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
   } catch (error) {
     console.error('Claude connection test error:', error);
     
-    // More detailed error handling
+    // Comprehensive network error diagnostics
     if (error.name === 'AbortError') {
       return { 
         success: false, 
@@ -168,25 +170,35 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     } else if (error.message.includes('Failed to fetch')) {
       return { 
         success: false, 
-        message: 'Network error when connecting to Claude API. This could be due to:' +
-          '\n1. No internet connection' +
-          '\n2. Firewall or security software blocking the request' +
-          '\n3. Corporate network restrictions' +
-          '\n4. DNS resolution issues' 
+        message: 'Network connection issue detected. Possible causes:' +
+          '\n1. No active internet connection' +
+          '\n2. Firewall blocking API access' +
+          '\n3. Corporate network/proxy restrictions' +
+          '\n4. DNS resolution problems with api.anthropic.com' +
+          '\n\nTroubleshooting tips:' +
+          '\n- Verify internet connectivity' +
+          '\n- Temporarily disable VPN or firewall' +
+          '\n- Check network proxy settings' +
+          '\n- Try from a different network'
       };
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       return { 
         success: false, 
-        message: 'Network error detected. Possible causes:' +
-          '\n1. CORS restrictions' +
-          '\n2. Firewall settings blocking api.anthropic.com' +
-          '\n3. Proxy or VPN interference'
+        message: 'Detailed network error:' +
+          '\n1. Potential CORS (Cross-Origin) restrictions' +
+          '\n2. Blocked by content security policy' +
+          '\n3. Proxy server interference' +
+          '\n4. SSL/TLS connection issues' +
+          '\n\nRecommended actions:' +
+          '\n- Check browser console for detailed errors' +
+          '\n- Verify SSL certificates' +
+          '\n- Contact network administrator'
       };
     }
     
     return { 
       success: false, 
-      message: `Connection error: ${error.message || 'Unknown error'}` 
+      message: `Unexpected connection error: ${error.message || 'Unknown network issue'}` 
     };
   }
 };
