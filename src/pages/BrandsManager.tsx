@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -8,10 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash, Pencil, Plus, Image, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { generateContent } from "@/utils/aiService";
+import { generateContent, getAvailableModels } from "@/utils/aiService";
 
 // Mock brands data
 const MOCK_BRANDS = [
@@ -72,11 +71,16 @@ const BrandsManager = () => {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiFieldToGenerate, setAiFieldToGenerate] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiModel, setAiModel] = useState<'gpt4o' | 'claude3' | 'gemini'>('gpt4o');
+  const [aiModel, setAiModel] = useState<string>('gpt4o');
   const [aiResult, setAiResult] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [availableModels, setAvailableModels] = useState<{id: string, description: string, provider: string}[]>([]);
+
+  useEffect(() => {
+    setAvailableModels(getAvailableModels());
+  }, []);
 
   // Create a new brand
   const createBrand = () => {
@@ -118,17 +122,14 @@ const BrandsManager = () => {
       return;
     }
 
-    // Generate slug if empty
     if (!selectedBrand.slug) {
       selectedBrand.slug = selectedBrand.name.toLowerCase().replace(/\s+/g, '-');
     }
 
-    // If this is a new brand (doesn't exist in the array)
     if (!brands.some(brand => brand.id === selectedBrand.id)) {
       setBrands([...brands, selectedBrand]);
       toast.success('Brand created successfully');
     } else {
-      // Update existing brand
       setBrands(brands.map(brand => 
         brand.id === selectedBrand.id ? selectedBrand : brand
       ));
@@ -143,8 +144,6 @@ const BrandsManager = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // In a real app, we would upload to WooCommerce here
-    // For now, create a local preview
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreview(reader.result as string);
@@ -163,10 +162,8 @@ const BrandsManager = () => {
   const openAiDialog = (field: string) => {
     if (!selectedBrand) return;
     
-    // Set default prompt based on field
     let defaultPrompt = DEFAULT_PROMPTS[field] || '';
     
-    // Replace placeholders with actual values
     defaultPrompt = defaultPrompt.replace('{brand_name}', selectedBrand.name);
     
     setAiFieldToGenerate(field);
@@ -182,7 +179,7 @@ const BrandsManager = () => {
     setIsGenerating(true);
     
     try {
-      const result = await generateContent(aiPrompt, aiModel);
+      const result = await generateContent(aiPrompt, aiModel as any);
       setAiResult(result);
     } catch (error) {
       console.error('AI generation error:', error);
@@ -203,6 +200,17 @@ const BrandsManager = () => {
     setAiDialogOpen(false);
     toast.success(`${aiFieldToGenerate.charAt(0).toUpperCase() + aiFieldToGenerate.slice(1)} updated with AI content`);
   };
+
+  const getGroupedModels = () => {
+    const grouped = {
+      openai: availableModels.filter(m => m.provider === 'openai'),
+      anthropic: availableModels.filter(m => m.provider === 'anthropic'),
+      google: availableModels.filter(m => m.provider === 'google')
+    };
+    return grouped;
+  };
+
+  const groupedModels = getGroupedModels();
 
   return (
     <div className="space-y-6">
@@ -290,7 +298,6 @@ const BrandsManager = () => {
                 <TabsTrigger value="seo">SEO</TabsTrigger>
               </TabsList>
               
-              {/* Basic Info Tab */}
               <TabsContent value="basic" className="space-y-4">
                 <div className="grid gap-4">
                   <div className="grid gap-2">
@@ -347,7 +354,6 @@ const BrandsManager = () => {
                 </div>
               </TabsContent>
               
-              {/* Image Tab */}
               <TabsContent value="image" className="space-y-4">
                 <div className="grid gap-4">
                   <div className="grid gap-2">
@@ -382,7 +388,6 @@ const BrandsManager = () => {
                 </div>
               </TabsContent>
               
-              {/* SEO Tab */}
               <TabsContent value="seo" className="space-y-4">
                 <div className="grid gap-4">
                   <div className="grid gap-2">
@@ -471,14 +476,35 @@ const BrandsManager = () => {
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="ai_model">AI Model</Label>
-              <Select value={aiModel} onValueChange={(value: any) => setAiModel(value)}>
+              <Select value={aiModel} onValueChange={(value) => setAiModel(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select AI model" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="gpt4o">OpenAI GPT-4o</SelectItem>
-                  <SelectItem value="claude3">Anthropic Claude 3 Sonnet</SelectItem>
-                  <SelectItem value="gemini">Google Gemini 1.5</SelectItem>
+                  <SelectGroup>
+                    <SelectLabel>OpenAI Models</SelectLabel>
+                    {groupedModels.openai.map(model => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Claude Models</SelectLabel>
+                    {groupedModels.anthropic.map(model => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                  <SelectGroup>
+                    <SelectLabel>Gemini Models</SelectLabel>
+                    {groupedModels.google.map(model => (
+                      <SelectItem key={model.id} value={model.id}>
+                        {model.description}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
             </div>

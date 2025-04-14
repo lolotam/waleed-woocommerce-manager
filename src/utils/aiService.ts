@@ -1,10 +1,17 @@
 
 /**
- * AI Service for generating content using different AI models (OpenAI, Claude, Gemini)
+ * AI Service for generating content using different AI models
  */
 import { toast } from "sonner";
 
-type AIModel = 'gpt4o' | 'claude3' | 'gemini';
+// Updated model types to include all available options
+type AIModel = 
+  // OpenAI models
+  | 'gpt4o' | 'gpt4o_mini' | 'gpt45' | 'o1' | 'o1_mini' | 'o1_mini_high'
+  // Claude models
+  | 'claude37' | 'claude35_sonnet' | 'claude35_haiku' | 'claude3_opus'
+  // Gemini models
+  | 'gemini_flash' | 'gemini_flash_thinking' | 'gemini_pro' | 'gemini_research';
 
 interface AIConfig {
   openaiApiKey: string;
@@ -12,6 +19,122 @@ interface AIConfig {
   geminiApiKey: string;
   defaultModel: AIModel;
 }
+
+// Model configuration for API calls
+interface ModelConfig {
+  apiModel: string;
+  provider: 'openai' | 'anthropic' | 'google';
+  maxTokens: number;
+  temperature: number;
+  description: string;
+}
+
+// Configuration mapping for all supported models
+const MODEL_CONFIGS: Record<AIModel, ModelConfig> = {
+  // OpenAI models
+  gpt4o: { 
+    apiModel: 'gpt-4o',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'GPT-4o - Balanced for most tasks'
+  },
+  gpt4o_mini: { 
+    apiModel: 'gpt-4o-mini',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'GPT-4o Mini - Fast responses'
+  },
+  gpt45: { 
+    apiModel: 'gpt-4.5-preview',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'GPT-4.5 - Advanced reasoning'
+  },
+  o1: { 
+    apiModel: 'o1',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'o1 - Strongest reasoning abilities'
+  },
+  o1_mini: { 
+    apiModel: 'o1-mini',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'o1-mini - Fast advanced reasoning'
+  },
+  o1_mini_high: { 
+    apiModel: 'o1-mini-high',
+    provider: 'openai',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'o1-mini-high - Great at coding'
+  },
+  
+  // Claude models
+  claude37: { 
+    apiModel: 'claude-3-7-sonnet-20240620',
+    provider: 'anthropic',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'Claude 3.7 Sonnet - Most intelligent'
+  },
+  claude35_sonnet: { 
+    apiModel: 'claude-3-5-sonnet-20241022',
+    provider: 'anthropic',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'Claude 3.5 Sonnet - Oct 2024'
+  },
+  claude35_haiku: { 
+    apiModel: 'claude-3-5-haiku-20240307',
+    provider: 'anthropic',
+    maxTokens: 1000,
+    temperature: 0.7,
+    description: 'Claude 3.5 Haiku - Fast daily tasks'
+  },
+  claude3_opus: { 
+    apiModel: 'claude-3-opus-20240229',
+    provider: 'anthropic',
+    maxTokens: 4000,
+    temperature: 0.7,
+    description: 'Claude 3 Opus - Complex reasoning'
+  },
+  
+  // Gemini models
+  gemini_flash: { 
+    apiModel: 'gemini-2.0-flash',
+    provider: 'google',
+    maxTokens: 2048,
+    temperature: 0.7,
+    description: 'Gemini 2.0 Flash - Everyday help'
+  },
+  gemini_flash_thinking: { 
+    apiModel: 'gemini-2.0-flash-thinking',
+    provider: 'google',
+    maxTokens: 2048,
+    temperature: 0.7,
+    description: 'Gemini 2.0 Flash Thinking - Advanced reasoning'
+  },
+  gemini_pro: { 
+    apiModel: 'gemini-2.5-pro',
+    provider: 'google',
+    maxTokens: 4096,
+    temperature: 0.7,
+    description: 'Gemini 2.5 Pro - Complex tasks'
+  },
+  gemini_research: { 
+    apiModel: 'gemini-deep-research',
+    provider: 'google',
+    maxTokens: 8192,
+    temperature: 0.7,
+    description: 'Gemini Deep Research - In-depth reports'
+  }
+};
 
 // Get AI config from localStorage or use default empty values
 const getAiConfig = (): AIConfig => {
@@ -34,14 +157,16 @@ const saveLogEntry = (prompt: string, result: string, model: AIModel) => {
     timestamp: new Date().toISOString(),
     prompt,
     result,
-    model
+    model,
+    modelDescription: MODEL_CONFIGS[model]?.description || model
   });
   localStorage.setItem('ai_logs', JSON.stringify(logs));
 };
 
 // OpenAI API call
-const generateWithOpenAI = async (prompt: string): Promise<string> => {
+const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
+  const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.openaiApiKey) {
     toast.error('OpenAI API key not configured');
@@ -56,10 +181,10 @@ const generateWithOpenAI = async (prompt: string): Promise<string> => {
         'Authorization': `Bearer ${config.openaiApiKey}`
       },
       body: JSON.stringify({
-        model: 'gpt-4o',
+        model: modelConfig.apiModel,
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 1000
+        temperature: modelConfig.temperature,
+        max_tokens: modelConfig.maxTokens
       })
     });
 
@@ -78,8 +203,9 @@ const generateWithOpenAI = async (prompt: string): Promise<string> => {
 };
 
 // Claude API call
-const generateWithClaude = async (prompt: string): Promise<string> => {
+const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
+  const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.claudeApiKey) {
     toast.error('Claude API key not configured');
@@ -95,8 +221,8 @@ const generateWithClaude = async (prompt: string): Promise<string> => {
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-3-sonnet-20240229',
-        max_tokens: 1000,
+        model: modelConfig.apiModel,
+        max_tokens: modelConfig.maxTokens,
         messages: [{ role: 'user', content: prompt }]
       })
     });
@@ -116,8 +242,9 @@ const generateWithClaude = async (prompt: string): Promise<string> => {
 };
 
 // Gemini API call
-const generateWithGemini = async (prompt: string): Promise<string> => {
+const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
+  const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.geminiApiKey) {
     toast.error('Gemini API key not configured');
@@ -125,7 +252,8 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
   }
 
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${config.geminiApiKey}`, {
+    // Use the correct endpoint for the model
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.apiModel}:generateContent?key=${config.geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -133,8 +261,8 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 1000,
+          temperature: modelConfig.temperature,
+          maxOutputTokens: modelConfig.maxTokens,
         }
       })
     });
@@ -157,24 +285,30 @@ const generateWithGemini = async (prompt: string): Promise<string> => {
 export const generateContent = async (prompt: string, model?: AIModel): Promise<string> => {
   const config = getAiConfig();
   const selectedModel = model || config.defaultModel;
+  const modelConfig = MODEL_CONFIGS[selectedModel];
   
-  toast.loading(`Generating content with ${selectedModel}...`);
+  if (!modelConfig) {
+    toast.error(`Unknown model: ${selectedModel}`);
+    throw new Error(`Unknown model: ${selectedModel}`);
+  }
+  
+  toast.loading(`Generating content with ${modelConfig.description}...`);
   
   try {
     let result: string;
     
-    switch (selectedModel) {
-      case 'gpt4o':
-        result = await generateWithOpenAI(prompt);
+    switch (modelConfig.provider) {
+      case 'openai':
+        result = await generateWithOpenAI(prompt, selectedModel);
         break;
-      case 'claude3':
-        result = await generateWithClaude(prompt);
+      case 'anthropic':
+        result = await generateWithClaude(prompt, selectedModel);
         break;
-      case 'gemini':
-        result = await generateWithGemini(prompt);
+      case 'google':
+        result = await generateWithGemini(prompt, selectedModel);
         break;
       default:
-        throw new Error(`Unknown model: ${selectedModel}`);
+        throw new Error(`Unknown provider for model: ${selectedModel}`);
     }
     
     // Save to logs
@@ -186,6 +320,16 @@ export const generateContent = async (prompt: string, model?: AIModel): Promise<
     toast.error(`Failed to generate content: ${error.message}`);
     throw error;
   }
+};
+
+// Get all available models with their descriptions
+export const getAvailableModels = (): { id: AIModel, name: string, description: string, provider: string }[] => {
+  return Object.entries(MODEL_CONFIGS).map(([key, config]) => ({
+    id: key as AIModel,
+    name: config.apiModel,
+    description: config.description,
+    provider: config.provider
+  }));
 };
 
 export const getAllLogs = () => {
@@ -207,6 +351,7 @@ export const exportLogsToExcel = () => {
 
 export default {
   generateContent,
+  getAvailableModels,
   getAllLogs,
   exportLogsToExcel
 };

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { testConnection } from "@/utils/woocommerceApi";
 import { toast } from "sonner";
 import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon } from "lucide-react";
@@ -302,9 +302,29 @@ const Settings = () => {
                     <SelectValue placeholder="Select default AI model" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="gpt4o">OpenAI GPT-4o</SelectItem>
-                    <SelectItem value="claude3">Anthropic Claude 3 Sonnet</SelectItem>
-                    <SelectItem value="gemini">Google Gemini 1.5</SelectItem>
+                    <SelectGroup>
+                      <SelectLabel>OpenAI Models</SelectLabel>
+                      <SelectItem value="gpt4o">GPT-4o (Balanced for most tasks)</SelectItem>
+                      <SelectItem value="gpt4o_mini">GPT-4o Mini (Fast responses)</SelectItem>
+                      <SelectItem value="gpt45">GPT-4.5 (Advanced reasoning)</SelectItem>
+                      <SelectItem value="o1">o1 (Strongest reasoning abilities)</SelectItem>
+                      <SelectItem value="o1_mini">o1-mini (Fast advanced reasoning)</SelectItem>
+                      <SelectItem value="o1_mini_high">o1-mini-high (Great at coding)</SelectItem>
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Claude Models</SelectLabel>
+                      <SelectItem value="claude37">Claude 3.7 Sonnet (Most intelligent)</SelectItem>
+                      <SelectItem value="claude35_sonnet">Claude 3.5 Sonnet (Oct 2024)</SelectItem>
+                      <SelectItem value="claude35_haiku">Claude 3.5 Haiku (Fast daily tasks)</SelectItem>
+                      <SelectItem value="claude3_opus">Claude 3 Opus (Complex reasoning)</SelectItem>
+                    </SelectGroup>
+                    <SelectGroup>
+                      <SelectLabel>Gemini Models</SelectLabel>
+                      <SelectItem value="gemini_flash">Gemini 2.0 Flash (Everyday help)</SelectItem>
+                      <SelectItem value="gemini_flash_thinking">Gemini 2.0 Flash Thinking (Advanced reasoning)</SelectItem>
+                      <SelectItem value="gemini_pro">Gemini 2.5 Pro (Complex tasks)</SelectItem>
+                      <SelectItem value="gemini_research">Gemini Deep Research (In-depth reports)</SelectItem>
+                    </SelectGroup>
                   </SelectContent>
                 </Select>
               </div>
