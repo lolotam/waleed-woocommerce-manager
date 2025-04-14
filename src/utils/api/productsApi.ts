@@ -2,14 +2,15 @@
 /**
  * WooCommerce Products API
  */
-import { woocommerceApi } from "./woocommerceCore";
+import { WooCommerceResponse, woocommerceApi } from "./woocommerceCore";
+import { Product } from "@/types/product";
 
 export const productsApi = {
-  getAll: (params = {}) => woocommerceApi(`products?${new URLSearchParams(params).toString()}`),
-  get: (id: number) => woocommerceApi(`products/${id}`),
-  create: (data: any) => woocommerceApi('products', 'POST', data),
-  update: (id: number, data: any) => woocommerceApi(`products/${id}`, 'PUT', data),
-  delete: (id: number) => woocommerceApi(`products/${id}`, 'DELETE'),
+  getAll: (params = {}) => woocommerceApi<Product[]>(`products?${new URLSearchParams(params).toString()}`),
+  get: (id: number) => woocommerceApi<Product>(`products/${id}`),
+  create: (data: any) => woocommerceApi<Product>('products', 'POST', data),
+  update: (id: number, data: any) => woocommerceApi<Product>(`products/${id}`, 'PUT', data),
+  delete: (id: number) => woocommerceApi<Product>(`products/${id}`, 'DELETE'),
   // SEO metadata
   updateSeoMeta: (id: number, data: any) => woocommerceApi(`products/${id}/meta`, 'PUT', data),
   // Tags

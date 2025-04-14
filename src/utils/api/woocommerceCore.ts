@@ -10,6 +10,16 @@ export interface WooCommerceConfig {
   consumerSecret: string;
 }
 
+// Response type for WooCommerce API including headers
+export interface WooCommerceResponse<T> {
+  data: T;
+  headers: {
+    [key: string]: string;
+  };
+  totalItems?: number;
+  totalPages?: number;
+}
+
 // Get WooCommerce config from localStorage or use default empty values
 export const getWooCommerceConfig = (): WooCommerceConfig => {
   const config = localStorage.getItem('woocommerce_config');
@@ -24,7 +34,7 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
 };
 
 // Base API handler for WooCommerce requests
-export const woocommerceApi = async (endpoint: string, method = 'GET', data = null) => {
+export const woocommerceApi = async <T>(endpoint: string, method = 'GET', data = null): Promise<WooCommerceResponse<T>> => {
   const config = getWooCommerceConfig();
   
   if (!config.url || !config.consumerKey || !config.consumerSecret) {
@@ -69,13 +79,22 @@ export const woocommerceApi = async (endpoint: string, method = 'GET', data = nu
     // Extract the response body
     const responseData = await response.json();
     
-    // Add headers to the response object so we can access pagination info
-    responseData.headers = {};
+    // Extract headers into an object
+    const headers: Record<string, string> = {};
     response.headers.forEach((value, key) => {
-      responseData.headers[key] = value;
+      headers[key] = value;
     });
     
-    return responseData;
+    // Parse pagination information if available
+    const totalItems = parseInt(headers['x-wp-total'] || '0');
+    const totalPages = parseInt(headers['x-wp-totalpages'] || '0');
+    
+    return {
+      data: responseData as T,
+      headers,
+      totalItems,
+      totalPages
+    };
   } catch (error) {
     console.error('WooCommerce API error:', error);
     

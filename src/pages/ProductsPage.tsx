@@ -25,21 +25,19 @@ const ProductsPage = () => {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage, setPerPage] = useState(100); // Default to max allowed value
+  const [perPage, setPerPage] = useState(100);
   const [customPerPage, setCustomPerPage] = useState('');
   const [totalProducts, setTotalProducts] = useState(0);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadAllProgress, setLoadAllProgress] = useState(0);
 
-  // Constants for WooCommerce API limitations
-  const MAX_PER_PAGE = 100; // WooCommerce API maximum per_page value
+  const MAX_PER_PAGE = 100;
 
-  const { data: products, isLoading, error, refetch } = useQuery({
+  const { data: productsResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['products', currentPage, perPage],
     queryFn: async () => {
       try {
-        // Ensure perPage never exceeds the maximum allowed by WooCommerce API
         const safePerPage = Math.min(perPage, MAX_PER_PAGE);
         
         const params = {
@@ -49,17 +47,12 @@ const ProductsPage = () => {
         
         const response = await productsApi.getAll(params);
         
-        // Get total from headers if available or fallback to array length
-        const total = response.length > 0 
-          ? parseInt(response.headers?.['x-wp-total'] || response.length) 
-          : 0;
-        
+        const total = response.totalItems || response.data.length;
         setTotalProducts(total);
         
-        // Calculate total pages
-        setTotalPages(Math.max(1, Math.ceil(total / safePerPage)));
+        setTotalPages(response.totalPages || Math.max(1, Math.ceil(total / safePerPage)));
         
-        return response || [];
+        return response.data || [];
       } catch (err) {
         console.error('Error fetching products:', err);
         toast.error('Failed to load products. Please check your WooCommerce connection.');
@@ -86,7 +79,7 @@ const ProductsPage = () => {
 
   const handlePerPageChange = (value: number[]) => {
     setPerPage(Math.min(value[0], MAX_PER_PAGE));
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   };
 
   const handleCustomPerPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,7 +89,6 @@ const ProductsPage = () => {
   const applyCustomPerPage = () => {
     const value = parseInt(customPerPage);
     if (!isNaN(value) && value >= 1) {
-      // Ensure the custom per page value doesn't exceed the API limit
       setPerPage(Math.min(value, MAX_PER_PAGE));
       setCurrentPage(1);
       setCustomPerPage('');
@@ -122,7 +114,6 @@ const ProductsPage = () => {
       let hasMoreProducts = true;
       const allProductsArray: Product[] = [];
       
-      // First, get the first page with MAX_PER_PAGE to get approximate total
       const params = {
         per_page: MAX_PER_PAGE.toString(),
         page: '1'
@@ -130,47 +121,38 @@ const ProductsPage = () => {
       
       const firstPageResponse = await productsApi.getAll(params);
       
-      if (!Array.isArray(firstPageResponse)) {
+      if (!Array.isArray(firstPageResponse.data)) {
         throw new Error('Invalid response format from WooCommerce API');
       }
       
-      allProductsArray.push(...firstPageResponse);
+      allProductsArray.push(...firstPageResponse.data);
       
-      // Get the total number of products from WooCommerce headers if available
-      let totalProductCount = firstPageResponse.length;
-      if (firstPageResponse.headers && firstPageResponse.headers['x-wp-total']) {
-        totalProductCount = parseInt(firstPageResponse.headers['x-wp-total']);
-      }
+      let totalProductCount = firstPageResponse.totalItems || firstPageResponse.data.length;
       
-      // Calculate the estimated number of pages
       const estimatedTotalPages = Math.ceil(totalProductCount / MAX_PER_PAGE);
       setLoadAllProgress(Math.round((1 / estimatedTotalPages) * 100));
       
-      // If there are potentially more products, keep fetching
-      while (hasMoreProducts && page < 1000) { // Safety limit of 1000 pages (100,000 products)
+      while (hasMoreProducts && page < 1000) {
         page++;
         
-        // Add a small delay to prevent overwhelming the API
         await new Promise(resolve => setTimeout(resolve, 300));
         
         const nextParams = {
-          per_page: MAX_PER_PAGE.toString(), // Always use the maximum allowed
+          per_page: MAX_PER_PAGE.toString(),
           page: page.toString()
         };
         
         try {
           const response = await productsApi.getAll(nextParams);
           
-          if (Array.isArray(response) && response.length > 0) {
-            allProductsArray.push(...response);
-            // Update progress
+          if (Array.isArray(response.data) && response.data.length > 0) {
+            allProductsArray.push(...response.data);
             setLoadAllProgress(Math.min(95, Math.round((page / estimatedTotalPages) * 100)));
           } else {
             hasMoreProducts = false;
           }
         } catch (err) {
           console.error(`Error fetching page ${page}:`, err);
-          // If we get an error on a specific page, try to continue with the next one
           if (page < estimatedTotalPages - 1) {
             toast.error(`Failed to load page ${page}. Trying to continue...`);
             continue;
@@ -218,8 +200,7 @@ const ProductsPage = () => {
     );
   }
 
-  // Determine which products to display
-  const displayProducts = allProducts.length > 0 ? allProducts : (products || []);
+  const displayProducts = allProducts.length > 0 ? allProducts : (productsResponse || []);
 
   return (
     <div className="container mx-auto p-4">
@@ -351,11 +332,9 @@ const ProductsPage = () => {
             </div>
           )}
           
-          {/* Pagination - only show when not viewing all products */}
           {!allProducts.length && (
             <Pagination className="mt-6">
               <PaginationContent>
-                {/* Previous page button */}
                 <PaginationItem>
                   {currentPage === 1 || isLoading ? (
                     <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pl-2.5 h-10 px-4 py-2">
@@ -369,9 +348,7 @@ const ProductsPage = () => {
                   )}
                 </PaginationItem>
                 
-                {/* Page numbers */}
                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                  // Calculate page numbers to show (centered around current page)
                   let pageNum;
                   if (totalPages <= 5) {
                     pageNum = i + 1;
@@ -395,7 +372,6 @@ const ProductsPage = () => {
                   );
                 })}
                 
-                {/* Next page button */}
                 <PaginationItem>
                   {currentPage === totalPages || isLoading ? (
                     <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pr-2.5 h-10 px-4 py-2">
