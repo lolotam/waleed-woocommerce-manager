@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash, Pencil, Plus, Image, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateContent, getAvailableModels } from "@/utils/aiService";
-import { brandsApi, mediaApi } from "@/utils/woocommerceApi";
+import { brandsApi, mediaApi } from "@/utils/api";
 import { Brand, BrandFormData } from "@/types/brand";
 
 const DEFAULT_PROMPTS: {[key: string]: string} = {

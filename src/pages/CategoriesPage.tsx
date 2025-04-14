@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoriesApi } from '@/utils/woocommerceApi';
+import { categoriesApi } from '@/utils/api';
 import { toast } from "sonner";
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';

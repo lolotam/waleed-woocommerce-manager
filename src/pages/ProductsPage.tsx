@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import ProductsList from '@/components/Products/ProductsList';
 import ProductForm from '@/components/Products/ProductForm';
-import { productsApi } from '@/utils/woocommerceApi';
+import { productsApi } from '@/utils/api';
 import { Product } from '@/types/product';
 import { toast } from 'sonner';
 
