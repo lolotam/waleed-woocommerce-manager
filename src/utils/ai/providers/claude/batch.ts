@@ -51,7 +51,8 @@ export const processBatchWithClaude = async (
         'Content-Type': 'application/json',
         'x-api-key': config.claudeApiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'message-batches-2024-09-24'
+        'anthropic-beta': 'message-batches-2024-09-24',
+        'anthropic-dangerous-direct-browser-access': 'enabled' // Add required header for browser requests
       },
       body: JSON.stringify({ 
         requests,
