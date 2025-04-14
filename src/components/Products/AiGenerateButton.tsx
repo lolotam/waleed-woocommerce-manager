@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -256,7 +257,7 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
           </DialogHeader>
 
           {apiWarning && (
-            <Alert variant="warning" className="mb-4">
+            <Alert variant="default" className="mb-4">
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
                 {apiWarning}{' '}
