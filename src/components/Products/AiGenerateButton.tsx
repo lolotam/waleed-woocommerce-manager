@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -17,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Wand2, Book, BookOpen } from 'lucide-react';
+import { Wand2, Book, BookOpen, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { generateContent, getAvailableModels } from '@/utils/aiService';
 import { Label } from '@/components/ui/label';
@@ -25,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AiGenerateButtonProps {
   onGenerate: (text: string) => void;
@@ -74,9 +74,9 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
   const [activeTab, setActiveTab] = useState<'custom' | 'saved'>('custom');
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [selectedPrompt, setSelectedPrompt] = useState<SavedPrompt | null>(null);
+  const [apiWarning, setApiWarning] = useState<string | null>(null);
   const availableModels = getAvailableModels();
 
-  // Load saved prompts from localStorage
   useEffect(() => {
     const prompts = localStorage.getItem('saved_prompts');
     if (prompts) {
@@ -87,9 +87,24 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
         console.error('Error parsing saved prompts:', error);
       }
     }
+    
+    const aiConfig = localStorage.getItem('ai_config');
+    if (aiConfig) {
+      try {
+        const config = JSON.parse(aiConfig);
+        if (!config.openaiApiKey && !config.claudeApiKey && !config.geminiApiKey) {
+          setApiWarning('No AI API keys configured. Please set up API keys in Settings.');
+        } else {
+          setApiWarning(null);
+        }
+      } catch (error) {
+        console.error('Error parsing AI config:', error);
+      }
+    } else {
+      setApiWarning('No AI configuration found. Please set up API keys in Settings.');
+    }
   }, []);
 
-  // Filter prompts related to the current field type
   const filteredPrompts = savedPrompts.filter(prompt => {
     if (fieldType === 'description' || fieldType === 'short_description') {
       return prompt.category.includes('product_description');
@@ -104,13 +119,11 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
   });
 
   const handleOpen = () => {
-    // Create default prompt based on field type and product data
     let defaultFieldPrompt = `${fieldTypePrompts[fieldType]} ${productName}`;
     
     if (brand) defaultFieldPrompt += ` by ${brand}`;
     if (category) defaultFieldPrompt += ` in the ${category} category`;
     
-    // Add specific guidance based on field type
     switch (fieldType) {
       case 'description':
         defaultFieldPrompt += ". Include features, benefits, and use cases. Make it engaging and detailed.";
@@ -145,7 +158,30 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
     }
     
     setPrompt(defaultFieldPrompt);
-    setModel(availableModels[0]?.id || '');
+    
+    const aiConfig = localStorage.getItem('ai_config');
+    if (aiConfig) {
+      try {
+        const config = JSON.parse(aiConfig);
+        if (config.defaultModel) {
+          setModel(config.defaultModel);
+        } else if (config.openaiApiKey) {
+          setModel('gpt4o');
+        } else if (config.claudeApiKey) {
+          setModel('claude35_sonnet');
+        } else if (config.geminiApiKey) {
+          setModel('gemini_pro');
+        } else {
+          setModel(availableModels[0]?.id || '');
+        }
+      } catch (error) {
+        console.error('Error parsing AI config:', error);
+        setModel(availableModels[0]?.id || '');
+      }
+    } else {
+      setModel(availableModels[0]?.id || '');
+    }
+    
     setIsOpen(true);
     setSelectedPrompt(null);
     setActiveTab('custom');
@@ -154,7 +190,6 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
   const handleSelectPrompt = (prompt: SavedPrompt) => {
     setSelectedPrompt(prompt);
     
-    // Replace placeholders in the prompt with actual values
     let processedPrompt = prompt.prompt
       .replace(/{product_name}/g, productName || 'this product')
       .replace(/{brand_name}/g, brand || 'this brand')
@@ -184,7 +219,14 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
       toast.success('Content generated successfully');
     } catch (error) {
       console.error('Generation error:', error);
-      toast.error('Failed to generate content. Please check AI settings.');
+      
+      if (error.message?.includes('API key')) {
+        toast.error('Invalid or missing API key. Please check AI settings.');
+      } else if (error.message?.includes('Failed to fetch') || error.message?.includes('Network error')) {
+        toast.error('Network error. Please check your internet connection or try a different model.');
+      } else {
+        toast.error(`Failed to generate content: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -212,6 +254,22 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
               Create content based on the product details. Choose from saved prompts or customize your own.
             </DialogDescription>
           </DialogHeader>
+
+          {apiWarning && (
+            <Alert variant="warning" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                {apiWarning}{' '}
+                <Button 
+                  variant="link" 
+                  className="p-0 h-auto" 
+                  onClick={() => window.location.href = '/settings'}
+                >
+                  Go to Settings
+                </Button>
+              </AlertDescription>
+            </Alert>
+          )}
 
           <Tabs value={activeTab} onValueChange={(value: string) => setActiveTab(value as 'custom' | 'saved')} className="w-full">
             <TabsList className="grid w-full grid-cols-2">

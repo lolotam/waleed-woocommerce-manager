@@ -241,7 +241,7 @@ const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Promise<st
   }
 };
 
-// Claude API call
+// Claude API call - Updated with better error handling
 const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
   const modelConfig = MODEL_CONFIGS[modelKey];
@@ -258,7 +258,7 @@ const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<st
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased timeout to 20 seconds
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -272,18 +272,32 @@ const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<st
         max_tokens: modelConfig.maxTokens,
         messages: [{ role: 'user', content: prompt }]
       }),
-      signal: controller.signal
+      signal: controller.signal,
+      cache: 'no-store'
     });
 
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const error = await response.json();
+      const errorText = await response.text();
+      let errorMsg = `Claude API error: ${response.status}`;
+      
+      try {
+        const error = JSON.parse(errorText);
+        errorMsg = error.error?.message || errorMsg;
+      } catch (e) {
+        // If JSON parsing fails, use the raw error text
+        if (errorText) {
+          errorMsg = `Claude API error: ${errorText}`;
+        }
+      }
+      
       if (response.status === 401) {
         toast.error('Invalid Claude API key. Please check your API key in settings.');
         throw new Error('Invalid Claude API key');
       }
-      throw new Error(error.error?.message || `Claude API error: ${response.status}`);
+      
+      throw new Error(errorMsg);
     }
 
     const data = await response.json();
@@ -294,7 +308,7 @@ const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<st
     if (error.name === 'AbortError') {
       toast.error('Claude API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      toast.error('Network error connecting to Claude. Please check your internet connection.');
+      toast.error('Network error connecting to Claude. Check your internet connection or try a different model.');
     } else {
       toast.error(`Claude API error: ${error.message || 'Unknown error'}`);
     }
@@ -365,7 +379,7 @@ const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<st
   }
 };
 
-// Batch generation with Claude API
+// Batch generation with Claude API - Updated with better error handling
 interface BatchPrompt {
   id: string;
   prompt: string;
@@ -409,48 +423,80 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
       }));
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25-second timeout for batch
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
       
-      const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': config.claudeApiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'message-batches-2024-09-24'
-        },
-        body: JSON.stringify({ requests }),
-        signal: controller.signal
-      });
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': config.claudeApiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-beta': 'message-batches-2024-09-24'
+          },
+          body: JSON.stringify({ requests }),
+          signal: controller.signal,
+          cache: 'no-store'
+        });
 
-      clearTimeout(timeoutId);
+        clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error?.message || `Claude batch API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      
-      // Process batch results
-      data.responses.forEach((response: any) => {
-        if (response.status === 'success') {
-          const result = response.content[0].text;
-          results[response.custom_id] = result;
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorMsg = `Claude batch API error: ${response.status}`;
           
-          // Save to logs
-          const prompt = claudePrompts.find(p => p.id === response.custom_id);
-          if (prompt) {
-            saveLogEntry(prompt.prompt, result, prompt.model);
+          try {
+            const error = JSON.parse(errorText);
+            errorMsg = error.error?.message || errorMsg;
+          } catch (e) {
+            // If JSON parsing fails, use the raw error text
+            if (errorText) {
+              errorMsg = `Claude batch API error: ${errorText}`;
+            }
           }
-        } else {
-          results[response.custom_id] = `Error: ${response.error?.message || 'Unknown error'}`;
+          
+          // Fall back to individual processing
+          toast.warning(`Batch processing failed: ${errorMsg}. Trying individual requests...`);
+          throw new Error(errorMsg);
         }
-        completedPrompts++;
-      });
+
+        const data = await response.json();
+        
+        // Process batch results
+        data.responses.forEach((response: any) => {
+          if (response.status === 'success') {
+            const result = response.content[0].text;
+            results[response.custom_id] = result;
+            
+            // Save to logs
+            const prompt = claudePrompts.find(p => p.id === response.custom_id);
+            if (prompt) {
+              saveLogEntry(prompt.prompt, result, prompt.model);
+            }
+          } else {
+            results[response.custom_id] = `Error: ${response.error?.message || 'Unknown error'}`;
+          }
+          completedPrompts++;
+        });
+      } catch (error) {
+        // If batch API fails, fall back to individual processing
+        console.error('Batch processing failed, falling back to individual requests:', error);
+        
+        // Process Claude prompts individually as fallback
+        await Promise.all(claudePrompts.map(async (prompt) => {
+          try {
+            const result = await generateWithClaude(prompt.prompt, prompt.model);
+            results[prompt.id] = result;
+          } catch (error) {
+            results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+          }
+          completedPrompts++;
+          toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+        }));
+      }
     }
     
-    // Process OpenAI prompts individually (if needed)
+    // Process OpenAI prompts individually
     if (openaiPrompts.length > 0) {
       await Promise.all(openaiPrompts.map(async (prompt) => {
         try {
@@ -464,7 +510,7 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
       }));
     }
     
-    // Process Gemini prompts individually (if needed)
+    // Process Gemini prompts individually
     if (geminiPrompts.length > 0) {
       await Promise.all(geminiPrompts.map(async (prompt) => {
         try {
@@ -489,7 +535,7 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
   }
 };
 
-// Main function to generate content with any model
+// Main function to generate content with any model - Updated with fallback mechanism
 export const generateContent = async (prompt: string, model?: AIModel): Promise<string> => {
   const config = getAiConfig();
   const selectedModel = model || config.defaultModel;
@@ -504,26 +550,51 @@ export const generateContent = async (prompt: string, model?: AIModel): Promise<
   
   try {
     let result: string;
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    switch (modelConfig.provider) {
-      case 'openai':
-        result = await generateWithOpenAI(prompt, selectedModel);
-        break;
-      case 'anthropic':
-        result = await generateWithClaude(prompt, selectedModel);
-        break;
-      case 'google':
-        result = await generateWithGemini(prompt, selectedModel);
-        break;
-      default:
-        throw new Error(`Unknown provider for model: ${selectedModel}`);
+    // Try the selected model first
+    try {
+      switch (modelConfig.provider) {
+        case 'openai':
+          result = await generateWithOpenAI(prompt, selectedModel);
+          break;
+        case 'anthropic':
+          result = await generateWithClaude(prompt, selectedModel);
+          break;
+        case 'google':
+          result = await generateWithGemini(prompt, selectedModel);
+          break;
+        default:
+          throw new Error(`Unknown provider for model: ${selectedModel}`);
+      }
+      
+      // Save to logs
+      saveLogEntry(prompt, result, selectedModel);
+      
+      toast.success('Content generated successfully!');
+      return result;
+    } catch (error) {
+      // If Claude fails and it's not an API key error, try OpenAI as fallback
+      if (modelConfig.provider === 'anthropic' && 
+          !error.message.includes('API key') && 
+          config.openaiApiKey && 
+          isValidAPIKey(config.openaiApiKey, 'openai')) {
+        toast.warning(`Claude API error. Trying OpenAI as fallback...`);
+        
+        try {
+          result = await generateWithOpenAI(prompt, 'gpt4o');
+          saveLogEntry(prompt, result, 'gpt4o');
+          toast.success('Content generated successfully with fallback model!');
+          return result;
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError);
+          throw error; // Throw the original error
+        }
+      } else {
+        throw error;
+      }
     }
-    
-    // Save to logs
-    saveLogEntry(prompt, result, selectedModel);
-    
-    toast.success('Content generated successfully!');
-    return result;
   } catch (error) {
     toast.error(`Failed to generate content: ${error.message}`);
     throw error;
