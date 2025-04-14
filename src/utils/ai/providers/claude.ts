@@ -80,7 +80,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     if (error.name === 'AbortError') {
       throw new Error('Claude API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      throw new Error('Network error connecting to Claude. Check your internet connection.');
+      throw new Error('Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com.');
     }
     
     throw error;
@@ -156,7 +156,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     } else if (error.message.includes('Failed to fetch')) {
       return { 
         success: false, 
-        message: 'Network error. Please check your internet connection.' 
+        message: 'Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com.' 
       };
     }
     
@@ -251,6 +251,13 @@ export const processBatchWithClaude = async (
     }
   } catch (error) {
     console.error('Batch processing failed:', error);
+    
+    if (error.name === 'AbortError') {
+      throw new Error('Batch processing request timed out. Please try again later.');
+    } else if (error.message.includes('Failed to fetch')) {
+      throw new Error('Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com.');
+    }
+    
     throw error;
   }
 };
