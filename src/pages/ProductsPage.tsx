@@ -209,11 +209,17 @@ const ProductsPage = () => {
           <Pagination className="mt-6">
             <PaginationContent>
               <PaginationItem>
-                <PaginationPrevious 
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1 || isLoading}
-                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
-                />
+                {currentPage === 1 || isLoading ? (
+                  <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pl-2.5 h-10 px-4 py-2">
+                    <ChevronLeft className="h-4 w-4" />
+                    <span>Previous</span>
+                  </span>
+                ) : (
+                  <PaginationPrevious 
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    className=""
+                  />
+                )}
               </PaginationItem>
               
               {[...Array(Math.min(5, totalPages))].map((_, i) => {
@@ -242,11 +248,17 @@ const ProductsPage = () => {
               })}
               
               <PaginationItem>
-                <PaginationNext 
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages || isLoading}
-                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
-                />
+                {currentPage === totalPages || isLoading ? (
+                  <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pr-2.5 h-10 px-4 py-2">
+                    <span>Next</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </span>
+                ) : (
+                  <PaginationNext 
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    className=""
+                  />
+                )}
               </PaginationItem>
             </PaginationContent>
           </Pagination>
