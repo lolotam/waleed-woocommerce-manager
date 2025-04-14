@@ -21,6 +21,12 @@ export interface ProductSeoMeta {
   meta_description?: string;
 }
 
+export interface ProductDimensions {
+  length: string;
+  width: string;
+  height: string;
+}
+
 export interface Product {
   id?: number;
   name: string;
@@ -47,11 +53,7 @@ export interface Product {
   backorders_allowed?: boolean;
   backordered?: boolean;
   weight?: string;
-  dimensions?: {
-    length: string;
-    width: string;
-    height: string;
-  };
+  dimensions?: ProductDimensions;
   shipping_required?: boolean;
   shipping_taxable?: boolean;
   shipping_class?: string;
@@ -81,6 +83,12 @@ export interface Product {
     key: string;
     value: any;
   }>;
+  type?: 'simple' | 'grouped' | 'external' | 'variable';
+  gtin?: string;
+  upc?: string;
+  ean?: string;
+  isbn?: string;
+  brand?: string;
   rankmath_seo?: ProductSeoMeta;
   _links?: any;
 }
@@ -103,6 +111,12 @@ export interface ProductFormData {
   }>;
   tags: ProductTag[];
   images: ProductImage[];
+  type?: 'simple' | 'grouped' | 'external' | 'variable';
+  gtin?: string;
+  upc?: string;
+  ean?: string;
+  isbn?: string;
+  brand?: string;
   rankmath_seo: ProductSeoMeta;
 }
 
@@ -120,6 +134,12 @@ export const emptyProduct: ProductFormData = {
   categories: [],
   tags: [],
   images: [],
+  type: 'simple',
+  gtin: '',
+  upc: '',
+  ean: '',
+  isbn: '',
+  brand: '',
   rankmath_seo: {
     focus_keyword: '',
     meta_title: '',

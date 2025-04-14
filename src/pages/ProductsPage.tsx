@@ -33,7 +33,7 @@ const ProductsPage = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [loadAllProgress, setLoadAllProgress] = useState(0);
 
-  const MAX_PER_PAGE = 100;
+  const MAX_PER_PAGE = 5000;
 
   const { data: productsResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['products', currentPage, perPage],
@@ -298,7 +298,7 @@ const ProductsPage = () => {
                     defaultValue={[perPage]}
                     max={MAX_PER_PAGE}
                     min={1}
-                    step={10}
+                    step={100}
                     value={[perPage]}
                     onValueChange={handlePerPageChange}
                   />
@@ -308,7 +308,7 @@ const ProductsPage = () => {
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Note: WooCommerce API limits results to {MAX_PER_PAGE} items per page
+                  Note: Set between 1-{MAX_PER_PAGE} products per page
                 </p>
               </div>
               
