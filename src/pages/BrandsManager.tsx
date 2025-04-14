@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -7,57 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash, Pencil, Plus, Image, RefreshCw } from "lucide-react";
+import { Trash, Pencil, Plus, Image, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateContent, getAvailableModels } from "@/utils/aiService";
+import { brandsApi, mediaApi } from "@/utils/woocommerceApi";
+import { Brand, BrandFormData } from "@/types/brand";
 
-// Mock brands data
-const MOCK_BRANDS = [
-  { 
-    id: 1, 
-    name: 'Nike', 
-    slug: 'nike', 
-    description: 'Athletic footwear and apparel brand.', 
-    image_url: 'https://placehold.co/100x100?text=Nike',
-    meta_title: 'Nike - Just Do It',
-    meta_description: "Shop Nike's innovative collection of athletic footwear, apparel, and accessories.",
-    focus_keyword: 'nike athletic sportswear'
-  },
-  { 
-    id: 2, 
-    name: 'Adidas', 
-    slug: 'adidas', 
-    description: 'Sports and athletic wear brand from Germany.', 
-    image_url: 'https://placehold.co/100x100?text=Adidas',
-    meta_title: 'Adidas - Impossible Is Nothing',
-    meta_description: 'Discover adidas shoes, clothing and accessories. Shop the official adidas online store.',
-    focus_keyword: 'adidas sports clothing shoes'
-  },
-  { 
-    id: 3, 
-    name: 'Puma', 
-    slug: 'puma', 
-    description: 'Global athletic and casual footwear brand.', 
-    image_url: 'https://placehold.co/100x100?text=Puma',
-    meta_title: 'PUMA - Forever Faster',
-    meta_description: 'Shop PUMA for Sports and Lifestyle Shoes, Clothing, and more. Forever Faster.',
-    focus_keyword: 'puma sportswear lifestyle shoes'
-  },
-];
-
-interface Brand {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  image_url: string;
-  meta_title: string;
-  meta_description: string;
-  focus_keyword: string;
-}
-
-// AI Prompt suggestions
 const DEFAULT_PROMPTS = {
   description: "Create a concise, compelling brand description for {brand_name}. Include their unique selling points, product range, and brand values.",
   meta_title: "Create an SEO-friendly meta title (under 60 characters) for {brand_name}'s product category page.",
@@ -65,8 +21,8 @@ const DEFAULT_PROMPTS = {
 };
 
 const BrandsManager = () => {
-  const [brands, setBrands] = useState<Brand[]>(MOCK_BRANDS);
-  const [selectedBrand, setSelectedBrand] = useState<Brand | null>(null);
+  const queryClient = useQueryClient();
+  
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiFieldToGenerate, setAiFieldToGenerate] = useState('');
@@ -76,45 +32,122 @@ const BrandsManager = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [selectedBrand, setSelectedBrand] = useState<BrandFormData | null>(null);
   const [availableModels, setAvailableModels] = useState<{id: string, description: string, provider: string}[]>([]);
+
+  const { 
+    data: brands = [], 
+    isLoading, 
+    isError, 
+    error, 
+    refetch 
+  } = useQuery({
+    queryKey: ['brands'],
+    queryFn: async () => {
+      try {
+        return await brandsApi.getAll();
+      } catch (error) {
+        console.error("Failed to fetch brands:", error);
+        return [];
+      }
+    }
+  });
+
+  const createBrandMutation = useMutation({
+    mutationFn: (brandData: BrandFormData) => brandsApi.create(brandData),
+    onSuccess: () => {
+      toast.success('Brand created successfully');
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      setEditDialogOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error creating brand:', error);
+      toast.error('Failed to create brand');
+    }
+  });
+
+  const updateBrandMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: BrandFormData }) => 
+      brandsApi.update(id, data),
+    onSuccess: () => {
+      toast.success('Brand updated successfully');
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+      setEditDialogOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error updating brand:', error);
+      toast.error('Failed to update brand');
+    }
+  });
+
+  const deleteBrandMutation = useMutation({
+    mutationFn: (id: number) => brandsApi.delete(id),
+    onSuccess: () => {
+      toast.success('Brand deleted successfully');
+      queryClient.invalidateQueries({ queryKey: ['brands'] });
+    },
+    onError: (error) => {
+      console.error('Error deleting brand:', error);
+      toast.error('Failed to delete brand');
+    }
+  });
+
+  const uploadMediaMutation = useMutation({
+    mutationFn: async ({ file, metadata }: { file: File, metadata: any }) => {
+      return await mediaApi.upload(file, metadata);
+    },
+    onError: (error) => {
+      console.error('Error uploading media:', error);
+      toast.error('Failed to upload image');
+    }
+  });
 
   useEffect(() => {
     setAvailableModels(getAvailableModels());
   }, []);
 
-  // Create a new brand
   const createBrand = () => {
-    const newBrand: Brand = {
-      id: Math.max(0, ...brands.map(b => b.id)) + 1,
+    const newBrand: BrandFormData = {
       name: '',
       slug: '',
       description: '',
-      image_url: '',
-      meta_title: '',
-      meta_description: '',
-      focus_keyword: ''
+      image: null,
+      meta_data: [
+        { key: 'rank_math_title', value: '' },
+        { key: 'rank_math_description', value: '' },
+        { key: 'rank_math_focus_keyword', value: '' }
+      ]
     };
     setSelectedBrand(newBrand);
+    setImagePreview('');
     setEditDialogOpen(true);
   };
 
-  // Edit existing brand
   const editBrand = (brand: Brand) => {
-    setSelectedBrand({...brand});
-    setImagePreview(brand.image_url);
+    const formData: BrandFormData = {
+      name: brand.name,
+      slug: brand.slug,
+      description: brand.description,
+      image: brand.image,
+      meta_data: brand.meta_data || [
+        { key: 'rank_math_title', value: '' },
+        { key: 'rank_math_description', value: '' },
+        { key: 'rank_math_focus_keyword', value: '' }
+      ]
+    };
+    
+    setSelectedBrand(formData);
+    setImagePreview(brand.image?.src || '');
     setEditDialogOpen(true);
   };
 
-  // Delete brand
   const deleteBrand = (id: number) => {
     if (confirm('Are you sure you want to delete this brand?')) {
-      setBrands(brands.filter(brand => brand.id !== id));
-      toast.success('Brand deleted successfully');
+      deleteBrandMutation.mutate(id);
     }
   };
 
-  // Save brand
-  const saveBrand = () => {
+  const saveBrand = async () => {
     if (!selectedBrand) return;
     
     if (!selectedBrand.name) {
@@ -126,20 +159,51 @@ const BrandsManager = () => {
       selectedBrand.slug = selectedBrand.name.toLowerCase().replace(/\s+/g, '-');
     }
 
-    if (!brands.some(brand => brand.id === selectedBrand.id)) {
-      setBrands([...brands, selectedBrand]);
-      toast.success('Brand created successfully');
-    } else {
-      setBrands(brands.map(brand => 
-        brand.id === selectedBrand.id ? selectedBrand : brand
-      ));
-      toast.success('Brand updated successfully');
+    if (uploadedImage) {
+      try {
+        const imageMetadata = {
+          title: selectedBrand.name,
+          alt_text: `${selectedBrand.name} logo`,
+          caption: '',
+          description: ''
+        };
+        
+        const uploadResult = await uploadMediaMutation.mutateAsync({ 
+          file: uploadedImage, 
+          metadata: imageMetadata 
+        });
+        
+        selectedBrand.image = {
+          id: uploadResult.id,
+          src: uploadResult.source_url,
+          alt: uploadResult.alt_text,
+          title: uploadResult.title?.rendered,
+          caption: uploadResult.caption?.rendered,
+          description: uploadResult.description?.rendered
+        };
+      } catch (error) {
+        console.error('Image upload failed:', error);
+      }
     }
-    
-    setEditDialogOpen(false);
+
+    if (selectedBrand.meta_data?.length === 0) {
+      selectedBrand.meta_data = [
+        { key: 'rank_math_title', value: '' },
+        { key: 'rank_math_description', value: '' },
+        { key: 'rank_math_focus_keyword', value: '' }
+      ];
+    }
+
+    if (!selectedBrand.id) {
+      createBrandMutation.mutate(selectedBrand);
+    } else {
+      updateBrandMutation.mutate({ 
+        id: selectedBrand.id, 
+        data: selectedBrand 
+      });
+    }
   };
 
-  // Handle image upload
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -147,18 +211,32 @@ const BrandsManager = () => {
     const reader = new FileReader();
     reader.onload = () => {
       setImagePreview(reader.result as string);
-      if (selectedBrand) {
-        setSelectedBrand({
-          ...selectedBrand,
-          image_url: reader.result as string
-        });
-      }
     };
     reader.readAsDataURL(file);
     setUploadedImage(file);
   };
 
-  // Open AI dialog for generating content
+  const getMetaValue = (key: string): string => {
+    if (!selectedBrand?.meta_data) return '';
+    const meta = selectedBrand.meta_data.find(m => m.key === key);
+    return meta ? meta.value : '';
+  };
+
+  const setMetaValue = (key: string, value: string) => {
+    if (!selectedBrand) return;
+    
+    const meta_data = [...(selectedBrand.meta_data || [])];
+    const index = meta_data.findIndex(m => m.key === key);
+    
+    if (index >= 0) {
+      meta_data[index] = { ...meta_data[index], value };
+    } else {
+      meta_data.push({ key, value });
+    }
+    
+    setSelectedBrand({ ...selectedBrand, meta_data });
+  };
+
   const openAiDialog = (field: string) => {
     if (!selectedBrand) return;
     
@@ -172,30 +250,32 @@ const BrandsManager = () => {
     setAiDialogOpen(true);
   };
 
-  // Generate content using AI
   const generateAiContent = async () => {
     if (!selectedBrand || !aiPrompt) return;
     
     setIsGenerating(true);
     
     try {
-      const result = await generateContent(aiPrompt, aiModel as any);
+      const result = await generateContent(aiPrompt, aiModel);
       setAiResult(result);
     } catch (error) {
       console.error('AI generation error:', error);
+      toast.error('Failed to generate AI content');
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Apply generated AI content to the selected field
   const applyAiContent = () => {
     if (!selectedBrand || !aiResult) return;
     
-    setSelectedBrand({
-      ...selectedBrand,
-      [aiFieldToGenerate]: aiResult
-    });
+    if (aiFieldToGenerate === 'description') {
+      setSelectedBrand({ ...selectedBrand, description: aiResult });
+    } else if (aiFieldToGenerate === 'meta_title') {
+      setMetaValue('rank_math_title', aiResult);
+    } else if (aiFieldToGenerate === 'meta_description') {
+      setMetaValue('rank_math_description', aiResult);
+    }
     
     setAiDialogOpen(false);
     toast.success(`${aiFieldToGenerate.charAt(0).toUpperCase() + aiFieldToGenerate.slice(1)} updated with AI content`);
@@ -212,6 +292,32 @@ const BrandsManager = () => {
 
   const groupedModels = getGroupedModels();
 
+  if (isError) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Brand Manager</h1>
+            <p className="text-muted-foreground">Create and manage product brands</p>
+          </div>
+        </div>
+        
+        <Card className="bg-destructive/10 border-destructive">
+          <CardContent className="pt-6">
+            <p>Failed to load brands. {error?.message || 'Please check your WooCommerce connection settings.'}</p>
+            <Button 
+              variant="outline" 
+              className="mt-4"
+              onClick={() => refetch()}
+            >
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -219,7 +325,7 @@ const BrandsManager = () => {
           <h1 className="text-3xl font-bold tracking-tight">Brand Manager</h1>
           <p className="text-muted-foreground">Create and manage product brands</p>
         </div>
-        <Button onClick={createBrand}>
+        <Button onClick={createBrand} disabled={createBrandMutation.isPending}>
           <Plus className="mr-2 h-4 w-4" />
           Add Brand
         </Button>
@@ -241,49 +347,68 @@ const BrandsManager = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {brands.map((brand) => (
-                <TableRow key={brand.id}>
-                  <TableCell>
-                    {brand.image_url ? (
-                      <img 
-                        src={brand.image_url} 
-                        alt={brand.name} 
-                        className="w-10 h-10 object-cover rounded"
-                      />
-                    ) : (
-                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
-                        <Image className="h-5 w-5 text-gray-500 dark:text-gray-400" />
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{brand.name}</TableCell>
-                  <TableCell>{brand.slug}</TableCell>
-                  <TableCell className="max-w-xs truncate">{brand.description}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => editBrand(brand)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => deleteBrand(brand.id)}>
-                        <Trash className="h-4 w-4" />
-                      </Button>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8">
+                    <div className="flex justify-center items-center">
+                      <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                      Loading brands...
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-              {brands.length === 0 && (
+              ) : brands.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                     No brands found. Add your first brand to get started.
                   </TableCell>
                 </TableRow>
+              ) : (
+                brands.map((brand: Brand) => (
+                  <TableRow key={brand.id}>
+                    <TableCell>
+                      {brand.image ? (
+                        <img 
+                          src={brand.image.src} 
+                          alt={brand.image.alt} 
+                          className="w-10 h-10 object-cover rounded"
+                        />
+                      ) : (
+                        <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                          <Image className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{brand.name}</TableCell>
+                    <TableCell>{brand.slug}</TableCell>
+                    <TableCell className="max-w-xs truncate">{brand.description}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => editBrand(brand)}
+                          disabled={updateBrandMutation.isPending}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => deleteBrand(brand.id)}
+                          disabled={deleteBrandMutation.isPending}
+                        >
+                          <Trash className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
               )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
       
-      {/* Edit Brand Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -385,6 +510,65 @@ const BrandsManager = () => {
                       </div>
                     </div>
                   </div>
+                  
+                  {imagePreview && (
+                    <div className="grid gap-4 pt-4 border-t">
+                      <Label>Image Metadata</Label>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="image-alt">Alt Text</Label>
+                        <Input 
+                          id="image-alt" 
+                          value={selectedBrand.image?.alt || ''}
+                          onChange={(e) => setSelectedBrand({
+                            ...selectedBrand,
+                            image: { ...selectedBrand.image, alt: e.target.value }
+                          })}
+                          placeholder="Alt text for accessibility"
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="image-title">Title</Label>
+                        <Input 
+                          id="image-title" 
+                          value={selectedBrand.image?.title || ''}
+                          onChange={(e) => setSelectedBrand({
+                            ...selectedBrand,
+                            image: { ...selectedBrand.image, title: e.target.value }
+                          })}
+                          placeholder="Image title"
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="image-caption">Caption</Label>
+                        <Input 
+                          id="image-caption" 
+                          value={selectedBrand.image?.caption || ''}
+                          onChange={(e) => setSelectedBrand({
+                            ...selectedBrand,
+                            image: { ...selectedBrand.image, caption: e.target.value }
+                          })}
+                          placeholder="Image caption"
+                        />
+                      </div>
+                      
+                      <div className="grid gap-2">
+                        <Label htmlFor="image-description">Description</Label>
+                        <Textarea 
+                          id="image-description" 
+                          value={selectedBrand.image?.description || ''}
+                          onChange={(e) => setSelectedBrand({
+                            ...selectedBrand,
+                            image: { ...selectedBrand.image, description: e.target.value }
+                          })}
+                          placeholder="Image description"
+                          rows={3}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
               
@@ -405,13 +589,13 @@ const BrandsManager = () => {
                     </div>
                     <Input 
                       id="meta_title" 
-                      value={selectedBrand.meta_title} 
-                      onChange={(e) => setSelectedBrand({...selectedBrand, meta_title: e.target.value})}
+                      value={getMetaValue('rank_math_title')} 
+                      onChange={(e) => setMetaValue('rank_math_title', e.target.value)}
                       placeholder="Enter meta title (max 60 characters)"
                       maxLength={60}
                     />
                     <div className="text-xs text-muted-foreground text-right">
-                      {selectedBrand.meta_title.length}/60 characters
+                      {getMetaValue('rank_math_title').length}/60 characters
                     </div>
                   </div>
                   
@@ -430,14 +614,14 @@ const BrandsManager = () => {
                     </div>
                     <Textarea 
                       id="meta_description" 
-                      value={selectedBrand.meta_description} 
-                      onChange={(e) => setSelectedBrand({...selectedBrand, meta_description: e.target.value})}
+                      value={getMetaValue('rank_math_description')} 
+                      onChange={(e) => setMetaValue('rank_math_description', e.target.value)}
                       placeholder="Enter meta description (max 160 characters)"
                       maxLength={160}
                       rows={3}
                     />
                     <div className="text-xs text-muted-foreground text-right">
-                      {selectedBrand.meta_description.length}/160 characters
+                      {getMetaValue('rank_math_description').length}/160 characters
                     </div>
                   </div>
                   
@@ -445,8 +629,8 @@ const BrandsManager = () => {
                     <Label htmlFor="focus_keyword">Focus Keyword</Label>
                     <Input 
                       id="focus_keyword" 
-                      value={selectedBrand.focus_keyword} 
-                      onChange={(e) => setSelectedBrand({...selectedBrand, focus_keyword: e.target.value})}
+                      value={getMetaValue('rank_math_focus_keyword')} 
+                      onChange={(e) => setMetaValue('rank_math_focus_keyword', e.target.value)}
                       placeholder="Enter focus keyword(s), comma separated"
                     />
                   </div>
@@ -454,11 +638,25 @@ const BrandsManager = () => {
               </TabsContent>
               
               <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
-                <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setEditDialogOpen(false)}
+                  disabled={createBrandMutation.isPending || updateBrandMutation.isPending}
+                >
                   Cancel
                 </Button>
-                <Button onClick={saveBrand}>
-                  Save Brand
+                <Button 
+                  onClick={saveBrand}
+                  disabled={createBrandMutation.isPending || updateBrandMutation.isPending}
+                >
+                  {(createBrandMutation.isPending || updateBrandMutation.isPending) ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    'Save Brand'
+                  )}
                 </Button>
               </div>
             </Tabs>
@@ -466,7 +664,6 @@ const BrandsManager = () => {
         </DialogContent>
       </Dialog>
 
-      {/* AI Generation Dialog */}
       <Dialog open={aiDialogOpen} onOpenChange={setAiDialogOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
@@ -476,37 +673,76 @@ const BrandsManager = () => {
           <div className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="ai_model">AI Model</Label>
-              <Select value={aiModel} onValueChange={(value) => setAiModel(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select AI model" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectLabel>OpenAI Models</SelectLabel>
+              <Tabs defaultValue="openai" className="w-full">
+                <TabsList className="grid grid-cols-3">
+                  <TabsTrigger value="openai">OpenAI</TabsTrigger>
+                  <TabsTrigger value="anthropic">Claude</TabsTrigger>
+                  <TabsTrigger value="google">Gemini</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="openai" className="space-y-4 pt-4">
+                  <div className="grid gap-2">
                     {groupedModels.openai.map(model => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.description}
-                      </SelectItem>
+                      <div key={model.id} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id={model.id}
+                          name="ai-model"
+                          value={model.id}
+                          checked={aiModel === model.id}
+                          onChange={() => setAiModel(model.id)}
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor={model.id} className="text-sm font-medium leading-none cursor-pointer">
+                          {model.description}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectGroup>
-                  <SelectGroup>
-                    <SelectLabel>Claude Models</SelectLabel>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="anthropic" className="space-y-4 pt-4">
+                  <div className="grid gap-2">
                     {groupedModels.anthropic.map(model => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.description}
-                      </SelectItem>
+                      <div key={model.id} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id={model.id}
+                          name="ai-model"
+                          value={model.id}
+                          checked={aiModel === model.id}
+                          onChange={() => setAiModel(model.id)}
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor={model.id} className="text-sm font-medium leading-none cursor-pointer">
+                          {model.description}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectGroup>
-                  <SelectGroup>
-                    <SelectLabel>Gemini Models</SelectLabel>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="google" className="space-y-4 pt-4">
+                  <div className="grid gap-2">
                     {groupedModels.google.map(model => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.description}
-                      </SelectItem>
+                      <div key={model.id} className="flex items-center space-x-2">
+                        <input
+                          type="radio"
+                          id={model.id}
+                          name="ai-model"
+                          value={model.id}
+                          checked={aiModel === model.id}
+                          onChange={() => setAiModel(model.id)}
+                          className="h-4 w-4 border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor={model.id} className="text-sm font-medium leading-none cursor-pointer">
+                          {model.description}
+                        </Label>
+                      </div>
                     ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+                  </div>
+                </TabsContent>
+              </Tabs>
             </div>
             
             <div className="grid gap-2">
@@ -525,7 +761,14 @@ const BrandsManager = () => {
               disabled={isGenerating || !aiPrompt}
               className="w-full"
             >
-              {isGenerating ? 'Generating...' : 'Generate Content'}
+              {isGenerating ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                'Generate Content'
+              )}
             </Button>
             
             {aiResult && (
