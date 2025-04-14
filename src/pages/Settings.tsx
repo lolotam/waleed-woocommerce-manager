@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +11,7 @@ import { testConnection } from "@/utils/woocommerceApi";
 import { toast } from "sonner";
 import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { testOpenAIConnection, testClaudeConnection, testGeminiConnection } from "@/utils/aiService";
 
 const Settings = () => {
   // WooCommerce settings
@@ -27,6 +29,9 @@ const Settings = () => {
   const [testingOpenAI, setTestingOpenAI] = useState(false);
   const [testingClaude, setTestingClaude] = useState(false);
   const [testingGemini, setTestingGemini] = useState(false);
+  const [showOpenAIKey, setShowOpenAIKey] = useState(false);
+  const [showClaudeKey, setShowClaudeKey] = useState(false);
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
   
   // Application settings
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
@@ -131,12 +136,21 @@ const Settings = () => {
     toast.success('Application settings saved');
   };
   
-  const isApiKeyValid = (key: string): boolean => {
-    return key.length >= 20;
-  };
-  
-  const toggleConsumerKeyVisibility = () => {
-    setShowConsumerKey(!showConsumerKey);
+  const toggleKeyVisibility = (keyType: 'openai' | 'claude' | 'gemini' | 'consumer') => {
+    switch (keyType) {
+      case 'openai':
+        setShowOpenAIKey(!showOpenAIKey);
+        break;
+      case 'claude':
+        setShowClaudeKey(!showClaudeKey);
+        break;
+      case 'gemini':
+        setShowGeminiKey(!showGeminiKey);
+        break;
+      case 'consumer':
+        setShowConsumerKey(!showConsumerKey);
+        break;
+    }
   };
   
   const maskValue = (value: string, showFull: boolean) => {
@@ -147,32 +161,20 @@ const Settings = () => {
     return `${firstChars}${'•'.repeat(10)}${lastChars}`;
   };
 
-  const testOpenAIConnection = async () => {
+  const handleOpenAITest = async () => {
     if (!openaiApiKey) {
       toast.error('OpenAI API key is required');
       return;
     }
 
-    if (!isApiKeyValid(openaiApiKey)) {
-      toast.error('OpenAI API key appears to be invalid');
-      return;
-    }
-
     setTestingOpenAI(true);
     try {
-      const response = await fetch('https://api.openai.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${openaiApiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Successfully connected to OpenAI API');
+      const result = await testOpenAIConnection(openaiApiKey);
+      
+      if (result.success) {
+        toast.success(result.message);
       } else {
-        const error = await response.json();
-        toast.error(`Failed to connect to OpenAI API: ${error.error?.message || 'Unknown error'}`);
+        toast.error(result.message);
       }
     } catch (error) {
       console.error('OpenAI connection test error:', error);
@@ -182,33 +184,20 @@ const Settings = () => {
     }
   };
 
-  const testClaudeConnection = async () => {
+  const handleClaudeTest = async () => {
     if (!claudeApiKey) {
       toast.error('Claude API key is required');
       return;
     }
 
-    if (!isApiKeyValid(claudeApiKey)) {
-      toast.error('Claude API key appears to be invalid');
-      return;
-    }
-
     setTestingClaude(true);
     try {
-      const response = await fetch('https://api.anthropic.com/v1/models', {
-        method: 'GET',
-        headers: {
-          'x-api-key': claudeApiKey,
-          'anthropic-version': '2023-06-01',
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Successfully connected to Claude API');
+      const result = await testClaudeConnection(claudeApiKey);
+      
+      if (result.success) {
+        toast.success(result.message);
       } else {
-        const error = await response.json();
-        toast.error(`Failed to connect to Claude API: ${error.error?.message || 'Unknown error'}`);
+        toast.error(result.message);
       }
     } catch (error) {
       console.error('Claude connection test error:', error);
@@ -218,31 +207,20 @@ const Settings = () => {
     }
   };
 
-  const testGeminiConnection = async () => {
+  const handleGeminiTest = async () => {
     if (!geminiApiKey) {
       toast.error('Gemini API key is required');
       return;
     }
 
-    if (!isApiKeyValid(geminiApiKey)) {
-      toast.error('Gemini API key appears to be invalid');
-      return;
-    }
-
     setTestingGemini(true);
     try {
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        toast.success('Successfully connected to Gemini API');
+      const result = await testGeminiConnection(geminiApiKey);
+      
+      if (result.success) {
+        toast.success(result.message);
       } else {
-        const error = await response.json();
-        toast.error(`Failed to connect to Gemini API: ${error.error?.message || 'Unknown error'}`);
+        toast.error(result.message);
       }
     } catch (error) {
       console.error('Gemini connection test error:', error);
@@ -302,7 +280,7 @@ const Settings = () => {
                   <Input
                     id="consumer-key"
                     placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    value={consumerKey}
+                    value={maskValue(consumerKey, showConsumerKey)}
                     onChange={(e) => setConsumerKey(e.target.value)}
                     type="text"
                     className="pr-10"
@@ -311,7 +289,7 @@ const Settings = () => {
                     type="button"
                     variant="ghost"
                     className="absolute right-0 top-0 h-full px-3"
-                    onClick={toggleConsumerKeyVisibility}
+                    onClick={() => toggleKeyVisibility('consumer')}
                   >
                     {showConsumerKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
                   </Button>
@@ -358,24 +336,30 @@ const Settings = () => {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="openai-api-key">OpenAI API Key</Label>
-                  {openaiApiKey && isApiKeyValid(openaiApiKey) && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <Input
                       id="openai-api-key"
-                      type="password"
+                      type={showOpenAIKey ? "text" : "password"}
                       placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                       value={openaiApiKey}
                       onChange={(e) => setOpenaiApiKey(e.target.value)}
+                      className="pr-10"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleKeyVisibility('openai')}
+                    >
+                      {showOpenAIKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                    </Button>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={testOpenAIConnection}
+                    onClick={handleOpenAITest}
                     disabled={testingOpenAI || !openaiApiKey}
                     className="whitespace-nowrap"
                   >
@@ -383,29 +367,38 @@ const Settings = () => {
                     {testingOpenAI ? 'Testing...' : 'Test Connection'}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from the <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">OpenAI platform</a>
+                </p>
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="claude-api-key">Claude API Key</Label>
-                  {claudeApiKey && isApiKeyValid(claudeApiKey) && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <Input
                       id="claude-api-key"
-                      type="password"
+                      type={showClaudeKey ? "text" : "password"}
                       placeholder="sk-ant-api03-xxxxxxxx"
                       value={claudeApiKey}
                       onChange={(e) => setClaudeApiKey(e.target.value)}
+                      className="pr-10"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleKeyVisibility('claude')}
+                    >
+                      {showClaudeKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                    </Button>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={testClaudeConnection}
+                    onClick={handleClaudeTest}
                     disabled={testingClaude || !claudeApiKey}
                     className="whitespace-nowrap"
                   >
@@ -413,29 +406,38 @@ const Settings = () => {
                     {testingClaude ? 'Testing...' : 'Test Connection'}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from <a href="https://console.anthropic.com/keys" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Anthropic's console</a>
+                </p>
               </div>
               
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="gemini-api-key">Gemini API Key</Label>
-                  {geminiApiKey && isApiKeyValid(geminiApiKey) && (
-                    <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  )}
                 </div>
                 <div className="flex gap-2">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <Input
                       id="gemini-api-key"
-                      type="password"
+                      type={showGeminiKey ? "text" : "password"}
                       placeholder="AIzaSyxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
                       value={geminiApiKey}
                       onChange={(e) => setGeminiApiKey(e.target.value)}
+                      className="pr-10"
                     />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="absolute right-0 top-0 h-full px-3"
+                      onClick={() => toggleKeyVisibility('gemini')}
+                    >
+                      {showGeminiKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                    </Button>
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={testGeminiConnection}
+                    onClick={handleGeminiTest}
                     disabled={testingGemini || !geminiApiKey}
                     className="whitespace-nowrap"
                   >
@@ -443,6 +445,9 @@ const Settings = () => {
                     {testingGemini ? 'Testing...' : 'Test Connection'}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>
+                </p>
               </div>
               
               <div className="space-y-2 pt-4">
