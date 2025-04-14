@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Trash, Pencil, Plus, Image, RefreshCw, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { generateContent, getAvailableModels } from "@/utils/aiService";
-import { brandsApi, mediaApi } from "@/utils/api";
+import { brandsApi, mediaApi, extractData } from "@/utils/api";
 import { Brand, BrandFormData } from "@/types/brand";
 import { WooCommerceResponse } from "@/utils/api/woocommerceCore";
 
@@ -46,15 +46,16 @@ const BrandsManager = () => {
     queryKey: ['brands'],
     queryFn: async () => {
       try {
-        return await brandsApi.getAll();
+        const response = await brandsApi.getAll();
+        return extractData(response);
       } catch (error) {
         console.error("Failed to fetch brands:", error);
-        return { data: [] };
+        return [];
       }
     }
   });
   
-  const brands = brandsResponse.data || [];
+  const brands = brandsResponse as Brand[] || [];
 
   const createBrandMutation = useMutation({
     mutationFn: (brandData: BrandFormData) => brandsApi.create(brandData),
@@ -259,7 +260,7 @@ const BrandsManager = () => {
     setIsGenerating(true);
     
     try {
-      const result = await generateContent(aiPrompt, aiModel);
+      const result = await generateContent(aiPrompt, aiModel as any);
       setAiResult(result);
     } catch (error) {
       console.error('AI generation error:', error);

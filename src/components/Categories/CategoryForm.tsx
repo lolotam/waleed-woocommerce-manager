@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { categoriesApi, mediaApi } from '@/utils/api';
+import { categoriesApi, mediaApi, extractData } from '@/utils/api';
 import { toast } from 'sonner';
 import { Category, CategoryFormData } from '@/types/category';
 import { Button } from '@/components/ui/button';
@@ -21,7 +21,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ImageUploader from '@/components/Products/ImageUploader';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
-import { WooCommerceResponse } from '@/utils/api/woocommerceCore';
 
 interface CategoryFormProps {
   category?: Category | null;
@@ -37,10 +36,13 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
 
   const { data: categoriesResponse } = useQuery({
     queryKey: ['categories-dropdown'],
-    queryFn: () => categoriesApi.getAll({ per_page: 100 }),
+    queryFn: async () => {
+      const response = await categoriesApi.getAll({ per_page: 100 });
+      return extractData(response);
+    },
   });
   
-  const categories = categoriesResponse?.data || [];
+  const categories = categoriesResponse as Category[] || [];
 
   const getMetaValue = (key: string) => {
     if (!category?.meta_data) return '';
