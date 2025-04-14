@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Table, 
@@ -885,4 +886,109 @@ const ProductsList: React.FC<ProductsListProps> = ({
             onClick={onRefresh}
             title="Refresh products"
           >
-            <RefreshCw className
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+      
+      {/* Table component rendering goes here */}
+      <div className={enableHorizontalScroll ? "overflow-x-auto" : ""}>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {visibleColumns.map((column) => (
+                <TableHead
+                  key={column.id}
+                  className={`${getColumnAlign(column)} ${column.width || ''}`}
+                  draggable={column.id !== 'selection'}
+                  onDragStart={() => handleColumnDragStart(column.id)}
+                  onDragOver={() => handleColumnDragOver(column.id)}
+                  onDragEnd={handleColumnDragEnd}
+                  style={{ cursor: column.id !== 'selection' ? 'grab' : 'default' }}
+                >
+                  {column.id === 'selection' ? (
+                    <Checkbox
+                      checked={
+                        selectedProductCount > 0 && 
+                        selectedProductCount === sortedProducts.length
+                      }
+                      onCheckedChange={handleSelectAllProducts}
+                    />
+                  ) : column.sortable ? (
+                    <button 
+                      className="flex items-center w-full"
+                      onClick={() => handleSort(column.id as keyof Product)}
+                    >
+                      {column.name}
+                      {renderSortIcon(column.id as keyof Product)}
+                    </button>
+                  ) : (
+                    column.name
+                  )}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {sortedProducts.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={visibleColumns.length}
+                  className="h-24 text-center"
+                >
+                  No products found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              sortedProducts.map((product) => (
+                <TableRow key={product.id}>
+                  {visibleColumns.map((column) => (
+                    <TableCell
+                      key={`${product.id}-${column.id}`}
+                      className={getColumnAlign(column)}
+                    >
+                      {renderCellContent(product, column.id)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{productToDelete?.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmDelete();
+              }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+};
+
+export default ProductsList;
