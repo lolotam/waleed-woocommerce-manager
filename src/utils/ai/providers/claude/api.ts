@@ -50,8 +50,13 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
 
     clearTimeout(timeoutId);
 
+    // Log response status for debugging
+    console.log('Claude API response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Claude API error response:', errorText);
+      
       let errorMsg = `Claude API error: ${response.status}`;
       
       try {

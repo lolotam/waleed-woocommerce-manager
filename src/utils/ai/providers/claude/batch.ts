@@ -31,6 +31,7 @@ export const processBatchWithClaude = async (
     const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
     
     console.log('Connecting to Claude Batch API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
+    console.log('Batch API URL being used:', fetchUrl);
     
     const response = await fetch(fetchUrl, {
       method: 'POST',
@@ -50,9 +51,14 @@ export const processBatchWithClaude = async (
     });
 
     clearTimeout(timeoutId);
+    
+    // Log response status for debugging
+    console.log('Claude Batch API response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Claude Batch API error response:', errorText);
+      
       let errorMsg = `Claude batch API error: ${response.status}`;
       
       try {
@@ -73,6 +79,7 @@ export const processBatchWithClaude = async (
     }
 
     const data = await response.json();
+    console.log('Claude Batch API response data:', JSON.stringify(data).substring(0, 200) + '...');
     
     // Process batch results
     if (data.responses && Array.isArray(data.responses)) {
