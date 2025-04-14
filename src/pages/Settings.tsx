@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -197,7 +196,16 @@ const Settings = () => {
       if (result.success) {
         toast.success(result.message);
       } else {
-        toast.error(result.message);
+        if (result.message.includes('Network error')) {
+          toast.error(result.message, { duration: 10000 });
+          
+          toast.error(
+            "Troubleshooting tips: 1) Check if api.anthropic.com is accessible from your browser, 2) Try disabling any content blockers, 3) If on a corporate network, check with IT about firewall restrictions",
+            { duration: 15000 }
+          );
+        } else {
+          toast.error(result.message);
+        }
       }
     } catch (error) {
       console.error('Claude connection test error:', error);
