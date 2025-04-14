@@ -47,14 +47,15 @@ const ProductsPage = () => {
         };
         
         const response = await productsApi.getAll(params);
-        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination(response);
+        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination<Product[]>(response);
         
-        const total = totalItems || data.length;
+        const products = Array.isArray(data) ? data : [];
+        const total = totalItems || products.length;
+        
         setTotalProducts(total);
-        
         setTotalPages(responseTotalPages || Math.max(1, Math.ceil(total / safePerPage)));
         
-        return data || [];
+        return products;
       } catch (err) {
         console.error('Error fetching products:', err);
         toast.error('Failed to load products. Please check your WooCommerce connection.');
@@ -231,7 +232,7 @@ const ProductsPage = () => {
     );
   }
 
-  const displayProducts = allProducts.length > 0 ? allProducts : (productsResponse || []);
+  const displayProducts: Product[] = allProducts.length > 0 ? allProducts : (Array.isArray(productsResponse) ? productsResponse : []);
 
   const getPaginationRange = () => {
     const range: (number | 'ellipsis')[] = [];

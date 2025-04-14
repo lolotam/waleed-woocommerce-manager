@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, extractData } from '@/utils/api';
@@ -19,12 +18,11 @@ const CategoriesPage = () => {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await categoriesApi.getAll({ per_page: 100 });
-      return extractData(response);
+      return extractData<Category[]>(response);
     },
   });
   
-  // Ensure categories is always an array, even if categoriesResponse is undefined
-  const categories: Category[] = categoriesResponse || [];
+  const categories: Category[] = Array.isArray(categoriesResponse) ? categoriesResponse : [];
 
   const handleCloseForm = () => {
     setIsAddingCategory(false);

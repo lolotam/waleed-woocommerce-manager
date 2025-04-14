@@ -1,3 +1,4 @@
+
 /**
  * WooCommerce Products API
  */
@@ -9,6 +10,8 @@ const productsApi = {
   create: (data: any) => woocommerceApi('products', 'POST', data),
   update: (id: number, data: any) => woocommerceApi(`products/${id}`, 'PUT', data),
   delete: (id: number) => woocommerceApi(`products/${id}`, 'DELETE'),
+  // Adding back the getTags method that was removed
+  getTags: (params = {}) => woocommerceApi(`products/tags?${new URLSearchParams(params).toString()}`)
 };
 
 // Make sure extractDataWithPagination is exported
