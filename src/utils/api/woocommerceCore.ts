@@ -48,7 +48,7 @@ export const woocommerceApi = async (endpoint: string, method = 'GET', data = nu
   try {
     // Add a timeout to the fetch request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for large catalogs
     
     const response = await fetch(url.toString(), {
       method,
@@ -66,7 +66,16 @@ export const woocommerceApi = async (endpoint: string, method = 'GET', data = nu
       throw new Error(errorData.message || `HTTP error ${response.status}`);
     }
 
-    return await response.json();
+    // Extract the response body
+    const responseData = await response.json();
+    
+    // Add headers to the response object so we can access pagination info
+    responseData.headers = {};
+    response.headers.forEach((value, key) => {
+      responseData.headers[key] = value;
+    });
+    
+    return responseData;
   } catch (error) {
     console.error('WooCommerce API error:', error);
     

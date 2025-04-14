@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -31,6 +30,7 @@ const ProductsPage = () => {
   const [totalProducts, setTotalProducts] = useState(0);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loadAllProgress, setLoadAllProgress] = useState(0);
 
   // Constants for WooCommerce API limitations
   const MAX_PER_PAGE = 100; // WooCommerce API maximum per_page value
@@ -50,7 +50,10 @@ const ProductsPage = () => {
         const response = await productsApi.getAll(params);
         
         // Get total from headers if available or fallback to array length
-        const total = response.length || 0;
+        const total = response.length > 0 
+          ? parseInt(response.headers?.['x-wp-total'] || response.length) 
+          : 0;
+        
         setTotalProducts(total);
         
         // Calculate total pages
@@ -110,7 +113,9 @@ const ProductsPage = () => {
 
   const handleLoadAll = async () => {
     setIsLoadingAll(true);
-    toast.info('Loading all products. This may take a while...');
+    setAllProducts([]);
+    setLoadAllProgress(0);
+    toast.info('Loading all products. This may take a while for large stores...');
     
     try {
       let page = 1;
@@ -124,34 +129,74 @@ const ProductsPage = () => {
       };
       
       const firstPageResponse = await productsApi.getAll(params);
+      
+      if (!Array.isArray(firstPageResponse)) {
+        throw new Error('Invalid response format from WooCommerce API');
+      }
+      
       allProductsArray.push(...firstPageResponse);
       
+      // Get the total number of products from WooCommerce headers if available
+      let totalProductCount = firstPageResponse.length;
+      if (firstPageResponse.headers && firstPageResponse.headers['x-wp-total']) {
+        totalProductCount = parseInt(firstPageResponse.headers['x-wp-total']);
+      }
+      
+      // Calculate the estimated number of pages
+      const estimatedTotalPages = Math.ceil(totalProductCount / MAX_PER_PAGE);
+      setLoadAllProgress(Math.round((1 / estimatedTotalPages) * 100));
+      
       // If there are potentially more products, keep fetching
-      while (hasMoreProducts && page < 100) { // Safety limit of 100 pages
+      while (hasMoreProducts && page < 1000) { // Safety limit of 1000 pages (100,000 products)
         page++;
+        
+        // Add a small delay to prevent overwhelming the API
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
         const nextParams = {
           per_page: MAX_PER_PAGE.toString(), // Always use the maximum allowed
           page: page.toString()
         };
         
-        const response = await productsApi.getAll(nextParams);
-        
-        if (response && response.length > 0) {
-          allProductsArray.push(...response);
-        } else {
-          hasMoreProducts = false;
+        try {
+          const response = await productsApi.getAll(nextParams);
+          
+          if (Array.isArray(response) && response.length > 0) {
+            allProductsArray.push(...response);
+            // Update progress
+            setLoadAllProgress(Math.min(95, Math.round((page / estimatedTotalPages) * 100)));
+          } else {
+            hasMoreProducts = false;
+          }
+        } catch (err) {
+          console.error(`Error fetching page ${page}:`, err);
+          // If we get an error on a specific page, try to continue with the next one
+          if (page < estimatedTotalPages - 1) {
+            toast.error(`Failed to load page ${page}. Trying to continue...`);
+            continue;
+          } else {
+            hasMoreProducts = false;
+          }
         }
       }
       
       setAllProducts(allProductsArray);
       setTotalProducts(allProductsArray.length);
+      setLoadAllProgress(100);
       toast.success(`Loaded all ${allProductsArray.length} products successfully`);
     } catch (err) {
       console.error('Error loading all products:', err);
-      toast.error('Failed to load all products. Please try a smaller batch.');
+      toast.error('Failed to load all products. Please try a smaller batch or check your connection.');
+      setLoadAllProgress(0);
     } finally {
       setIsLoadingAll(false);
     }
+  };
+
+  const handleCancelLoadAll = () => {
+    setIsLoadingAll(false);
+    setLoadAllProgress(0);
+    toast.info('Cancelled loading all products');
   };
 
   if (error) {
@@ -238,25 +283,45 @@ const ProductsPage = () => {
                 <Button variant="outline" size="sm" onClick={applyCustomPerPage}>
                   Apply
                 </Button>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleLoadAll} 
-                  disabled={isLoadingAll}
-                  className="ml-2"
-                >
-                  {isLoadingAll ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading All...
-                    </>
-                  ) : (
-                    <>
-                      <ListFilter className="h-4 w-4 mr-2" />
-                      Load All ({allProducts.length > 0 ? allProducts.length : '5000+'})
-                    </>
-                  )}
-                </Button>
+                
+                {isLoadingAll ? (
+                  <div className="flex items-center space-x-2 ml-2">
+                    <div className="w-64 h-6 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary transition-all duration-300 ease-in-out" 
+                        style={{ width: `${loadAllProgress}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium">{loadAllProgress}%</span>
+                    <Button 
+                      variant="destructive" 
+                      size="sm" 
+                      onClick={handleCancelLoadAll}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                ) : (
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={handleLoadAll} 
+                    disabled={isLoadingAll}
+                    className="ml-2"
+                  >
+                    {isLoadingAll ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading All...
+                      </>
+                    ) : (
+                      <>
+                        <ListFilter className="h-4 w-4 mr-2" />
+                        Load All Products {allProducts.length > 0 ? `(${allProducts.length})` : ''}
+                      </>
+                    )}
+                  </Button>
+                )}
               </div>
             </div>
           </div>
