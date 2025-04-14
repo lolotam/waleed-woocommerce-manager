@@ -22,7 +22,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -183,7 +183,7 @@ export const processBatchWithClaude = async (
   }));
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 45000); // Increased timeout to 45 seconds
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
   
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
