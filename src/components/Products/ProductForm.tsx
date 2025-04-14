@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -103,7 +104,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   });
   
-  const tags = tagsResponse?.data || [];
+  const tags: ProductTag[] = Array.isArray(tagsResponse?.data) ? tagsResponse.data : [];
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -122,9 +123,12 @@ const ProductForm: React.FC<ProductFormProps> = ({
       tags: product.tags || [],
       images: product.images || [],
       rankmath_seo: {
-        focus_keyword: product.meta_data?.find((meta) => meta.key === 'rank_math_focus_keyword')?.value || '',
-        meta_title: product.meta_data?.find((meta) => meta.key === 'rank_math_title')?.value || '',
-        meta_description: product.meta_data?.find((meta) => meta.key === 'rank_math_description')?.value || ''
+        focus_keyword: product.meta_data && Array.isArray(product.meta_data) ? 
+          product.meta_data.find((meta) => meta.key === 'rank_math_focus_keyword')?.value || '' : '',
+        meta_title: product.meta_data && Array.isArray(product.meta_data) ? 
+          product.meta_data.find((meta) => meta.key === 'rank_math_title')?.value || '' : '',
+        meta_description: product.meta_data && Array.isArray(product.meta_data) ? 
+          product.meta_data.find((meta) => meta.key === 'rank_math_description')?.value || '' : ''
       }
     } : emptyProduct
   });

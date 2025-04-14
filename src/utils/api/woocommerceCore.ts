@@ -1,4 +1,3 @@
-
 /**
  * WooCommerce Core API utilities
  */
@@ -11,7 +10,7 @@ export interface WooCommerceConfig {
 }
 
 // Response type for WooCommerce API including headers
-export interface WooCommerceResponse<T> {
+export interface WooCommerceResponse<T = any> {
   data: T;
   headers: {
     [key: string]: string;
@@ -34,7 +33,7 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
 };
 
 // Base API handler for WooCommerce requests
-export const woocommerceApi = async <T>(endpoint: string, method = 'GET', data = null): Promise<WooCommerceResponse<T>> => {
+export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', data = null): Promise<WooCommerceResponse<T>> => {
   const config = getWooCommerceConfig();
   
   if (!config.url || !config.consumerKey || !config.consumerSecret) {

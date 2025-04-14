@@ -3,18 +3,19 @@
  * WooCommerce Products API
  */
 import { woocommerceApi, WooCommerceResponse } from "./woocommerceCore";
+import { Product } from "@/types/product";
+import { ProductTag } from "@/types/product";
 
 const productsApi = {
-  getAll: (params = {}) => woocommerceApi(`products?${new URLSearchParams(params).toString()}`),
-  get: (id: number) => woocommerceApi(`products/${id}`),
-  create: (data: any) => woocommerceApi('products', 'POST', data),
-  update: (id: number, data: any) => woocommerceApi(`products/${id}`, 'PUT', data),
-  delete: (id: number) => woocommerceApi(`products/${id}`, 'DELETE'),
-  // Adding back the getTags method that was removed
-  getTags: (params = {}) => woocommerceApi(`products/tags?${new URLSearchParams(params).toString()}`)
+  getAll: (params = {}) => woocommerceApi<Product[]>(`products?${new URLSearchParams(params).toString()}`),
+  get: (id: number) => woocommerceApi<Product>(`products/${id}`),
+  create: (data: any) => woocommerceApi<Product>('products', 'POST', data),
+  update: (id: number, data: any) => woocommerceApi<Product>(`products/${id}`, 'PUT', data),
+  delete: (id: number) => woocommerceApi<Product>(`products/${id}`, 'DELETE'),
+  getTags: (params = {}) => woocommerceApi<ProductTag[]>(`products/tags?${new URLSearchParams(params).toString()}`)
 };
 
-// Make sure extractDataWithPagination is exported
+// Extract data helper function with proper typing
 export const extractData = <T>(response: WooCommerceResponse<T>): T => {
   return response.data;
 };
