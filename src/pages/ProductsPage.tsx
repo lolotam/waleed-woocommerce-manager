@@ -1,10 +1,20 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, ChevronRight, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Slider } from '@/components/ui/slider';
+import { Input } from '@/components/ui/input';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 import ProductsList from '@/components/Products/ProductsList';
 import ProductForm from '@/components/Products/ProductForm';
 import { productsApi } from '@/utils/api';
@@ -14,13 +24,31 @@ import { toast } from 'sonner';
 const ProductsPage = () => {
   const [activeTab, setActiveTab] = React.useState('list');
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [perPage, setPerPage] = useState(20);
+  const [customPerPage, setCustomPerPage] = useState('');
+  const [totalProducts, setTotalProducts] = useState(0);
 
   const { data: products, isLoading, error, refetch } = useQuery({
-    queryKey: ['products'],
+    queryKey: ['products', currentPage, perPage],
     queryFn: async () => {
       try {
-        const data = await productsApi.getAll({ per_page: 100 });
-        return data || [];
+        const params = {
+          per_page: perPage.toString(),
+          page: currentPage.toString()
+        };
+        
+        const response = await productsApi.getAll(params);
+        
+        // Get total from headers if available or fallback to array length
+        const total = response.length || 0;
+        setTotalProducts(total);
+        
+        // Calculate total pages
+        setTotalPages(Math.max(1, Math.ceil(total / perPage)));
+        
+        return response || [];
       } catch (err) {
         console.error('Error fetching products:', err);
         toast.error('Failed to load products. Please check your WooCommerce connection.');
@@ -43,6 +71,32 @@ const ProductsPage = () => {
     setActiveTab('list');
     refetch();
     setSelectedProduct(null);
+  };
+
+  const handlePerPageChange = (value: number[]) => {
+    setPerPage(value[0]);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  const handleCustomPerPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCustomPerPage(e.target.value);
+  };
+
+  const applyCustomPerPage = () => {
+    const value = parseInt(customPerPage);
+    if (!isNaN(value) && value >= 1 && value <= 100) {
+      setPerPage(value);
+      setCurrentPage(1);
+      setCustomPerPage('');
+    } else {
+      toast.error('Please enter a valid number between 1 and 100');
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
   };
 
   if (error) {
@@ -70,7 +124,7 @@ const ProductsPage = () => {
         <h1 className="text-3xl font-bold">
           Products 
           <span className="ml-2 text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-md">
-            {isLoading ? 'Loading...' : `${products?.length || 0} items`}
+            {isLoading ? 'Loading...' : `${totalProducts} items`}
           </span>
         </h1>
         <Button onClick={handleCreateProduct}>
@@ -88,12 +142,114 @@ const ProductsPage = () => {
         </TabsList>
 
         <TabsContent value="list" className="mt-6">
+          <div className="mb-6 p-4 bg-card rounded-md border shadow-sm">
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-lg font-medium mb-2">Products per page</h3>
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm">1</span>
+                  <Slider
+                    className="flex-1 mx-2"
+                    defaultValue={[perPage]}
+                    max={100}
+                    min={1}
+                    step={5}
+                    value={[perPage]}
+                    onValueChange={handlePerPageChange}
+                  />
+                  <span className="text-sm">100</span>
+                  <span className="ml-4 px-2 py-1 bg-primary/10 rounded text-sm font-medium">
+                    {perPage}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Input
+                  type="number"
+                  placeholder="Custom count"
+                  className="w-32"
+                  value={customPerPage}
+                  onChange={handleCustomPerPageChange}
+                  min={1}
+                  max={100}
+                />
+                <Button variant="outline" size="sm" onClick={applyCustomPerPage}>
+                  Apply
+                </Button>
+              </div>
+            </div>
+          </div>
+          
           <ProductsList 
             products={products || []} 
             isLoading={isLoading} 
             onEdit={handleEditProduct}
             onRefresh={refetch}
           />
+          
+          {currentPage < totalPages && (
+            <div className="mt-6 flex justify-center">
+              <Button 
+                onClick={handleLoadMore} 
+                variant="outline"
+                className="w-full max-w-xs"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ChevronRight className="h-4 w-4 mr-2" />
+                )}
+                Load More Products
+              </Button>
+            </div>
+          )}
+          
+          <Pagination className="mt-6">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious 
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1 || isLoading}
+                  className={currentPage === 1 ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+              
+              {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                // Calculate page numbers to show (centered around current page)
+                let pageNum;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <PaginationItem key={i}>
+                    <PaginationLink
+                      onClick={() => setCurrentPage(pageNum)}
+                      isActive={currentPage === pageNum}
+                    >
+                      {pageNum}
+                    </PaginationLink>
+                  </PaginationItem>
+                );
+              })}
+              
+              <PaginationItem>
+                <PaginationNext 
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages || isLoading}
+                  className={currentPage === totalPages ? "pointer-events-none opacity-50" : ""}
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
         </TabsContent>
 
         <TabsContent value="edit" className="mt-6">
