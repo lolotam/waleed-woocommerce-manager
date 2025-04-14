@@ -67,7 +67,7 @@ const DashboardStats = () => {
     }
   });
 
-  // Fetch brands count (using product tags)
+  // Fetch brands count with improved accuracy
   const { 
     data: brandsData,
     isLoading: isLoadingBrands,
@@ -76,8 +76,17 @@ const DashboardStats = () => {
     queryKey: ['brands-count'],
     queryFn: async () => {
       try {
-        const response = await brandsApi.getAll({ per_page: "1" });
-        return response.totalItems || 0;
+        // Use a larger per_page value to get a more accurate count
+        // or directly use the totalItems from headers which is most accurate
+        const response = await brandsApi.getAll();
+        
+        // If totalItems is available from the headers, use that for accuracy
+        if (response.totalItems !== undefined) {
+          return response.totalItems;
+        }
+        
+        // Fallback to the length of the returned array if headers don't contain the count
+        return Array.isArray(response.data) ? response.data.length : 0;
       } catch (error) {
         console.error('Error fetching brands count:', error);
         return 0;
