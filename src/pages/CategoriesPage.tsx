@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, extractData } from '@/utils/api';
@@ -22,6 +23,7 @@ const CategoriesPage = () => {
     },
   });
   
+  // Ensure categories is always an array, even if categoriesResponse is undefined
   const categories: Category[] = categoriesResponse || [];
 
   const handleCloseForm = () => {

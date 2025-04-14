@@ -1,37 +1,28 @@
-
 /**
  * WooCommerce Products API
  */
-import { WooCommerceResponse, woocommerceApi } from "./woocommerceCore";
-import { Product } from "@/types/product";
+import { woocommerceApi, WooCommerceResponse } from "./woocommerceCore";
 
-export const productsApi = {
-  getAll: (params = {}) => woocommerceApi<Product[]>(`products?${new URLSearchParams(params).toString()}`),
-  get: (id: number) => woocommerceApi<Product>(`products/${id}`),
-  create: (data: any) => woocommerceApi<Product>('products', 'POST', data),
-  update: (id: number, data: any) => woocommerceApi<Product>(`products/${id}`, 'PUT', data),
-  delete: (id: number) => woocommerceApi<Product>(`products/${id}`, 'DELETE'),
-  // SEO metadata
-  updateSeoMeta: (id: number, data: any) => woocommerceApi(`products/${id}/meta`, 'PUT', data),
-  // Tags
-  getTags: (params = {}) => woocommerceApi<any[]>(`products/tags?${new URLSearchParams(params).toString()}`),
-  createTag: (data: any) => woocommerceApi('products/tags', 'POST', data)
+const productsApi = {
+  getAll: (params = {}) => woocommerceApi(`products?${new URLSearchParams(params).toString()}`),
+  get: (id: number) => woocommerceApi(`products/${id}`),
+  create: (data: any) => woocommerceApi('products', 'POST', data),
+  update: (id: number, data: any) => woocommerceApi(`products/${id}`, 'PUT', data),
+  delete: (id: number) => woocommerceApi(`products/${id}`, 'DELETE'),
 };
 
-// Helper functions to extract data from WooCommerceResponse
+// Make sure extractDataWithPagination is exported
 export const extractData = <T>(response: WooCommerceResponse<T>): T => {
   return response.data;
 };
 
-export const extractDataWithPagination = <T>(response: WooCommerceResponse<T>): { 
-  data: T, 
-  totalItems?: number, 
-  totalPages?: number 
-} => {
+export const extractDataWithPagination = <T>(
+  response: WooCommerceResponse<T>
+): { data: T; totalItems: number; totalPages: number } => {
   return {
     data: response.data,
-    totalItems: response.totalItems,
-    totalPages: response.totalPages
+    totalItems: response.totalItems || 0,
+    totalPages: response.totalPages || 0,
   };
 };
 
