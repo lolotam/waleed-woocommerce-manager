@@ -28,9 +28,9 @@ export const processBatchWithClaude = async (
     // Check for CORS proxy configuration
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/messages/batches';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
+    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
     
-    console.log('Connecting to Claude Batch API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
+    console.log('Connecting to Claude Batch API via:', proxyUrl ? `CORS proxy (${proxyUrl})` : 'Direct connection');
     console.log('Batch API URL being used:', fetchUrl);
     
     const response = await fetch(fetchUrl, {
@@ -111,10 +111,13 @@ export const processBatchWithClaude = async (
       throw new Error('Batch processing request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
       // Enhanced error message for network issues
+      const proxyUrl = window.CORS_PROXY || '';
+      
       throw new Error(
-        'Network error when connecting to Claude API. This may be due to CORS restrictions. ' +
-        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://corsproxy.io/?" ' +
-        'If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist api.anthropic.com domain.'
+        'Network error when connecting to Claude Batch API. ' +
+        'This is likely due to CORS restrictions in your browser. ' +
+        (proxyUrl ? 'The current CORS proxy may not be working. ' : 'No CORS proxy is currently configured. ') +
+        'Please try setting a different CORS proxy in the Settings page or use individual processing instead.'
       );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       throw new Error('Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.');

@@ -7,7 +7,7 @@ import { AIModel } from '../../types';
 import { MODEL_CONFIGS, getAiConfig, isValidAPIKey } from '../../config';
 import { saveLogEntry } from '../../logs';
 
-// Claude API call with CORS proxy support
+// Claude API call with enhanced CORS proxy support
 export const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
   const modelConfig = MODEL_CONFIGS[modelKey];
@@ -27,9 +27,10 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     // Check for CORS proxy configuration
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/messages';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
+    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
     
-    console.log('Connecting to Claude API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
+    console.log('Connecting to Claude API via:', proxyUrl ? `CORS proxy (${proxyUrl})` : 'Direct connection');
+    console.log('Using URL:', fetchUrl);
     
     const response = await fetch(fetchUrl, {
       method: 'POST',
@@ -87,6 +88,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       throw new Error('Unexpected response format from Claude API');
     }
     
+    console.log('Claude API response received successfully');
     return data.content[0].text;
   } catch (error) {
     console.error('Claude API error:', error);
@@ -95,10 +97,16 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       throw new Error('Claude API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
       // Enhanced error message for network issues
+      const proxyUrl = window.CORS_PROXY || '';
+      
       throw new Error(
-        'Network error when connecting to Claude API. This may be due to CORS restrictions. ' +
-        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://corsproxy.io/?" ' +
-        'If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist api.anthropic.com domain.'
+        'Network error when connecting to Claude API. ' +
+        'This is likely due to CORS restrictions in your browser. ' +
+        (proxyUrl ? 'The current CORS proxy may not be working. ' : 'No CORS proxy is currently configured. ') +
+        'Please try the following solutions:\n\n' +
+        '1. Set a CORS proxy in Settings → AI Configuration → CORS Proxy URL\n' +
+        '2. Try a different proxy like "https://corsproxy.io/?" or "https://cors-anywhere.herokuapp.com/"\n' +
+        '3. If behind a corporate network, consider using a VPN or ask IT to whitelist api.anthropic.com'
       );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       throw new Error('Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.');

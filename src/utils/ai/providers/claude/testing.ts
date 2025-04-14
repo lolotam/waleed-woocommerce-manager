@@ -24,9 +24,9 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     // Add a proxy endpoint if available in the environment
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/models';
-    const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
+    const fetchUrl = proxyUrl ? `${proxyUrl}${encodeURIComponent(targetUrl)}` : targetUrl;
     
-    console.log('Using endpoint:', fetchUrl, proxyUrl ? '(via CORS proxy)' : '(direct connection)');
+    console.log('Using endpoint:', fetchUrl, proxyUrl ? `(via CORS proxy: ${proxyUrl})` : '(direct connection)');
     
     const response = await fetch(fetchUrl, {
       method: 'GET',
@@ -46,11 +46,22 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     clearTimeout(timeoutId);
 
     // Log full response details for debugging
-    const responseText = await response.text();
     console.log('Claude API response status:', response.status);
-    console.log('Claude API response text:', responseText);
+    
+    const responseText = await response.text();
+    console.log('Claude API response text:', responseText.substring(0, 200) + (responseText.length > 200 ? '...' : ''));
 
     if (response.ok) {
+      try {
+        // Parse response JSON to validate it's a proper response
+        const responseJson = JSON.parse(responseText);
+        if (responseJson.models && Array.isArray(responseJson.models)) {
+          console.log(`Successfully retrieved ${responseJson.models.length} Claude models`);
+        }
+      } catch (e) {
+        console.warn('Response was not valid JSON, but status was OK:', e);
+      }
+      
       return { 
         success: true, 
         message: 'Successfully connected to Claude API' + (proxyUrl ? ' via CORS proxy' : '')
@@ -97,9 +108,12 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
       let proxyMessage = '';
       
       if (!proxyUrl) {
-        proxyMessage = '\n\nTry setting a CORS proxy in your browser console:\n' +
-          'window.CORS_PROXY = "https://corsproxy.io/?" or "https://cors-anywhere.herokuapp.com/"\n' +
-          'Then test the connection again.';
+        proxyMessage = '\n\nTry these CORS proxies in Settings → AI Configuration → CORS Proxy URL:' +
+          '\n• https://corsproxy.io/?' +
+          '\n• https://cors-anywhere.herokuapp.com/ (requires activation)' + 
+          '\n• https://thingproxy.freeboard.io/fetch/';
+      } else {
+        proxyMessage = '\n\nThe current CORS proxy may not be working properly. Try an alternative proxy in Settings.';
       }
       
       return { 
@@ -111,11 +125,11 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           '\n4. DNS resolution problems with api.anthropic.com' +
           '\n5. CORS policy restrictions in browser' +
           '\n\nAdvanced troubleshooting:' +
-          '\n- Try opening https://api.anthropic.com in your browser to test direct access' +
-          '\n- Check if your browser console shows CORS errors' +
-          '\n- Try accessing through a proxy if available' +
-          '\n- If using a VPN, try connecting without it' +
-          '\n- Some corporate networks require additional configuration to access external APIs' +
+          '\n• Try opening https://api.anthropic.com in your browser to test direct access' +
+          '\n• Check your browser console for CORS errors' +
+          '\n• Try accessing through a proxy service' +
+          '\n• If using a VPN, try connecting without it' +
+          '\n• Some corporate networks require additional configuration' +
           proxyMessage
       };
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
@@ -127,10 +141,10 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           '\n3. Proxy server interference' +
           '\n4. SSL/TLS connection issues' +
           '\n\nTechnical solutions:' +
-          '\n- Use a CORS proxy service to bypass restrictions' +
-          '\n- Try from an environment without strict CSP settings' +
-          '\n- Contact your IT department to whitelist api.anthropic.com domain' +
-          '\n- Consider using a server-side integration if browser restrictions persist'
+          '\n• Use a CORS proxy service in Settings → AI Configuration' +
+          '\n• Try from a network without strict security policies' +
+          '\n• Contact your IT department to whitelist api.anthropic.com domain' +
+          '\n• Consider trying another browser'
       };
     }
     
