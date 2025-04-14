@@ -24,7 +24,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     // Add a proxy endpoint if available in the environment
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/models';
-    const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
+    const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
     
     console.log('Using endpoint:', fetchUrl, proxyUrl ? '(via CORS proxy)' : '(direct connection)');
     
@@ -98,7 +98,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
       
       if (!proxyUrl) {
         proxyMessage = '\n\nTry setting a CORS proxy in your browser console:\n' +
-          'window.CORS_PROXY = "https://your-cors-proxy-url"\n' +
+          'window.CORS_PROXY = "https://corsproxy.io/?" or "https://cors-anywhere.herokuapp.com/"\n' +
           'Then test the connection again.';
       }
       

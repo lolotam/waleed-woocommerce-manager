@@ -27,7 +27,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     // Check for CORS proxy configuration
     const proxyUrl = window.CORS_PROXY || '';
     const targetUrl = 'https://api.anthropic.com/v1/messages';
-    const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
+    const fetchUrl = proxyUrl ? `${proxyUrl}${targetUrl}` : targetUrl;
     
     console.log('Connecting to Claude API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
     
@@ -92,7 +92,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       // Enhanced error message for network issues
       throw new Error(
         'Network error when connecting to Claude API. This may be due to CORS restrictions. ' +
-        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://your-proxy-url". ' +
+        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://corsproxy.io/?" ' +
         'If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist api.anthropic.com domain.'
       );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
