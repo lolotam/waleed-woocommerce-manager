@@ -1,4 +1,5 @@
 
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import DashboardStats from "@/components/Dashboard/DashboardStats";
 import QuickLinks from "@/components/Dashboard/QuickLinks";
 import AboutBox from "@/components/Dashboard/AboutBox";
