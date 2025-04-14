@@ -25,6 +25,7 @@ export interface Brand {
 }
 
 export interface BrandFormData {
+  id?: number; // Added id as an optional property
   name: string;
   slug: string;
   description: string;
