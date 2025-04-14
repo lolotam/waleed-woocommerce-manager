@@ -9,72 +9,7 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      seo_prompts: {
-        Row: {
-          created_at: string | null
-          id: string
-          prompts: Json
-          type: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          prompts?: Json
-          type: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          prompts?: Json
-          type?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_settings: {
-        Row: {
-          claude_api_key: string | null
-          created_at: string | null
-          gemini_api_key: string | null
-          id: string
-          openai_api_key: string | null
-          updated_at: string | null
-          user_id: string
-          wc_api_url: string | null
-          wc_consumer_key: string | null
-          wc_consumer_secret: string | null
-        }
-        Insert: {
-          claude_api_key?: string | null
-          created_at?: string | null
-          gemini_api_key?: string | null
-          id?: string
-          openai_api_key?: string | null
-          updated_at?: string | null
-          user_id: string
-          wc_api_url?: string | null
-          wc_consumer_key?: string | null
-          wc_consumer_secret?: string | null
-        }
-        Update: {
-          claude_api_key?: string | null
-          created_at?: string | null
-          gemini_api_key?: string | null
-          id?: string
-          openai_api_key?: string | null
-          updated_at?: string | null
-          user_id?: string
-          wc_api_url?: string | null
-          wc_consumer_key?: string | null
-          wc_consumer_secret?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
