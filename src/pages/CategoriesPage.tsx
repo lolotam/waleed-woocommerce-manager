@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { categoriesApi } from '@/utils/api';
+import { categoriesApi, extractData } from '@/utils/api';
 import { toast } from "sonner";
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw } from 'lucide-react';
@@ -9,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CategoriesList from '@/components/Categories/CategoriesList';
 import CategoryForm from '@/components/Categories/CategoryForm';
 import { Category } from '@/types/category';
-import { extractData } from '@/utils/api/productsApi';
 
 const CategoriesPage = () => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
@@ -24,7 +22,6 @@ const CategoriesPage = () => {
     },
   });
   
-  // Extract the categories array from the response
   const categories: Category[] = categoriesResponse || [];
 
   const handleCloseForm = () => {
