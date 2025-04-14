@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { 
   Table, 
@@ -38,7 +39,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { productsApi } from '@/utils/woocommerceApi';
+import { productsApi } from '@/utils/api';
 import { toast } from 'sonner';
 
 interface ProductsListProps {

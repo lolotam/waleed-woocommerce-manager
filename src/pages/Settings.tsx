@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { testConnection } from "@/utils/woocommerceApi";
+import { testConnection } from "@/utils/api";
 import { toast } from "sonner";
 import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";

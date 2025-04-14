@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { categoriesApi, mediaApi } from '@/utils/woocommerceApi';
+import { categoriesApi, mediaApi } from '@/utils/api';
 import { toast } from 'sonner';
 import { Category, CategoryFormData } from '@/types/category';
 import { Button } from '@/components/ui/button';

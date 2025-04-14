@@ -36,7 +36,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
-import { categoriesApi } from '@/utils/woocommerceApi';
+import { categoriesApi } from '@/utils/api';
 import { toast } from 'sonner';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 

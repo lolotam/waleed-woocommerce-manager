@@ -33,7 +33,7 @@ import {
 import { 
   productsApi, 
   mediaApi 
-} from '@/utils/woocommerceApi';
+} from '@/utils/api';
 import { useQuery } from '@tanstack/react-query';
 import ImageUploader from './ImageUploader';
 
