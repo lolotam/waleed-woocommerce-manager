@@ -86,7 +86,14 @@ const ProductTableCell: React.FC<ProductTableCellProps> = ({
         );
       
       case 'brand':
-        return product.brand || '—';
+        // Enhanced brand handling - check for brand property and brands array
+        if (product.brand) {
+          return product.brand;
+        } else if (product.brands && product.brands.length > 0) {
+          return product.brands.map(brand => brand.name).join(', ');
+        } else {
+          return '—';
+        }
       
       case 'categories':
         return product.categories && product.categories.length > 0

@@ -27,6 +27,12 @@ export interface ProductDimensions {
   height: string;
 }
 
+export interface Brand {
+  id: number;
+  name: string;
+  slug: string;
+}
+
 export interface Product {
   id?: number;
   name: string;
@@ -89,6 +95,7 @@ export interface Product {
   ean?: string;
   isbn?: string;
   brand?: string;
+  brands?: Brand[];
   rankmath_seo?: ProductSeoMeta;
   _links?: any;
 }
