@@ -26,6 +26,8 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     const targetUrl = 'https://api.anthropic.com/v1/models';
     const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
     
+    console.log('Using endpoint:', fetchUrl, proxyUrl ? '(via CORS proxy)' : '(direct connection)');
+    
     const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
@@ -51,7 +53,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     if (response.ok) {
       return { 
         success: true, 
-        message: 'Successfully connected to Claude API' 
+        message: 'Successfully connected to Claude API' + (proxyUrl ? ' via CORS proxy' : '')
       };
     } else {
       let errorMsg = `Claude API error: ${response.status}`;
@@ -90,6 +92,16 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
         message: 'Connection timed out. Please try again later.' 
       };
     } else if (error.message.includes('Failed to fetch')) {
+      // Check if we've already tried with a proxy
+      const proxyUrl = window.CORS_PROXY;
+      let proxyMessage = '';
+      
+      if (!proxyUrl) {
+        proxyMessage = '\n\nTry setting a CORS proxy in your browser console:\n' +
+          'window.CORS_PROXY = "https://your-cors-proxy-url"\n' +
+          'Then test the connection again.';
+      }
+      
       return { 
         success: false, 
         message: 'Network connection issue detected. Possible causes:' +
@@ -97,12 +109,14 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           '\n2. Firewall blocking API access' +
           '\n3. Corporate network/proxy restrictions' +
           '\n4. DNS resolution problems with api.anthropic.com' +
+          '\n5. CORS policy restrictions in browser' +
           '\n\nAdvanced troubleshooting:' +
           '\n- Try opening https://api.anthropic.com in your browser to test direct access' +
           '\n- Check if your browser console shows CORS errors' +
           '\n- Try accessing through a proxy if available' +
           '\n- If using a VPN, try connecting without it' +
-          '\n- Some corporate networks require additional configuration to access external APIs'
+          '\n- Some corporate networks require additional configuration to access external APIs' +
+          proxyMessage
       };
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       return { 

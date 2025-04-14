@@ -31,7 +31,8 @@ const Settings = () => {
   const [showOpenAIKey, setShowOpenAIKey] = useState(false);
   const [showClaudeKey, setShowClaudeKey] = useState(false);
   const [showGeminiKey, setShowGeminiKey] = useState(false);
-  
+  const [corsProxyUrl, setCorsProxyUrl] = useState('');
+
   // Application settings
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [logAiRequests, setLogAiRequests] = useState(true);
@@ -56,6 +57,14 @@ const Settings = () => {
         setClaudeApiKey(parsed.claudeApiKey || '');
         setGeminiApiKey(parsed.geminiApiKey || '');
         setDefaultAiModel(parsed.defaultModel || 'gpt4o');
+        
+        // Load CORS proxy if it exists in localStorage
+        const savedProxy = localStorage.getItem('cors_proxy');
+        if (savedProxy) {
+          setCorsProxyUrl(savedProxy);
+          // Also set it to window object for immediate use
+          window.CORS_PROXY = savedProxy;
+        }
       }
     };
     
@@ -126,6 +135,19 @@ const Settings = () => {
     };
     
     localStorage.setItem('ai_config', JSON.stringify(config));
+    
+    // Save CORS proxy if provided
+    if (corsProxyUrl.trim()) {
+      localStorage.setItem('cors_proxy', corsProxyUrl.trim());
+      window.CORS_PROXY = corsProxyUrl.trim();
+      toast.success('CORS proxy configuration saved and activated');
+    } else if (localStorage.getItem('cors_proxy')) {
+      // Clear CORS proxy if field is empty but was previously set
+      localStorage.removeItem('cors_proxy');
+      window.CORS_PROXY = '';
+      toast.success('CORS proxy configuration cleared');
+    }
+    
     toast.success('AI settings saved');
   };
   
@@ -191,6 +213,14 @@ const Settings = () => {
 
     setTestingClaude(true);
     try {
+      // If CORS proxy is newly entered but not saved, use it for this test
+      if (corsProxyUrl.trim() && corsProxyUrl !== window.CORS_PROXY) {
+        window.CORS_PROXY = corsProxyUrl.trim();
+        toast("Using new CORS proxy for this test", { 
+          description: "Your proxy setting hasn't been saved yet"
+        });
+      }
+      
       const result = await testClaudeConnection(claudeApiKey);
       
       if (result.success) {
@@ -469,6 +499,46 @@ const Settings = () => {
                 <p className="text-xs text-muted-foreground">
                   Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">Google AI Studio</a>
                 </p>
+              </div>
+              
+              <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="cors-proxy">CORS Proxy URL (for Claude API)</Label>
+                </div>
+                <Input
+                  id="cors-proxy"
+                  type="text"
+                  placeholder="https://your-cors-proxy-url.com/"
+                  value={corsProxyUrl}
+                  onChange={(e) => setCorsProxyUrl(e.target.value)}
+                  className="flex-1"
+                />
+                <p className="text-xs text-muted-foreground">
+                  If you're experiencing CORS issues with Claude, enter a proxy URL to route requests through.
+                  Example free proxies: <code>https://corsproxy.io/?</code> or <code>https://cors-anywhere.herokuapp.com/</code> (requires activation)
+                </p>
+                <div className="flex items-center space-x-2 pt-1">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      setCorsProxyUrl('https://corsproxy.io/?');
+                    }}
+                    className="text-xs"
+                  >
+                    Use corsproxy.io
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      window.open('https://cors-anywhere.herokuapp.com/corsdemo', '_blank');
+                    }}
+                    className="text-xs"
+                  >
+                    Activate cors-anywhere
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-2 pt-4">

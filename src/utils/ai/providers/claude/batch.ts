@@ -25,7 +25,14 @@ export const processBatchWithClaude = async (
   const timeoutId = setTimeout(() => controller.abort(), 45000); // 45-second timeout
   
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
+    // Check for CORS proxy configuration
+    const proxyUrl = window.CORS_PROXY || '';
+    const targetUrl = 'https://api.anthropic.com/v1/messages/batches';
+    const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
+    
+    console.log('Connecting to Claude Batch API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
+    
+    const response = await fetch(fetchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -38,7 +45,8 @@ export const processBatchWithClaude = async (
         system: "You are Claude, a helpful AI assistant."
       }),
       signal: controller.signal,
-      mode: 'cors' // Explicitly request CORS mode
+      mode: 'cors', // Explicitly request CORS mode
+      credentials: 'omit' // Prevent sending browser credentials
     });
 
     clearTimeout(timeoutId);
@@ -95,7 +103,12 @@ export const processBatchWithClaude = async (
     if (error.name === 'AbortError') {
       throw new Error('Batch processing request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      throw new Error('Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com. If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist this domain.');
+      // Enhanced error message for network issues
+      throw new Error(
+        'Network error when connecting to Claude API. This may be due to CORS restrictions. ' +
+        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://your-proxy-url". ' +
+        'If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist api.anthropic.com domain.'
+      );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       throw new Error('Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.');
     }

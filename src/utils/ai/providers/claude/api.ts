@@ -7,7 +7,7 @@ import { AIModel } from '../../types';
 import { MODEL_CONFIGS, getAiConfig, isValidAPIKey } from '../../config';
 import { saveLogEntry } from '../../logs';
 
-// Claude API call
+// Claude API call with CORS proxy support
 export const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
   const modelConfig = MODEL_CONFIGS[modelKey];
@@ -24,7 +24,14 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
     
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    // Check for CORS proxy configuration
+    const proxyUrl = window.CORS_PROXY || '';
+    const targetUrl = 'https://api.anthropic.com/v1/messages';
+    const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
+    
+    console.log('Connecting to Claude API via:', proxyUrl ? 'CORS proxy' : 'Direct connection');
+    
+    const response = await fetch(fetchUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -37,7 +44,8 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
         messages: [{ role: 'user', content: prompt }]
       }),
       signal: controller.signal,
-      mode: 'cors' // Explicitly request CORS mode
+      mode: 'cors', // Explicitly request CORS mode
+      credentials: 'omit' // Prevent sending browser credentials
     });
 
     clearTimeout(timeoutId);
@@ -81,7 +89,12 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     if (error.name === 'AbortError') {
       throw new Error('Claude API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      throw new Error('Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com. If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist this domain.');
+      // Enhanced error message for network issues
+      throw new Error(
+        'Network error when connecting to Claude API. This may be due to CORS restrictions. ' +
+        'Try setting a CORS proxy in your browser console with: window.CORS_PROXY = "https://your-proxy-url". ' +
+        'If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist api.anthropic.com domain.'
+      );
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       throw new Error('Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.');
     }
