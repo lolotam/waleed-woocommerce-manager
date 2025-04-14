@@ -163,17 +163,42 @@ const saveLogEntry = (prompt: string, result: string, model: AIModel) => {
   localStorage.setItem('ai_logs', JSON.stringify(logs));
 };
 
+// Validate API key format
+const isValidAPIKey = (key: string, provider: string): boolean => {
+  if (!key || key.trim() === '') return false;
+  
+  // Basic format checks for different providers
+  switch (provider) {
+    case 'openai':
+      return key.startsWith('sk-') && key.length > 20;
+    case 'anthropic':
+      return key.startsWith('sk-ant-') && key.length > 20;
+    case 'google':
+      return key.startsWith('AIza') && key.length > 20;
+    default:
+      return key.length > 20;
+  }
+};
+
 // OpenAI API call
 const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Promise<string> => {
   const config = getAiConfig();
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.openaiApiKey) {
-    toast.error('OpenAI API key not configured');
+    toast.error('OpenAI API key not configured. Please check settings.');
     throw new Error('OpenAI API key not configured');
   }
 
+  if (!isValidAPIKey(config.openaiApiKey, 'openai')) {
+    toast.error('OpenAI API key format is invalid. Please check your API key.');
+    throw new Error('Invalid OpenAI API key format');
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -185,19 +210,34 @@ const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Promise<st
         messages: [{ role: 'user', content: prompt }],
         temperature: modelConfig.temperature,
         max_tokens: modelConfig.maxTokens
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'OpenAI API error');
+      if (response.status === 401) {
+        toast.error('Invalid OpenAI API key. Please check your API key in settings.');
+        throw new Error('Invalid OpenAI API key');
+      }
+      throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
     }
 
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (error) {
     console.error('OpenAI API error:', error);
-    toast.error(`OpenAI API error: ${error.message}`);
+    
+    if (error.name === 'AbortError') {
+      toast.error('OpenAI API request timed out. Please try again later.');
+    } else if (error.message.includes('Failed to fetch')) {
+      toast.error('Network error connecting to OpenAI. Please check your internet connection.');
+    } else {
+      toast.error(`OpenAI API error: ${error.message || 'Unknown error'}`);
+    }
+    
     throw error;
   }
 };
@@ -208,11 +248,19 @@ const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<st
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.claudeApiKey) {
-    toast.error('Claude API key not configured');
+    toast.error('Claude API key not configured. Please check settings.');
     throw new Error('Claude API key not configured');
   }
 
+  if (!isValidAPIKey(config.claudeApiKey, 'anthropic')) {
+    toast.error('Claude API key format is invalid. Please check your API key.');
+    throw new Error('Invalid Claude API key format');
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -224,19 +272,34 @@ const generateWithClaude = async (prompt: string, modelKey: AIModel): Promise<st
         model: modelConfig.apiModel,
         max_tokens: modelConfig.maxTokens,
         messages: [{ role: 'user', content: prompt }]
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'Claude API error');
+      if (response.status === 401) {
+        toast.error('Invalid Claude API key. Please check your API key in settings.');
+        throw new Error('Invalid Claude API key');
+      }
+      throw new Error(error.error?.message || `Claude API error: ${response.status}`);
     }
 
     const data = await response.json();
     return data.content[0].text;
   } catch (error) {
     console.error('Claude API error:', error);
-    toast.error(`Claude API error: ${error.message}`);
+    
+    if (error.name === 'AbortError') {
+      toast.error('Claude API request timed out. Please try again later.');
+    } else if (error.message.includes('Failed to fetch')) {
+      toast.error('Network error connecting to Claude. Please check your internet connection.');
+    } else {
+      toast.error(`Claude API error: ${error.message || 'Unknown error'}`);
+    }
+    
     throw error;
   }
 };
@@ -247,11 +310,19 @@ const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<st
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.geminiApiKey) {
-    toast.error('Gemini API key not configured');
+    toast.error('Gemini API key not configured. Please check settings.');
     throw new Error('Gemini API key not configured');
   }
 
+  if (!isValidAPIKey(config.geminiApiKey, 'google')) {
+    toast.error('Gemini API key format is invalid. Please check your API key.');
+    throw new Error('Invalid Gemini API key format');
+  }
+
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    
     // Use the correct endpoint for the model
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.apiModel}:generateContent?key=${config.geminiApiKey}`, {
       method: 'POST',
@@ -264,19 +335,34 @@ const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<st
           temperature: modelConfig.temperature,
           maxOutputTokens: modelConfig.maxTokens,
         }
-      })
+      }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'Gemini API error');
+      if (response.status === 400 && error.error?.message?.includes('API key')) {
+        toast.error('Invalid Gemini API key. Please check your API key in settings.');
+        throw new Error('Invalid Gemini API key');
+      }
+      throw new Error(error.error?.message || `Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Gemini API error:', error);
-    toast.error(`Gemini API error: ${error.message}`);
+    
+    if (error.name === 'AbortError') {
+      toast.error('Gemini API request timed out. Please try again later.');
+    } else if (error.message.includes('Failed to fetch')) {
+      toast.error('Network error connecting to Gemini. Please check your internet connection.');
+    } else {
+      toast.error(`Gemini API error: ${error.message || 'Unknown error'}`);
+    }
+    
     throw error;
   }
 };
@@ -319,6 +405,192 @@ export const generateContent = async (prompt: string, model?: AIModel): Promise<
   } catch (error) {
     toast.error(`Failed to generate content: ${error.message}`);
     throw error;
+  } finally {
+    toast.dismiss();
+  }
+};
+
+// Test connections to AI providers
+export const testOpenAIConnection = async (apiKey: string): Promise<{ success: boolean; message: string }> => {
+  if (!apiKey || !isValidAPIKey(apiKey, 'openai')) {
+    return { 
+      success: false, 
+      message: 'API key format is invalid. OpenAI keys should start with "sk-"' 
+    };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    
+    const response = await fetch('https://api.openai.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      return { 
+        success: true, 
+        message: 'Successfully connected to OpenAI API' 
+      };
+    } else {
+      const error = await response.json();
+      if (response.status === 401) {
+        return { 
+          success: false, 
+          message: 'Invalid API key. Please check your OpenAI API key.' 
+        };
+      }
+      return { 
+        success: false, 
+        message: error.error?.message || `OpenAI API error: ${response.status}` 
+      };
+    }
+  } catch (error) {
+    console.error('OpenAI connection test error:', error);
+    
+    if (error.name === 'AbortError') {
+      return { 
+        success: false, 
+        message: 'Connection timed out. Please try again later.' 
+      };
+    } else if (error.message.includes('Failed to fetch')) {
+      return { 
+        success: false, 
+        message: 'Network error. Please check your internet connection.' 
+      };
+    }
+    
+    return { 
+      success: false, 
+      message: `Connection error: ${error.message || 'Unknown error'}` 
+    };
+  }
+};
+
+export const testClaudeConnection = async (apiKey: string): Promise<{ success: boolean; message: string }> => {
+  if (!apiKey || !isValidAPIKey(apiKey, 'anthropic')) {
+    return { 
+      success: false, 
+      message: 'API key format is invalid. Claude keys should start with "sk-ant-"' 
+    };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    
+    const response = await fetch('https://api.anthropic.com/v1/models', {
+      method: 'GET',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      return { 
+        success: true, 
+        message: 'Successfully connected to Claude API' 
+      };
+    } else {
+      const error = await response.json();
+      if (response.status === 401) {
+        return { 
+          success: false, 
+          message: 'Invalid API key. Please check your Claude API key.' 
+        };
+      }
+      return { 
+        success: false, 
+        message: error.error?.message || `Claude API error: ${response.status}` 
+      };
+    }
+  } catch (error) {
+    console.error('Claude connection test error:', error);
+    
+    if (error.name === 'AbortError') {
+      return { 
+        success: false, 
+        message: 'Connection timed out. Please try again later.' 
+      };
+    } else if (error.message.includes('Failed to fetch')) {
+      return { 
+        success: false, 
+        message: 'Network error. Please check your internet connection.' 
+      };
+    }
+    
+    return { 
+      success: false, 
+      message: `Connection error: ${error.message || 'Unknown error'}` 
+    };
+  }
+};
+
+export const testGeminiConnection = async (apiKey: string): Promise<{ success: boolean; message: string }> => {
+  if (!apiKey || !isValidAPIKey(apiKey, 'google')) {
+    return { 
+      success: false, 
+      message: 'API key format is invalid. Gemini keys should start with "AIza"' 
+    };
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      return { 
+        success: true, 
+        message: 'Successfully connected to Gemini API' 
+      };
+    } else {
+      const error = await response.json();
+      return { 
+        success: false, 
+        message: error.error?.message || `Gemini API error: ${response.status}` 
+      };
+    }
+  } catch (error) {
+    console.error('Gemini connection test error:', error);
+    
+    if (error.name === 'AbortError') {
+      return { 
+        success: false, 
+        message: 'Connection timed out. Please try again later.' 
+      };
+    } else if (error.message.includes('Failed to fetch')) {
+      return { 
+        success: false, 
+        message: 'Network error. Please check your internet connection.' 
+      };
+    }
+    
+    return { 
+      success: false, 
+      message: `Connection error: ${error.message || 'Unknown error'}` 
+    };
   }
 };
 
@@ -353,5 +625,8 @@ export default {
   generateContent,
   getAvailableModels,
   getAllLogs,
-  exportLogsToExcel
+  exportLogsToExcel,
+  testOpenAIConnection,
+  testClaudeConnection,
+  testGeminiConnection
 };
