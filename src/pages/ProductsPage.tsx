@@ -67,7 +67,12 @@ const ProductsPage = () => {
   return (
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Products</h1>
+        <h1 className="text-3xl font-bold">
+          Products 
+          <span className="ml-2 text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-md">
+            {isLoading ? 'Loading...' : `${products?.length || 0} items`}
+          </span>
+        </h1>
         <Button onClick={handleCreateProduct}>
           <Plus className="h-4 w-4 mr-2" /> 
           New Product
