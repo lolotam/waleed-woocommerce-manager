@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -25,18 +26,24 @@ const ProductsPage = () => {
   const [selectedProduct, setSelectedProduct] = React.useState<Product | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [perPage, setPerPage] = useState(100);
+  const [perPage, setPerPage] = useState(100); // Default to max allowed value
   const [customPerPage, setCustomPerPage] = useState('');
   const [totalProducts, setTotalProducts] = useState(0);
   const [isLoadingAll, setIsLoadingAll] = useState(false);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
 
+  // Constants for WooCommerce API limitations
+  const MAX_PER_PAGE = 100; // WooCommerce API maximum per_page value
+
   const { data: products, isLoading, error, refetch } = useQuery({
     queryKey: ['products', currentPage, perPage],
     queryFn: async () => {
       try {
+        // Ensure perPage never exceeds the maximum allowed by WooCommerce API
+        const safePerPage = Math.min(perPage, MAX_PER_PAGE);
+        
         const params = {
-          per_page: perPage.toString(),
+          per_page: safePerPage.toString(),
           page: currentPage.toString()
         };
         
@@ -47,7 +54,7 @@ const ProductsPage = () => {
         setTotalProducts(total);
         
         // Calculate total pages
-        setTotalPages(Math.max(1, Math.ceil(total / perPage)));
+        setTotalPages(Math.max(1, Math.ceil(total / safePerPage)));
         
         return response || [];
       } catch (err) {
@@ -75,7 +82,7 @@ const ProductsPage = () => {
   };
 
   const handlePerPageChange = (value: number[]) => {
-    setPerPage(value[0]);
+    setPerPage(Math.min(value[0], MAX_PER_PAGE));
     setCurrentPage(1); // Reset to first page when changing items per page
   };
 
@@ -86,7 +93,8 @@ const ProductsPage = () => {
   const applyCustomPerPage = () => {
     const value = parseInt(customPerPage);
     if (!isNaN(value) && value >= 1) {
-      setPerPage(value);
+      // Ensure the custom per page value doesn't exceed the API limit
+      setPerPage(Math.min(value, MAX_PER_PAGE));
       setCurrentPage(1);
       setCustomPerPage('');
     } else {
@@ -109,9 +117,9 @@ const ProductsPage = () => {
       let hasMoreProducts = true;
       const allProductsArray: Product[] = [];
       
-      // First, get the first page with a large per_page value to get approximate total
+      // First, get the first page with MAX_PER_PAGE to get approximate total
       const params = {
-        per_page: '100',
+        per_page: MAX_PER_PAGE.toString(),
         page: '1'
       };
       
@@ -122,7 +130,7 @@ const ProductsPage = () => {
       while (hasMoreProducts && page < 100) { // Safety limit of 100 pages
         page++;
         const nextParams = {
-          per_page: '100', // Fetch in chunks of 100
+          per_page: MAX_PER_PAGE.toString(), // Always use the maximum allowed
           page: page.toString()
         };
         
@@ -201,17 +209,20 @@ const ProductsPage = () => {
                   <Slider
                     className="flex-1 mx-2"
                     defaultValue={[perPage]}
-                    max={500}
+                    max={MAX_PER_PAGE}
                     min={1}
                     step={10}
                     value={[perPage]}
                     onValueChange={handlePerPageChange}
                   />
-                  <span className="text-sm">500</span>
+                  <span className="text-sm">{MAX_PER_PAGE}</span>
                   <span className="ml-4 px-2 py-1 bg-primary/10 rounded text-sm font-medium">
                     {perPage}
                   </span>
                 </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Note: WooCommerce API limits results to {MAX_PER_PAGE} items per page
+                </p>
               </div>
               
               <div className="flex items-center space-x-2">
@@ -222,6 +233,7 @@ const ProductsPage = () => {
                   value={customPerPage}
                   onChange={handleCustomPerPageChange}
                   min={1}
+                  max={MAX_PER_PAGE}
                 />
                 <Button variant="outline" size="sm" onClick={applyCustomPerPage}>
                   Apply
@@ -274,9 +286,11 @@ const ProductsPage = () => {
             </div>
           )}
           
+          {/* Pagination - only show when not viewing all products */}
           {!allProducts.length && (
             <Pagination className="mt-6">
               <PaginationContent>
+                {/* Previous page button */}
                 <PaginationItem>
                   {currentPage === 1 || isLoading ? (
                     <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pl-2.5 h-10 px-4 py-2">
@@ -290,6 +304,7 @@ const ProductsPage = () => {
                   )}
                 </PaginationItem>
                 
+                {/* Page numbers */}
                 {[...Array(Math.min(5, totalPages))].map((_, i) => {
                   // Calculate page numbers to show (centered around current page)
                   let pageNum;
@@ -315,6 +330,7 @@ const ProductsPage = () => {
                   );
                 })}
                 
+                {/* Next page button */}
                 <PaginationItem>
                   {currentPage === totalPages || isLoading ? (
                     <span className="pointer-events-none opacity-50 inline-flex items-center justify-center rounded-md text-sm font-medium gap-1 pr-2.5 h-10 px-4 py-2">
