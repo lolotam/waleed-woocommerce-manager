@@ -1,4 +1,3 @@
-
 /**
  * Claude (Anthropic) API Integration
  */
@@ -103,7 +102,9 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
-    // Use a simpler endpoint for testing to minimize data transfer
+    // Detailed logging for debugging
+    console.log('Testing Claude connection with API key:', apiKey.substring(0, 10) + '...');
+    
     const response = await fetch('https://api.anthropic.com/v1/models', {
       method: 'GET',
       headers: {
@@ -112,10 +113,16 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
         'Content-Type': 'application/json'
       },
       signal: controller.signal,
-      mode: 'cors' // Explicitly request CORS mode
+      mode: 'cors', // Explicitly request CORS mode
+      credentials: 'omit' // Prevent sending credentials
     });
 
     clearTimeout(timeoutId);
+
+    // Detailed response logging
+    const responseText = await response.text();
+    console.log('Claude API response status:', response.status);
+    console.log('Claude API response text:', responseText);
 
     if (response.ok) {
       return { 
@@ -123,18 +130,17 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
         message: 'Successfully connected to Claude API' 
       };
     } else {
-      const errorText = await response.text();
       let errorMsg = `Claude API error: ${response.status}`;
       
       try {
-        const errorJson = JSON.parse(errorText);
+        const errorJson = JSON.parse(responseText);
         if (errorJson.error) {
           errorMsg = errorJson.error.message || errorMsg;
         }
       } catch (e) {
         // If JSON parsing fails, use the raw error text
-        if (errorText) {
-          errorMsg = `Claude API error: ${errorText}`;
+        if (responseText) {
+          errorMsg = `Claude API error: ${responseText}`;
         }
       }
       
@@ -153,6 +159,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
   } catch (error) {
     console.error('Claude connection test error:', error);
     
+    // More detailed error handling
     if (error.name === 'AbortError') {
       return { 
         success: false, 
@@ -161,12 +168,19 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     } else if (error.message.includes('Failed to fetch')) {
       return { 
         success: false, 
-        message: 'Network error when connecting to Claude API. Please check your internet connection and ensure that your firewall/network allows access to api.anthropic.com. If you\'re behind a corporate network, you may need to use a VPN or ask your IT department to whitelist this domain.' 
+        message: 'Network error when connecting to Claude API. This could be due to:' +
+          '\n1. No internet connection' +
+          '\n2. Firewall or security software blocking the request' +
+          '\n3. Corporate network restrictions' +
+          '\n4. DNS resolution issues' 
       };
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       return { 
         success: false, 
-        message: 'Network error detected. This might be due to CORS restrictions or firewall settings blocking access to api.anthropic.com.' 
+        message: 'Network error detected. Possible causes:' +
+          '\n1. CORS restrictions' +
+          '\n2. Firewall settings blocking api.anthropic.com' +
+          '\n3. Proxy or VPN interference'
       };
     }
     
