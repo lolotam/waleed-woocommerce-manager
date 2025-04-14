@@ -46,23 +46,39 @@ const woocommerceApi = async (endpoint: string, method = 'GET', data = null) => 
   url.searchParams.append('consumer_secret', config.consumerSecret);
 
   try {
+    // Add a timeout to the fetch request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    
     const response = await fetch(url.toString(), {
       method,
       headers: {
         'Content-Type': 'application/json',
       },
       body: data ? JSON.stringify(data) : null,
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'WooCommerce API error');
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error ${response.status}`);
     }
 
     return await response.json();
   } catch (error) {
     console.error('WooCommerce API error:', error);
-    toast.error(`WooCommerce API error: ${error.message || 'Unknown error'}`);
+    
+    // Handle different error types
+    if (error.name === 'AbortError') {
+      toast.error('Connection timed out. Please check your store URL and try again.');
+    } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+      toast.error('Network error. Make sure your store URL is accessible and has proper CORS settings.');
+    } else {
+      toast.error(`WooCommerce API error: ${error.message || 'Unknown error'}`);
+    }
+    
     throw error;
   }
 };
@@ -138,11 +154,13 @@ export const mediaApi = {
 
 export const testConnection = async (): Promise<boolean> => {
   try {
-    await woocommerceApi('system_status');
+    // Use a simpler endpoint for testing connection
+    await woocommerceApi('data');
     toast.success('WooCommerce connection successful!');
     return true;
   } catch (error) {
-    toast.error('WooCommerce connection failed. Please check your URL and API credentials.');
+    console.error('Connection test error:', error);
+    // The error toast is already shown in the woocommerceApi function
     return false;
   }
 };

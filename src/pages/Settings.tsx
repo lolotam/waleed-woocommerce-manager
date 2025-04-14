@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { testConnection } from "@/utils/woocommerceApi";
 import { toast } from "sonner";
-import { Info, CheckCircle2, AlertCircle } from "lucide-react";
+import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon } from "lucide-react";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 const Settings = () => {
   // WooCommerce settings
@@ -16,6 +17,7 @@ const Settings = () => {
   const [consumerKey, setConsumerKey] = useState('');
   const [consumerSecret, setConsumerSecret] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+  const [showConsumerKey, setShowConsumerKey] = useState(false);
   
   // AI settings
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -95,6 +97,8 @@ const Settings = () => {
     setIsConnecting(true);
     try {
       await testConnection();
+    } catch (error) {
+      console.error('Connection test failed:', error);
     } finally {
       setIsConnecting(false);
     }
@@ -126,6 +130,18 @@ const Settings = () => {
   
   const isApiKeyValid = (key: string): boolean => {
     return key.length >= 20;
+  };
+  
+  const toggleConsumerKeyVisibility = () => {
+    setShowConsumerKey(!showConsumerKey);
+  };
+  
+  const maskValue = (value: string, showFull: boolean) => {
+    if (!value) return '';
+    if (showFull) return value;
+    const firstChars = value.substring(0, 5);
+    const lastChars = value.substring(value.length - 5);
+    return `${firstChars}${'•'.repeat(10)}${lastChars}`;
   };
   
   return (
@@ -174,12 +190,24 @@ const Settings = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="consumer-key">Consumer Key</Label>
-                <Input
-                  id="consumer-key"
-                  placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={consumerKey}
-                  onChange={(e) => setConsumerKey(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    id="consumer-key"
+                    placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={consumerKey}
+                    onChange={(e) => setConsumerKey(e.target.value)}
+                    type="text"
+                    className="pr-10"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="absolute right-0 top-0 h-full px-3"
+                    onClick={toggleConsumerKeyVisibility}
+                  >
+                    {showConsumerKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
               
               <div className="space-y-2">
