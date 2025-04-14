@@ -4,7 +4,8 @@ export interface Brand {
   name: string;
   slug: string;
   description: string;
-  image: {
+  count: number;
+  image?: {
     id: number;
     date_created: string;
     date_created_gmt: string;
@@ -16,7 +17,6 @@ export interface Brand {
     title?: string;
     caption?: string;
   } | null;
-  count: number;
   meta_data?: {
     id: number;
     key: string;

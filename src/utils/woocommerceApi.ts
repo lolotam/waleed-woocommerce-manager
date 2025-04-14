@@ -1,4 +1,3 @@
-
 /**
  * WooCommerce API utilities for interacting with the WooCommerce REST API
  */
@@ -105,13 +104,14 @@ export const categoriesApi = {
   delete: (id: number) => woocommerceApi(`products/categories/${id}`, 'DELETE'),
 };
 
+// Updated brandsApi to use product tags as brands
+// This is a common approach when WooCommerce doesn't have a specific "brands" feature
 export const brandsApi = {
-  // Since brands are a custom taxonomy, we need to adapt this to your specific WooCommerce setup
-  getAll: (params = {}) => woocommerceApi(`products/attributes/brand_name/terms?${new URLSearchParams(params).toString()}`),
-  get: (id: number) => woocommerceApi(`products/attributes/brand_name/terms/${id}`),
-  create: (data: any) => woocommerceApi('products/attributes/brand_name/terms', 'POST', data),
-  update: (id: number, data: any) => woocommerceApi(`products/attributes/brand_name/terms/${id}`, 'PUT', data),
-  delete: (id: number) => woocommerceApi(`products/attributes/brand_name/terms/${id}`, 'DELETE'),
+  getAll: (params = {}) => woocommerceApi(`products/tags?${new URLSearchParams({...params, per_page: 100}).toString()}`),
+  get: (id: number) => woocommerceApi(`products/tags/${id}`),
+  create: (data: any) => woocommerceApi('products/tags', 'POST', data),
+  update: (id: number, data: any) => woocommerceApi(`products/tags/${id}`, 'PUT', data),
+  delete: (id: number) => woocommerceApi(`products/tags/${id}`, 'DELETE'),
 };
 
 export const mediaApi = {

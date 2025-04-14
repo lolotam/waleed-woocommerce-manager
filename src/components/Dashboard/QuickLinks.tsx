@@ -7,7 +7,7 @@ const QuickLinks = () => {
   const links = [
     { title: 'Manage Products', icon: Package, path: '/products', description: 'Add, edit, or remove products from your store' },
     { title: 'Manage Categories', icon: FolderTree, path: '/categories', description: 'Organize your product categories' },
-    { title: 'Manage Brands', icon: ShoppingBag, path: '/brands', description: 'Create and organize product brands' },
+    { title: 'Manage Brands', icon: Tag, path: '/brands', description: 'Create and organize product brands (tags)' },
     { title: 'AI Prompts', icon: MessageSquare, path: '/prompts', description: 'Configure AI prompts for content generation' },
     { title: 'Import/Export', icon: FileSpreadsheet, path: '/import-export', description: 'Bulk manage your products with Excel' },
   ];
