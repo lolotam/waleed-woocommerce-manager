@@ -22,7 +22,7 @@ const MOCK_BRANDS = [
     description: 'Athletic footwear and apparel brand.', 
     image_url: 'https://placehold.co/100x100?text=Nike',
     meta_title: 'Nike - Just Do It',
-    meta_description: 'Shop Nike's innovative collection of athletic footwear, apparel, and accessories.',
+    meta_description: "Shop Nike's innovative collection of athletic footwear, apparel, and accessories.",
     focus_keyword: 'nike athletic sportswear'
   },
   { 
