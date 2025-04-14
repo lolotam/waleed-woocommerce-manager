@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Table, 
@@ -59,7 +58,7 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { productsApi } from '@/utils/api';
 import { toast } from 'sonner';
-import { DateRange } from '@/components/ui/calendar';
+import { Calendar as CalendarComponent, DateRange } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ProductTag } from '@/types/product';
 import {
@@ -799,7 +798,7 @@ const ProductsList: React.FC<ProductsListProps> = ({
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="center">
                         <div className="p-3">
-                          <DateRange
+                          <CalendarComponent
                             selected={dateRange}
                             onSelect={(range) => {
                               setDateRange(range);
@@ -886,162 +885,4 @@ const ProductsList: React.FC<ProductsListProps> = ({
             onClick={onRefresh}
             title="Refresh products"
           >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      
-      {advancedSearchMode && (
-        <div className="mb-4 p-4 bg-muted/30 rounded-md border">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="name-search">Product Name</Label>
-              <Input 
-                id="name-search"
-                placeholder="Search by name..." 
-                value={filters.name as string || ''}
-                onChange={(e) => applyFilter('name', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="sku-search">SKU</Label>
-              <Input 
-                id="sku-search"
-                placeholder="Search by SKU..." 
-                value={filters.sku as string || ''}
-                onChange={(e) => applyFilter('sku', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="brand-search">Brand</Label>
-              <Input 
-                id="brand-search"
-                placeholder="Search by brand..." 
-                value={filters.brand as string || ''}
-                onChange={(e) => applyFilter('brand', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="category-search">Category</Label>
-              <Input 
-                id="category-search"
-                placeholder="Search by category..." 
-                value={filters.categories as string || ''}
-                onChange={(e) => applyFilter('categories', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="tag-search">Tags</Label>
-              <Input 
-                id="tag-search"
-                placeholder="Search by tags..." 
-                value={filters.tags as string || ''}
-                onChange={(e) => applyFilter('tags', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label htmlFor="permalink-search">Permalink</Label>
-              <Input 
-                id="permalink-search"
-                placeholder="Search by permalink..." 
-                value={filters.permalink as string || ''}
-                onChange={(e) => applyFilter('permalink', e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {filteredProducts.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground border rounded-md">
-          {searchTerm || hasActiveFilters ? 'No products match your search or filters' : 'No products found'}
-        </div>
-      ) : (
-        <div className="rounded-md border overflow-hidden">
-          <div className={enableHorizontalScroll ? "overflow-x-auto" : ""}>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  {visibleColumns.map((column) => (
-                    <TableHead 
-                      key={column.id}
-                      className={`${column.width || ''} ${getColumnAlign(column)} ${column.sortable ? 'cursor-pointer select-none' : ''} relative`}
-                      onClick={() => column.sortable ? handleSort(column.id as keyof Product) : null}
-                      onDragOver={() => handleColumnDragOver(column.id)}
-                    >
-                      {column.id === 'selection' ? (
-                        <Checkbox
-                          checked={Object.keys(selectedProducts).length > 0 && 
-                                  Object.keys(selectedProducts).length === filteredProducts.length}
-                          onCheckedChange={handleSelectAllProducts}
-                        />
-                      ) : (
-                        <div className="flex items-center gap-1">
-                          {column.id !== 'image' && column.id !== 'actions' && (
-                            <span
-                              className="cursor-move mr-1 text-muted-foreground hover:text-foreground"
-                              draggable
-                              onDragStart={() => handleColumnDragStart(column.id)}
-                              onDragEnd={handleColumnDragEnd}
-                            >
-                              <GripVertical className="h-3 w-3" />
-                            </span>
-                          )}
-                          <span>{column.name}</span>
-                          {column.sortable && renderSortIcon(column.id as keyof Product)}
-                        </div>
-                      )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedProducts.map((product) => (
-                  <TableRow key={product.id}>
-                    {visibleColumns.map((column) => (
-                      <TableCell 
-                        key={`${product.id}-${column.id}`} 
-                        className={getColumnAlign(column)}
-                      >
-                        {renderCellContent(product, column.id)}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </div>
-      )}
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Product</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to delete "{productToDelete?.name}"? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={confirmDelete} 
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? 'Deleting...' : 'Delete'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  );
-};
-
-export default ProductsList;
+            <RefreshCw className
