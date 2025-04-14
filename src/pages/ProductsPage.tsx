@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ import {
 import ProductsList from '@/components/Products/ProductsList';
 import ProductForm from '@/components/Products/ProductForm';
 import { productsApi, extractData, extractDataWithPagination } from '@/utils/api';
-import { Product } from '@/types/product';
+import { Product, ProductTag } from '@/types/product';
 import { toast } from 'sonner';
 
 const ProductsPage = () => {
@@ -34,6 +35,20 @@ const ProductsPage = () => {
   const [loadAllProgress, setLoadAllProgress] = useState(0);
 
   const MAX_PER_PAGE = 5000;
+  
+  // Fetch product tags for filtering options
+  const { data: productTags } = useQuery({
+    queryKey: ['product-tags'],
+    queryFn: async () => {
+      try {
+        const response = await productsApi.getTags({ per_page: "100" });
+        return extractData<ProductTag[]>(response);
+      } catch (error) {
+        console.error('Error fetching product tags:', error);
+        return [];
+      }
+    }
+  });
 
   const { data: productsResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['products', currentPage, perPage],
@@ -392,6 +407,7 @@ const ProductsPage = () => {
             isLoading={isLoading || isLoadingAll} 
             onEdit={handleEditProduct}
             onRefresh={refetch}
+            tags={productTags || []}
           />
           
           {!allProducts.length && (
