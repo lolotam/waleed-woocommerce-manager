@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import MainLayout from "./components/Layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import BrandsManager from "./pages/BrandsManager";
+import CategoriesPage from "./pages/CategoriesPage";
 import Settings from "./pages/Settings";
 import LicenseActivation from "./pages/LicenseActivation";
 import NotFound from "./pages/NotFound";
@@ -57,6 +58,7 @@ const App = () => {
               <Route element={<MainLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/brands" element={<BrandsManager />} />
+                <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/about" element={<About />} />
