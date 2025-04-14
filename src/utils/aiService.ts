@@ -1,4 +1,3 @@
-
 /**
  * AI Service for generating content using different AI models
  */
@@ -323,7 +322,6 @@ const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<st
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
-    // Use the correct endpoint for the model
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.apiModel}:generateContent?key=${config.geminiApiKey}`, {
       method: 'POST',
       headers: {
@@ -364,6 +362,130 @@ const generateWithGemini = async (prompt: string, modelKey: AIModel): Promise<st
     }
     
     throw error;
+  }
+};
+
+// Batch generation with Claude API
+interface BatchPrompt {
+  id: string;
+  prompt: string;
+  model: AIModel;
+}
+
+export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Record<string, string>> => {
+  const config = getAiConfig();
+  
+  if (!config.claudeApiKey) {
+    toast.error('Claude API key not configured. Please check settings.');
+    throw new Error('Claude API key not configured');
+  }
+
+  if (!isValidAPIKey(config.claudeApiKey, 'anthropic')) {
+    toast.error('Claude API key format is invalid. Please check your API key.');
+    throw new Error('Invalid Claude API key format');
+  }
+  
+  // Filter prompts by provider
+  const claudePrompts = prompts.filter(p => MODEL_CONFIGS[p.model]?.provider === 'anthropic');
+  const openaiPrompts = prompts.filter(p => MODEL_CONFIGS[p.model]?.provider === 'openai');
+  const geminiPrompts = prompts.filter(p => MODEL_CONFIGS[p.model]?.provider === 'google');
+  
+  const results: Record<string, string> = {};
+  const totalPrompts = prompts.length;
+  let completedPrompts = 0;
+  
+  toast.loading(`Generating ${totalPrompts} content items...`);
+  
+  try {
+    // Process Claude prompts in batch if there are any
+    if (claudePrompts.length > 0) {
+      const requests = claudePrompts.map(p => ({
+        custom_id: p.id,
+        params: {
+          model: MODEL_CONFIGS[p.model].apiModel,
+          max_tokens: MODEL_CONFIGS[p.model].maxTokens,
+          messages: [{ role: 'user', content: p.prompt }]
+        }
+      }));
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25-second timeout for batch
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': config.claudeApiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-beta': 'message-batches-2024-09-24'
+        },
+        body: JSON.stringify({ requests }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || `Claude batch API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      // Process batch results
+      data.responses.forEach((response: any) => {
+        if (response.status === 'success') {
+          const result = response.content[0].text;
+          results[response.custom_id] = result;
+          
+          // Save to logs
+          const prompt = claudePrompts.find(p => p.id === response.custom_id);
+          if (prompt) {
+            saveLogEntry(prompt.prompt, result, prompt.model);
+          }
+        } else {
+          results[response.custom_id] = `Error: ${response.error?.message || 'Unknown error'}`;
+        }
+        completedPrompts++;
+      });
+    }
+    
+    // Process OpenAI prompts individually (if needed)
+    if (openaiPrompts.length > 0) {
+      await Promise.all(openaiPrompts.map(async (prompt) => {
+        try {
+          const result = await generateWithOpenAI(prompt.prompt, prompt.model);
+          results[prompt.id] = result;
+        } catch (error) {
+          results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+        }
+        completedPrompts++;
+        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+      }));
+    }
+    
+    // Process Gemini prompts individually (if needed)
+    if (geminiPrompts.length > 0) {
+      await Promise.all(geminiPrompts.map(async (prompt) => {
+        try {
+          const result = await generateWithGemini(prompt.prompt, prompt.model);
+          results[prompt.id] = result;
+        } catch (error) {
+          results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+        }
+        completedPrompts++;
+        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+      }));
+    }
+    
+    toast.success(`Generated ${completedPrompts}/${totalPrompts} content items successfully!`);
+    return results;
+  } catch (error) {
+    console.error('Batch generation error:', error);
+    toast.error(`Failed to generate content batch: ${error.message}`);
+    throw error;
+  } finally {
+    toast.dismiss();
   }
 };
 
@@ -623,6 +745,7 @@ export const exportLogsToExcel = () => {
 
 export default {
   generateContent,
+  generateContentBatch,
   getAvailableModels,
   getAllLogs,
   exportLogsToExcel,
