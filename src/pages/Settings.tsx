@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { testConnection } from "@/utils/api";
 import { toast } from "sonner";
-import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap } from "lucide-react";
+import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap, ExternalLink } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { testOpenAIConnection, testClaudeConnection, testGeminiConnection } from "@/utils/aiService";
 
@@ -196,13 +196,26 @@ const Settings = () => {
       if (result.success) {
         toast.success(result.message);
       } else {
-        if (result.message.includes('Network error')) {
-          toast.error(result.message, { duration: 10000 });
+        if (result.message.includes('Network connection issue')) {
+          toast.error(result.message, { duration: 12000 });
           
           toast.error(
-            "Troubleshooting tips: 1) Check if api.anthropic.com is accessible from your browser, 2) Try disabling any content blockers, 3) If on a corporate network, check with IT about firewall restrictions",
-            { duration: 15000 }
+            "Need more help with Claude connection?", 
+            { 
+              duration: 15000,
+              action: {
+                label: "View Docs",
+                onClick: () => window.open("https://docs.anthropic.com/claude/reference/getting-started-with-the-api", "_blank")
+              }
+            }
           );
+        } else if (result.message.includes('Detailed network error')) {
+          toast.error(result.message, { duration: 12000 });
+          
+          toast("Try using a CORS proxy for testing", {
+            description: "If you're experiencing CORS issues, try a proxy service or ask your IT team for help",
+            duration: 10000
+          });
         } else {
           toast.error(result.message);
         }

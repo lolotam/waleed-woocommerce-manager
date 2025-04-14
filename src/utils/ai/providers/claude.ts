@@ -107,16 +107,24 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
     // Enhanced logging for network debugging
     console.log('Testing Claude connection with API key:', apiKey.substring(0, 10) + '...');
     
-    const response = await fetch('https://api.anthropic.com/v1/models', {
+    // Add a proxy endpoint if available in the environment
+    const proxyUrl = window.CORS_PROXY || '';
+    const targetUrl = 'https://api.anthropic.com/v1/models';
+    const fetchUrl = proxyUrl ? `${proxyUrl}/${targetUrl}` : targetUrl;
+    
+    const response = await fetch(fetchUrl, {
       method: 'GET',
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache'
       },
       signal: controller.signal,
       mode: 'cors',     // Allow cross-origin requests
-      credentials: 'omit'  // Prevent sending browser credentials
+      credentials: 'omit',  // Prevent sending browser credentials
+      redirect: 'follow'    // Follow any redirects
     });
 
     clearTimeout(timeoutId);
@@ -175,11 +183,12 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           '\n2. Firewall blocking API access' +
           '\n3. Corporate network/proxy restrictions' +
           '\n4. DNS resolution problems with api.anthropic.com' +
-          '\n\nTroubleshooting tips:' +
-          '\n- Verify internet connectivity' +
-          '\n- Temporarily disable VPN or firewall' +
-          '\n- Check network proxy settings' +
-          '\n- Try from a different network'
+          '\n\nAdvanced troubleshooting:' +
+          '\n- Try opening https://api.anthropic.com in your browser to test direct access' +
+          '\n- Check if your browser console shows CORS errors' +
+          '\n- Try accessing through a proxy if available' +
+          '\n- If using a VPN, try connecting without it' +
+          '\n- Some corporate networks require additional configuration to access external APIs'
       };
     } else if (error.name === 'TypeError' && error.message.includes('NetworkError')) {
       return { 
@@ -189,10 +198,11 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
           '\n2. Blocked by content security policy' +
           '\n3. Proxy server interference' +
           '\n4. SSL/TLS connection issues' +
-          '\n\nRecommended actions:' +
-          '\n- Check browser console for detailed errors' +
-          '\n- Verify SSL certificates' +
-          '\n- Contact network administrator'
+          '\n\nTechnical solutions:' +
+          '\n- Use a CORS proxy service to bypass restrictions' +
+          '\n- Try from an environment without strict CSP settings' +
+          '\n- Contact your IT department to whitelist api.anthropic.com domain' +
+          '\n- Consider using a server-side integration if browser restrictions persist'
       };
     }
     
