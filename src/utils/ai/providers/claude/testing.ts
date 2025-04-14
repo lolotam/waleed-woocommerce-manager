@@ -45,7 +45,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'enabled', // Add required header for browser requests
+        'anthropic-dangerous-direct-browser-access': 'true', // Fix: Set as string 'true' instead of 'enabled'
         'Content-Type': 'application/json',
         'Cache-Control': 'no-cache',
         'Pragma': 'no-cache'
