@@ -18,4 +18,21 @@ export const productsApi = {
   createTag: (data: any) => woocommerceApi('products/tags', 'POST', data)
 };
 
+// Helper functions to extract data from WooCommerceResponse
+export const extractData = <T>(response: WooCommerceResponse<T>): T => {
+  return response.data;
+};
+
+export const extractDataWithPagination = <T>(response: WooCommerceResponse<T>): { 
+  data: T, 
+  totalItems?: number, 
+  totalPages?: number 
+} => {
+  return {
+    data: response.data,
+    totalItems: response.totalItems,
+    totalPages: response.totalPages
+  };
+};
+
 export default productsApi;

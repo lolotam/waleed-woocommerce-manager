@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { categoriesApi, mediaApi } from '@/utils/api';
@@ -22,6 +21,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import ImageUploader from '@/components/Products/ImageUploader';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
+import { WooCommerceResponse } from '@/utils/api/woocommerceCore';
 
 interface CategoryFormProps {
   category?: Category | null;
@@ -35,20 +35,19 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
     category?.image?.src || null
   );
 
-  // Fetch all categories for parent selection
-  const { data: categories = [] } = useQuery({
+  const { data: categoriesResponse } = useQuery({
     queryKey: ['categories-dropdown'],
     queryFn: () => categoriesApi.getAll({ per_page: 100 }),
   });
+  
+  const categories = categoriesResponse?.data || [];
 
-  // Extract SEO meta data
   const getMetaValue = (key: string) => {
     if (!category?.meta_data) return '';
     const meta = category.meta_data.find(m => m.key === key);
     return meta ? meta.value : '';
   };
 
-  // Initialize form with category data or defaults
   const form = useForm<CategoryFormData>({
     defaultValues: {
       name: category?.name || '',
@@ -65,15 +64,13 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
     }
   });
 
-  // Handle image upload
   const handleImagesSelected = async (files: File[]) => {
     if (files.length === 0) return;
     
-    const file = files[0]; // Only use the first image
+    const file = files[0];
     setUploadingImage(true);
     
     try {
-      // Create FormData for the image metadata
       const metadata = {
         title: form.getValues('name'),
         alt_text: form.getValues('name'),
@@ -83,7 +80,6 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
       
       const uploadedImage = await mediaApi.upload(file, metadata);
       
-      // Update form with the image data
       form.setValue('image', {
         id: uploadedImage.id,
         src: uploadedImage.source_url,
@@ -103,13 +99,11 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
     }
   };
 
-  // Remove the current image
   const handleRemoveImage = () => {
     form.setValue('image', null);
     setPreviewImage(null);
   };
 
-  // Update image metadata
   const updateImageMetadata = (field: 'alt' | 'title' | 'caption' | 'description', value: string) => {
     const currentImage = form.getValues('image');
     if (currentImage) {
@@ -120,12 +114,10 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
     }
   };
 
-  // Handle form submission
   const onSubmit = async (data: CategoryFormData) => {
     setIsSubmitting(true);
     
     try {
-      // Format meta data to match WooCommerce API expectations
       const formattedMetaData = data.meta_data?.filter(m => m.value).map(m => ({
         key: m.key,
         value: m.value
@@ -137,11 +129,9 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
       };
       
       if (category?.id) {
-        // Update existing category
         await categoriesApi.update(category.id, payload);
         toast.success(`"${data.name}" updated successfully`);
       } else {
-        // Create new category
         await categoriesApi.create(payload);
         toast.success(`"${data.name}" created successfully`);
       }
@@ -212,7 +202,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
                           <SelectContent>
                             <SelectItem value="0">None (Top Level)</SelectItem>
                             {categories
-                              .filter(c => c.id !== category?.id) // Prevent selecting self as parent
+                              .filter(c => c.id !== category?.id)
                               .map(c => (
                                 <SelectItem key={c.id} value={c.id.toString()}>
                                   {c.name}

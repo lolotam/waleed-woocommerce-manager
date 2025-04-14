@@ -9,16 +9,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import CategoriesList from '@/components/Categories/CategoriesList';
 import CategoryForm from '@/components/Categories/CategoryForm';
 import { Category } from '@/types/category';
+import { WooCommerceResponse } from '@/utils/api/woocommerceCore';
 
 const CategoriesPage = () => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: categories = [], isLoading, refetch } = useQuery({
+  const { data: categoriesResponse, isLoading, refetch } = useQuery({
     queryKey: ['categories'],
     queryFn: () => categoriesApi.getAll({ per_page: 100 }),
   });
+  
+  // Extract the categories array from the response
+  const categories: Category[] = categoriesResponse?.data || [];
 
   const handleCloseForm = () => {
     setIsAddingCategory(false);

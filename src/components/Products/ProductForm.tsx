@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -36,6 +35,7 @@ import {
 } from '@/utils/api';
 import { useQuery } from '@tanstack/react-query';
 import ImageUploader from './ImageUploader';
+import { WooCommerceResponse } from '@/utils/api/woocommerceCore';
 
 interface ProductFormProps {
   product: Product | null;
@@ -43,7 +43,6 @@ interface ProductFormProps {
   onCancel: () => void;
 }
 
-// Create schema for form validation
 const productSchema = z.object({
   name: z.string().min(1, 'Title is required'),
   slug: z.string().min(1, 'Slug is required'),
@@ -92,20 +91,20 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [activeTab, setActiveTab] = useState('basic');
   
-  // Get tags for autocomplete
-  const { data: tags } = useQuery({
+  const { data: tagsResponse } = useQuery({
     queryKey: ['product-tags'],
     queryFn: async () => {
       try {
         return await productsApi.getTags({ per_page: 100 });
       } catch (error) {
         console.error('Failed to fetch tags:', error);
-        return [];
+        return { data: [] };
       }
     }
   });
+  
+  const tags = tagsResponse?.data || [];
 
-  // Initialize form with product data or empty defaults
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: product ? {
@@ -130,7 +129,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
     } : emptyProduct
   });
 
-  // Auto generate slug from name
   useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === 'name' && value.name && !form.getValues('slug')) {
@@ -145,11 +143,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
     return () => subscription.unsubscribe();
   }, [form]);
   
-  // Handle form submission
   const onSubmit = async (data: ProductFormData) => {
     setIsSaving(true);
     try {
-      // Transform data for WooCommerce API
       const productData = {
         name: data.name,
         slug: data.slug,
@@ -182,11 +178,9 @@ const ProductForm: React.FC<ProductFormProps> = ({
 
       let response;
       if (product?.id) {
-        // Update existing product
         response = await productsApi.update(product.id, productData);
         toast.success(`${data.name} updated successfully`);
       } else {
-        // Create new product
         response = await productsApi.create(productData);
         toast.success(`${data.name} created successfully`);
       }
@@ -200,26 +194,22 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  // Handle adding a new tag
   const handleAddTag = (tagName: string) => {
     const currentTags = form.getValues('tags') || [];
     
-    // Check if tag already exists
     if (currentTags.some(tag => tag.name.toLowerCase() === tagName.toLowerCase())) {
       return;
     }
 
-    // Check if tag exists in the WooCommerce store
-    const existingTag = tags?.find(tag => 
+    const existingTag = tags.find(tag => 
       tag.name.toLowerCase() === tagName.toLowerCase()
     );
 
     if (existingTag) {
       form.setValue('tags', [...currentTags, existingTag]);
     } else {
-      // Create a new tag in memory (will be created on WooCommerce when saving)
       const newTag: ProductTag = {
-        id: Math.floor(Math.random() * -1000), // Temporary negative ID
+        id: Math.floor(Math.random() * -1000),
         name: tagName,
         slug: tagName.toLowerCase().replace(/[^a-z0-9]+/g, '-')
       };
@@ -229,13 +219,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
     setTagInput('');
   };
 
-  // Handle removing a tag
   const handleRemoveTag = (tagIndex: number) => {
     const currentTags = form.getValues('tags') || [];
     form.setValue('tags', currentTags.filter((_, i) => i !== tagIndex));
   };
 
-  // Handle image upload
   const handleImageUpload = async (files: File[]) => {
     if (!files.length) return;
     
@@ -243,10 +231,8 @@ const ProductForm: React.FC<ProductFormProps> = ({
     
     for (const file of files) {
       try {
-        // Show progress toast
         toast.loading(`Uploading ${file.name}...`);
         
-        // Upload the image to WooCommerce
         const imageMetadata = {
           title: file.name,
           alt_text: file.name,
@@ -254,7 +240,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
         
         const uploadedImage = await mediaApi.upload(file, imageMetadata);
         
-        // Add the image to the form
         const newImage: ProductImage = {
           id: uploadedImage.id,
           src: uploadedImage.source_url,
@@ -272,13 +257,11 @@ const ProductForm: React.FC<ProductFormProps> = ({
     }
   };
 
-  // Handle removing an image
   const handleRemoveImage = (imageIndex: number) => {
     const currentImages = form.getValues('images') || [];
     form.setValue('images', currentImages.filter((_, i) => i !== imageIndex));
   };
 
-  // Update image metadata
   const handleUpdateImageMetadata = (imageIndex: number, metadata: Partial<ProductImage>) => {
     const currentImages = form.getValues('images') || [];
     const updatedImages = [...currentImages];
@@ -297,7 +280,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             <TabsTrigger value="seo">SEO</TabsTrigger>
           </TabsList>
 
-          {/* Basic Product Information */}
           <TabsContent value="basic" className="space-y-6">
             <Card>
               <CardContent className="pt-6 space-y-4">
@@ -414,7 +396,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Card>
           </TabsContent>
 
-          {/* Price and Inventory */}
           <TabsContent value="details" className="space-y-6">
             <Card>
               <CardContent className="pt-6 space-y-4">
@@ -554,7 +535,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Card>
           </TabsContent>
 
-          {/* Images */}
           <TabsContent value="images" className="space-y-6">
             <Card>
               <CardContent className="pt-6 space-y-6">
@@ -626,7 +606,6 @@ const ProductForm: React.FC<ProductFormProps> = ({
             </Card>
           </TabsContent>
 
-          {/* SEO */}
           <TabsContent value="seo" className="space-y-6">
             <Card>
               <CardContent className="pt-6 space-y-4">

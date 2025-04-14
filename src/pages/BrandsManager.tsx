@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import { toast } from "sonner";
 import { generateContent, getAvailableModels } from "@/utils/aiService";
 import { brandsApi, mediaApi } from "@/utils/api";
 import { Brand, BrandFormData } from "@/types/brand";
+import { WooCommerceResponse } from "@/utils/api/woocommerceCore";
 
 const DEFAULT_PROMPTS: {[key: string]: string} = {
   description: "Create a concise, compelling brand description for {brand_name}. Include their unique selling points, product range, and brand values.",
@@ -28,7 +28,7 @@ const BrandsManager = () => {
   const [aiDialogOpen, setAiDialogOpen] = useState(false);
   const [aiFieldToGenerate, setAiFieldToGenerate] = useState('');
   const [aiPrompt, setAiPrompt] = useState('');
-  const [aiModel, setAiModel] = useState('gpt4o'); // Changed to string to match the type in the component
+  const [aiModel, setAiModel] = useState('gpt4o');
   const [aiResult, setAiResult] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
@@ -37,7 +37,7 @@ const BrandsManager = () => {
   const [availableModels, setAvailableModels] = useState<{id: string, description: string, provider: string}[]>([]);
 
   const { 
-    data: brands = [], 
+    data: brandsResponse = { data: [] }, 
     isLoading, 
     isError, 
     error, 
@@ -49,10 +49,12 @@ const BrandsManager = () => {
         return await brandsApi.getAll();
       } catch (error) {
         console.error("Failed to fetch brands:", error);
-        return [];
+        return { data: [] };
       }
     }
   });
+  
+  const brands = brandsResponse.data || [];
 
   const createBrandMutation = useMutation({
     mutationFn: (brandData: BrandFormData) => brandsApi.create(brandData),
@@ -257,9 +259,7 @@ const BrandsManager = () => {
     setIsGenerating(true);
     
     try {
-      // Cast aiModel to any here to bypass the type check temporarily
-      // This is safe because we know the values will be compatible with what generateContent expects
-      const result = await generateContent(aiPrompt, aiModel as any);
+      const result = await generateContent(aiPrompt, aiModel);
       setAiResult(result);
     } catch (error) {
       console.error('AI generation error:', error);
