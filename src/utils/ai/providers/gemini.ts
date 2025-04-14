@@ -2,7 +2,6 @@
 /**
  * Gemini (Google) API Integration
  */
-import { toast } from "sonner";
 import { AIModel } from '../types';
 import { MODEL_CONFIGS, getAiConfig, isValidAPIKey } from '../config';
 
@@ -12,18 +11,16 @@ export const generateWithGemini = async (prompt: string, modelKey: AIModel): Pro
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.geminiApiKey) {
-    toast.error('Gemini API key not configured. Please check settings.');
-    throw new Error('Gemini API key not configured');
+    throw new Error('Gemini API key not configured. Please check settings.');
   }
 
   if (!isValidAPIKey(config.geminiApiKey, 'google')) {
-    toast.error('Gemini API key format is invalid. Please check your API key.');
     throw new Error('Invalid Gemini API key format');
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
     
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelConfig.apiModel}:generateContent?key=${config.geminiApiKey}`, {
       method: 'POST',
@@ -43,25 +40,46 @@ export const generateWithGemini = async (prompt: string, modelKey: AIModel): Pro
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const error = await response.json();
-      if (response.status === 400 && error.error?.message?.includes('API key')) {
-        toast.error('Invalid Gemini API key. Please check your API key in settings.');
-        throw new Error('Invalid Gemini API key');
+      const errorData = await response.text();
+      let errorMessage = `Gemini API error: ${response.status}`;
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error) {
+          errorMessage = errorJson.error.message || errorMessage;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the raw error text
+        if (errorData) {
+          errorMessage = `Gemini API error: ${errorData}`;
+        }
       }
-      throw new Error(error.error?.message || `Gemini API error: ${response.status}`);
+      
+      if (response.status === 400 && errorMessage.includes('API key')) {
+        throw new Error('Invalid Gemini API key');
+      } else if (response.status === 429) {
+        throw new Error('Gemini rate limit exceeded. Please try again later.');
+      } else if (response.status === 404) {
+        throw new Error(`Model '${modelConfig.apiModel}' not found or not available.`);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
+    
+    if (!data.candidates || !data.candidates.length || !data.candidates[0].content || !data.candidates[0].content.parts || !data.candidates[0].content.parts.length) {
+      throw new Error('Unexpected response format from Gemini API');
+    }
+    
     return data.candidates[0].content.parts[0].text;
   } catch (error) {
     console.error('Gemini API error:', error);
     
     if (error.name === 'AbortError') {
-      toast.error('Gemini API request timed out. Please try again later.');
+      throw new Error('Gemini API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      toast.error('Network error connecting to Gemini. Please check your internet connection.');
-    } else {
-      toast.error(`Gemini API error: ${error.message || 'Unknown error'}`);
+      throw new Error('Network error connecting to Gemini. Please check your internet connection.');
     }
     
     throw error;
@@ -79,7 +97,7 @@ export const testGeminiConnection = async (apiKey: string): Promise<{ success: b
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`, {
       method: 'GET',
@@ -97,10 +115,21 @@ export const testGeminiConnection = async (apiKey: string): Promise<{ success: b
         message: 'Successfully connected to Gemini API' 
       };
     } else {
-      const error = await response.json();
+      const errorData = await response.text();
+      let errorMessage = `Gemini API error: ${response.status}`;
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error) {
+          errorMessage = errorJson.error.message || errorMessage;
+        }
+      } catch (e) {
+        // If parsing fails, use the raw error message
+      }
+      
       return { 
         success: false, 
-        message: error.error?.message || `Gemini API error: ${response.status}` 
+        message: errorMessage 
       };
     }
   } catch (error) {

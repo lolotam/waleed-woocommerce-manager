@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Wand2, Book, BookOpen, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { generateContent, getAvailableModels } from '@/utils/aiService';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -170,7 +170,7 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
         } else if (config.claudeApiKey) {
           setModel('claude35_sonnet');
         } else if (config.geminiApiKey) {
-          setModel('gemini_pro');
+          setModel('gemini_flash');
         } else {
           setModel(availableModels[0]?.id || '');
         }
@@ -216,16 +216,20 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
       const generatedContent = await generateContent(prompt, model as any);
       onGenerate(generatedContent);
       setIsOpen(false);
-      toast.success('Content generated successfully');
+      toast.success('Content generated successfully!');
     } catch (error) {
       console.error('Generation error:', error);
       
       if (error.message?.includes('API key')) {
-        toast.error('Invalid or missing API key. Please check AI settings.');
+        toast.error(`API key error: ${error.message}. Please check your settings.`);
+      } else if (error.message?.includes('rate limit')) {
+        toast.error(`Rate limit exceeded. Please try again later or use a different model.`);
+      } else if (error.message?.includes('timed out')) {
+        toast.error(`Request timed out. Please try again or use a different model.`);
       } else if (error.message?.includes('Failed to fetch') || error.message?.includes('Network error')) {
-        toast.error('Network error. Please check your internet connection or try a different model.');
+        toast.error('Network error. Please check your internet connection.');
       } else {
-        toast.error(`Failed to generate content: ${error.message || 'Unknown error'}`);
+        toast.error(`Error: ${error.message || 'Failed to generate content'}`);
       }
     } finally {
       setIsGenerating(false);

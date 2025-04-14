@@ -23,7 +23,7 @@ export const generateContent = async (prompt: string, model?: AIModel): Promise<
     throw new Error(`Unknown model: ${selectedModel}`);
   }
   
-  toast.loading(`Generating content with ${modelConfig.description}...`);
+  const toastId = toast.loading(`Generating content with ${modelConfig.description}...`);
   
   try {
     let result: string;
@@ -47,34 +47,52 @@ export const generateContent = async (prompt: string, model?: AIModel): Promise<
       // Save to logs
       saveLogEntry(prompt, result, selectedModel);
       
-      toast.success('Content generated successfully!');
+      toast.success('Content generated successfully!', { id: toastId });
       return result;
     } catch (error) {
-      // If Claude fails and it's not an API key error, try OpenAI as fallback
-      if (modelConfig.provider === 'anthropic' && 
-          !error.message.includes('API key') && 
-          config.openaiApiKey && 
-          isValidAPIKey(config.openaiApiKey, 'openai')) {
-        toast.warning(`Claude API error. Trying OpenAI as fallback...`);
+      // If Claude or OpenAI fails and it's not an API key error, try a fallback model
+      if ((modelConfig.provider === 'anthropic' || modelConfig.provider === 'openai') && 
+          !error.message.includes('API key')) {
         
-        try {
-          result = await generateWithOpenAI(prompt, 'gpt4o');
-          saveLogEntry(prompt, result, 'gpt4o');
-          toast.success('Content generated successfully with fallback model!');
-          return result;
-        } catch (fallbackError) {
-          console.error('Fallback error:', fallbackError);
-          throw error; // Throw the original error
+        // Try Gemini as fallback if available
+        if (config.geminiApiKey && isValidAPIKey(config.geminiApiKey, 'google')) {
+          toast.loading(`${error.message}. Trying Gemini as fallback...`, { id: toastId });
+          
+          try {
+            result = await generateWithGemini(prompt, 'gemini_flash');
+            saveLogEntry(prompt, result, 'gemini_flash');
+            toast.success('Content generated successfully with Gemini fallback!', { id: toastId });
+            return result;
+          } catch (fallbackError) {
+            console.error('Gemini fallback error:', fallbackError);
+          }
         }
-      } else {
-        throw error;
+        
+        // If Gemini failed or wasn't available, try OpenAI as fallback (if initial model was Claude)
+        if (modelConfig.provider === 'anthropic' && 
+            config.openaiApiKey && 
+            isValidAPIKey(config.openaiApiKey, 'openai')) {
+          toast.loading(`Trying OpenAI as fallback...`, { id: toastId });
+          
+          try {
+            result = await generateWithOpenAI(prompt, 'gpt4o');
+            saveLogEntry(prompt, result, 'gpt4o');
+            toast.success('Content generated successfully with OpenAI fallback!', { id: toastId });
+            return result;
+          } catch (fallbackError) {
+            console.error('OpenAI fallback error:', fallbackError);
+          }
+        }
       }
+      
+      // If we reach here, both the primary model and fallbacks failed
+      toast.error(`Failed to generate content: ${error.message}`, { id: toastId });
+      throw error;
     }
   } catch (error) {
-    toast.error(`Failed to generate content: ${error.message}`);
+    console.error('Content generation error:', error);
+    toast.error(`Failed to generate content: ${error.message}`, { id: toastId });
     throw error;
-  } finally {
-    toast.dismiss();
   }
 };
 
@@ -96,7 +114,7 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
   const totalPrompts = prompts.length;
   let completedPrompts = 0;
   
-  toast.loading(`Generating ${totalPrompts} content items...`);
+  const toastId = toast.loading(`Generating ${totalPrompts} content items...`);
   
   try {
     // Process Claude prompts in batch if there are any
@@ -105,11 +123,12 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
         await processBatchWithClaude(claudePrompts, config, (id, result) => {
           results[id] = result;
           completedPrompts++;
-          toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+          toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`, { id: toastId });
         });
       } catch (error) {
         // If batch API fails, fall back to individual processing
         console.error('Batch processing failed, falling back to individual requests:', error);
+        toast.loading(`Batch processing failed, trying individual requests...`, { id: toastId });
         
         // Process Claude prompts individually as fallback
         await Promise.all(claudePrompts.map(async (prompt) => {
@@ -118,10 +137,22 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
             results[prompt.id] = result;
             saveLogEntry(prompt.prompt, result, prompt.model);
           } catch (error) {
-            results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+            console.error(`Error processing Claude prompt ${prompt.id}:`, error);
+            // Try OpenAI as fallback if available
+            if (config.openaiApiKey && isValidAPIKey(config.openaiApiKey, 'openai')) {
+              try {
+                const fallbackResult = await generateWithOpenAI(prompt.prompt, 'gpt4o');
+                results[prompt.id] = fallbackResult;
+                saveLogEntry(prompt.prompt, fallbackResult, 'gpt4o');
+              } catch (fallbackError) {
+                results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+              }
+            } else {
+              results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+            }
           }
           completedPrompts++;
-          toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+          toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`, { id: toastId });
         }));
       }
     }
@@ -134,10 +165,22 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
           results[prompt.id] = result;
           saveLogEntry(prompt.prompt, result, prompt.model);
         } catch (error) {
-          results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+          console.error(`Error processing OpenAI prompt ${prompt.id}:`, error);
+          // Try Gemini as fallback if available
+          if (config.geminiApiKey && isValidAPIKey(config.geminiApiKey, 'google')) {
+            try {
+              const fallbackResult = await generateWithGemini(prompt.prompt, 'gemini_flash');
+              results[prompt.id] = fallbackResult;
+              saveLogEntry(prompt.prompt, fallbackResult, 'gemini_flash');
+            } catch (fallbackError) {
+              results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+            }
+          } else {
+            results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+          }
         }
         completedPrompts++;
-        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`, { id: toastId });
       }));
     }
     
@@ -149,20 +192,38 @@ export const generateContentBatch = async (prompts: BatchPrompt[]): Promise<Reco
           results[prompt.id] = result;
           saveLogEntry(prompt.prompt, result, prompt.model);
         } catch (error) {
-          results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+          console.error(`Error processing Gemini prompt ${prompt.id}:`, error);
+          // Try OpenAI as fallback if available
+          if (config.openaiApiKey && isValidAPIKey(config.openaiApiKey, 'openai')) {
+            try {
+              const fallbackResult = await generateWithOpenAI(prompt.prompt, 'gpt4o');
+              results[prompt.id] = fallbackResult;
+              saveLogEntry(prompt.prompt, fallbackResult, 'gpt4o');
+            } catch (fallbackError) {
+              results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+            }
+          } else {
+            results[prompt.id] = `Error: ${error.message || 'Unknown error'}`;
+          }
         }
         completedPrompts++;
-        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`);
+        toast.loading(`Generated ${completedPrompts}/${totalPrompts} content items...`, { id: toastId });
       }));
     }
     
-    toast.success(`Generated ${completedPrompts}/${totalPrompts} content items successfully!`);
+    if (completedPrompts === 0) {
+      toast.error(`No content was generated. Please check your API keys.`, { id: toastId });
+      throw new Error('No content was generated');
+    } else if (completedPrompts < totalPrompts) {
+      toast.warning(`Generated ${completedPrompts}/${totalPrompts} content items. Some requests failed.`, { id: toastId });
+    } else {
+      toast.success(`Generated ${completedPrompts}/${totalPrompts} content items successfully!`, { id: toastId });
+    }
+    
     return results;
   } catch (error) {
     console.error('Batch generation error:', error);
-    toast.error(`Failed to generate content batch: ${error.message}`);
+    toast.error(`Failed to generate content batch: ${error.message}`, { id: toastId });
     throw error;
-  } finally {
-    toast.dismiss();
   }
 };

@@ -13,18 +13,16 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.claudeApiKey) {
-    toast.error('Claude API key not configured. Please check settings.');
-    throw new Error('Claude API key not configured');
+    throw new Error('Claude API key not configured. Please check settings.');
   }
 
   if (!isValidAPIKey(config.claudeApiKey, 'anthropic')) {
-    toast.error('Claude API key format is invalid. Please check your API key.');
     throw new Error('Invalid Claude API key format');
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased timeout to 20 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
     
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -38,8 +36,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
         max_tokens: modelConfig.maxTokens,
         messages: [{ role: 'user', content: prompt }]
       }),
-      signal: controller.signal,
-      cache: 'no-store'
+      signal: controller.signal
     });
 
     clearTimeout(timeoutId);
@@ -49,8 +46,10 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       let errorMsg = `Claude API error: ${response.status}`;
       
       try {
-        const error = JSON.parse(errorText);
-        errorMsg = error.error?.message || errorMsg;
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMsg = errorJson.error.message || errorMsg;
+        }
       } catch (e) {
         // If JSON parsing fails, use the raw error text
         if (errorText) {
@@ -59,24 +58,29 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
       }
       
       if (response.status === 401) {
-        toast.error('Invalid Claude API key. Please check your API key in settings.');
         throw new Error('Invalid Claude API key');
+      } else if (response.status === 429) {
+        throw new Error('Claude rate limit exceeded. Please try again later.');
+      } else if (response.status === 404) {
+        throw new Error(`Model '${modelConfig.apiModel}' not found or not available to your account.`);
       }
       
       throw new Error(errorMsg);
     }
 
     const data = await response.json();
+    if (!data.content || !data.content.length || !data.content[0].text) {
+      throw new Error('Unexpected response format from Claude API');
+    }
+    
     return data.content[0].text;
   } catch (error) {
     console.error('Claude API error:', error);
     
     if (error.name === 'AbortError') {
-      toast.error('Claude API request timed out. Please try again later.');
+      throw new Error('Claude API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      toast.error('Network error connecting to Claude. Check your internet connection or try a different model.');
-    } else {
-      toast.error(`Claude API error: ${error.message || 'Unknown error'}`);
+      throw new Error('Network error connecting to Claude. Check your internet connection.');
     }
     
     throw error;
@@ -94,7 +98,7 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
     const response = await fetch('https://api.anthropic.com/v1/models', {
       method: 'GET',
@@ -114,16 +118,31 @@ export const testClaudeConnection = async (apiKey: string): Promise<{ success: b
         message: 'Successfully connected to Claude API' 
       };
     } else {
-      const error = await response.json();
+      const errorText = await response.text();
+      let errorMsg = `Claude API error: ${response.status}`;
+      
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMsg = errorJson.error.message || errorMsg;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the raw error text
+        if (errorText) {
+          errorMsg = `Claude API error: ${errorText}`;
+        }
+      }
+      
       if (response.status === 401) {
         return { 
           success: false, 
           message: 'Invalid API key. Please check your Claude API key.' 
         };
       }
+      
       return { 
         success: false, 
-        message: error.error?.message || `Claude API error: ${response.status}` 
+        message: errorMsg 
       };
     }
   } catch (error) {
@@ -164,7 +183,7 @@ export const processBatchWithClaude = async (
   }));
   
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
+  const timeoutId = setTimeout(() => controller.abort(), 45000); // Increased timeout to 45 seconds
   
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages/batches', {
@@ -175,9 +194,11 @@ export const processBatchWithClaude = async (
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'message-batches-2024-09-24'
       },
-      body: JSON.stringify({ requests }),
-      signal: controller.signal,
-      cache: 'no-store'
+      body: JSON.stringify({ 
+        requests,
+        system: "You are Claude, a helpful AI assistant."
+      }),
+      signal: controller.signal
     });
 
     clearTimeout(timeoutId);
@@ -187,8 +208,10 @@ export const processBatchWithClaude = async (
       let errorMsg = `Claude batch API error: ${response.status}`;
       
       try {
-        const error = JSON.parse(errorText);
-        errorMsg = error.error?.message || errorMsg;
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.error) {
+          errorMsg = errorJson.error.message || errorMsg;
+        }
       } catch (e) {
         // If JSON parsing fails, use the raw error text
         if (errorText) {
@@ -197,29 +220,36 @@ export const processBatchWithClaude = async (
       }
       
       // Fall back to individual processing
-      toast.warning(`Batch processing failed: ${errorMsg}. Trying individual requests...`);
+      console.error('Batch processing failed:', errorMsg);
       throw new Error(errorMsg);
     }
 
     const data = await response.json();
     
     // Process batch results
-    data.responses.forEach((response: any) => {
-      if (response.status === 'success') {
-        const result = response.content[0].text;
-        onProgress(response.custom_id, result);
-        
-        // Save to logs
-        const prompt = claudePrompts.find(p => p.id === response.custom_id);
-        if (prompt) {
-          saveLogEntry(prompt.prompt, result, prompt.model);
+    if (data.responses && Array.isArray(data.responses)) {
+      data.responses.forEach((response: any) => {
+        if (response.status === 'success' && response.content && response.content.length > 0) {
+          const result = response.content[0].text;
+          onProgress(response.custom_id, result);
+          
+          // Save to logs
+          const prompt = claudePrompts.find(p => p.id === response.custom_id);
+          if (prompt) {
+            saveLogEntry(prompt.prompt, result, prompt.model);
+          }
+        } else {
+          let errorMsg = 'Unknown error in batch processing';
+          if (response.error && response.error.message) {
+            errorMsg = response.error.message;
+          }
+          onProgress(response.custom_id, `Error: ${errorMsg}`);
         }
-      } else {
-        onProgress(response.custom_id, `Error: ${response.error?.message || 'Unknown error'}`);
-      }
-    });
+      });
+    } else {
+      throw new Error('Unexpected response format from Claude batch API');
+    }
   } catch (error) {
-    // If batch API fails, throw the error to be handled by the caller
     console.error('Batch processing failed:', error);
     throw error;
   }

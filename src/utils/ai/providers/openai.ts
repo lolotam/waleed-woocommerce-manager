@@ -5,7 +5,6 @@
 import { toast } from "sonner";
 import { AIModel } from '../types';
 import { MODEL_CONFIGS, getAiConfig, isValidAPIKey } from '../config';
-import { saveLogEntry } from '../logs';
 
 // OpenAI API call
 export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Promise<string> => {
@@ -13,18 +12,16 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
   const modelConfig = MODEL_CONFIGS[modelKey];
   
   if (!config.openaiApiKey) {
-    toast.error('OpenAI API key not configured. Please check settings.');
-    throw new Error('OpenAI API key not configured');
+    throw new Error('OpenAI API key not configured. Please check settings.');
   }
 
   if (!isValidAPIKey(config.openaiApiKey, 'openai')) {
-    toast.error('OpenAI API key format is invalid. Please check your API key.');
     throw new Error('Invalid OpenAI API key format');
   }
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
     
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -44,12 +41,30 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      const error = await response.json();
-      if (response.status === 401) {
-        toast.error('Invalid OpenAI API key. Please check your API key in settings.');
-        throw new Error('Invalid OpenAI API key');
+      const errorData = await response.text();
+      let errorMessage = `OpenAI API error: ${response.status}`;
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error) {
+          errorMessage = errorJson.error.message || errorMessage;
+        }
+      } catch (e) {
+        // If JSON parsing fails, use the raw error text
+        if (errorData) {
+          errorMessage = `OpenAI API error: ${errorData}`;
+        }
       }
-      throw new Error(error.error?.message || `OpenAI API error: ${response.status}`);
+      
+      if (response.status === 401) {
+        throw new Error('Invalid OpenAI API key');
+      } else if (response.status === 429) {
+        throw new Error('OpenAI rate limit exceeded. Please try again later.');
+      } else if (response.status === 404) {
+        throw new Error(`Model '${modelConfig.apiModel}' not found or not available to your account.`);
+      }
+      
+      throw new Error(errorMessage);
     }
 
     const data = await response.json();
@@ -58,11 +73,9 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
     console.error('OpenAI API error:', error);
     
     if (error.name === 'AbortError') {
-      toast.error('OpenAI API request timed out. Please try again later.');
+      throw new Error('OpenAI API request timed out. Please try again later.');
     } else if (error.message.includes('Failed to fetch')) {
-      toast.error('Network error connecting to OpenAI. Please check your internet connection.');
-    } else {
-      toast.error(`OpenAI API error: ${error.message || 'Unknown error'}`);
+      throw new Error('Network error connecting to OpenAI. Please check your internet connection.');
     }
     
     throw error;
@@ -80,7 +93,7 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
 
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
     const response = await fetch('https://api.openai.com/v1/models', {
       method: 'GET',
@@ -99,16 +112,28 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
         message: 'Successfully connected to OpenAI API' 
       };
     } else {
-      const error = await response.json();
+      const errorData = await response.text();
+      let errorMessage = `OpenAI API error: ${response.status}`;
+      
+      try {
+        const errorJson = JSON.parse(errorData);
+        if (errorJson.error) {
+          errorMessage = errorJson.error.message || errorMessage;
+        }
+      } catch (e) {
+        // If parsing fails, use the raw error message
+      }
+      
       if (response.status === 401) {
         return { 
           success: false, 
           message: 'Invalid API key. Please check your OpenAI API key.' 
         };
       }
+      
       return { 
         success: false, 
-        message: error.error?.message || `OpenAI API error: ${response.status}` 
+        message: errorMessage 
       };
     }
   } catch (error) {
