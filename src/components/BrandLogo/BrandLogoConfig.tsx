@@ -141,6 +141,10 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     // Initiate OAuth flow with the specified URL
     try {
       initiateWooCommerceOAuth(cleanUrl);
+      // Reset connecting state after a delay to ensure the UI updates correctly
+      setTimeout(() => {
+        setOauthConnecting(false);
+      }, 3000);
     } catch (error) {
       console.error("OAuth connection failed:", error);
       toast.error(`OAuth error: ${error.message || 'Failed to connect'}`);

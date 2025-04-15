@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -118,8 +119,8 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
       currentPath: window.location.pathname
     });
     
-    // Direct navigation to prevent any potential timeout issues
-    window.location.href = authUrl;
+    // Force redirect to the authorization URL in a new tab
+    window.open(authUrl, '_blank');
   } catch (error) {
     console.error('OAuth Initiation Critical Error:', error);
     toast.error('Authentication Setup Failed', {
