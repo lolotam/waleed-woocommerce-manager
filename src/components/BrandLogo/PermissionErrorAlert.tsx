@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertOctagon, ExternalLink, User, Key } from "lucide-react";
+import { AlertOctagon, ExternalLink, User, Key, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface PermissionErrorAlertProps {

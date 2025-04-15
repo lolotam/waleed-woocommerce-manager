@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, ShieldAlert } from "lucide-react";
+import { Info, ShieldAlert, AlertCircle } from "lucide-react";
 
 // Import the separated components
 import ProcessingControls from "./ProcessingControls";

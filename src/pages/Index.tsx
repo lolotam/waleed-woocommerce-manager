@@ -9,7 +9,7 @@ const Index = () => {
     isLicenseValid();
   }, []);
 
-  return <Navigate to="/" replace />;
+  return <Navigate to="/brand-logo-uploader" replace />;
 };
 
 export default Index;
