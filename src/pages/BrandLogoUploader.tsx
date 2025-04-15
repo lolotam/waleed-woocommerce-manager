@@ -128,22 +128,16 @@ const BrandLogoUploader = () => {
     
     setIsProcessing(true);
     setProcessTracking({success: 0, failed: 0, total: uploadedFiles.length});
-    setProcessLog([]);
-    setProcessedItems([]);
     
     if (config.saveConfigurations) {
       localStorage.setItem('brand_logo_config', JSON.stringify(config));
     }
-    
-    addLogEntry(`Starting to process ${uploadedFiles.length} files`);
     
     try {
       for (const file of uploadedFiles) {
         const targetName = mappings[file.name];
         
         try {
-          addLogEntry(`Processing ${file.name} → ${targetName}`);
-          
           const pendingItem: ProcessedItem = {
             filename: file.name,
             targetName,
@@ -170,10 +164,8 @@ const BrandLogoUploader = () => {
           );
           
           if (result.message && result.message.includes('matched from')) {
-            addLogEntry(`✅ ${result.message}`);
             toast.success(result.message);
           } else {
-            addLogEntry(`✅ Successfully processed ${file.name}`);
             toast.success(`Processed ${file.name}`);
           }
         } catch (error) {
@@ -196,16 +188,13 @@ const BrandLogoUploader = () => {
             )
           );
           
-          addLogEntry(`❌ Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
           toast.error(`Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
         }
       }
       
-      addLogEntry(`Processing complete! ${processTracking.success} successful, ${processTracking.failed} failed`);
       toast.success(`Processing complete! ${processTracking.success} successful, ${processTracking.failed} failed`);
     } catch (error) {
       console.error("Processing error:", error);
-      addLogEntry(`Processing failed: ${error.message || 'Unknown error'}`);
       toast.error(`Processing failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);

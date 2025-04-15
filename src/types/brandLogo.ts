@@ -45,3 +45,37 @@ export interface ProcessedItem {
   status: 'pending' | 'success' | 'failed';
   message?: string;
 }
+
+export interface ProcessingControlsProps {
+  isProcessing: boolean;
+  hasFiles: boolean;
+  hasLogs: boolean;
+  onStartProcessing: () => void;
+  onClearLog: () => void;
+}
+
+export interface ProgressIndicatorProps {
+  processed: {
+    success: number;
+    failed: number;
+    total: number;
+  };
+}
+
+export interface ProcessingLogProps {
+  processLog: string[];
+}
+
+export interface ProcessedItemsProps {
+  processedItems: ProcessedItem[];
+}
+
+export interface ProcessingSummaryProps {
+  config: BrandLogoConfigType;
+  filesCount: number;
+}
+
+export interface PermissionErrorAlertProps {
+  hasError: boolean;
+  onTabChange: (tab: string) => void;
+}
