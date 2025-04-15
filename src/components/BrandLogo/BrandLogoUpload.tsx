@@ -111,9 +111,12 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
           <input
             ref={folderInputRef}
             type="file"
-            webkitdirectory="true"
-            directory=""
-            multiple
+            // Use attribute spread instead of direct props for non-standard attributes
+            {...{
+              webkitdirectory: "",
+              directory: "",
+              multiple: true
+            }}
             onChange={handleFileInput}
             className="hidden"
           />
