@@ -1,4 +1,3 @@
-
 /**
  * WordPress Media API
  */
@@ -22,7 +21,7 @@ export const mediaApi = {
     const headers: Record<string, string> = {};
     
     // Set up authentication based on the selected method
-    const authMethod = config.authMethod || 'consumer_keys';
+    const authMethod = config.authMethod || 'app_password';
     
     if (authMethod === 'consumer_keys') {
       if (!config.consumerKey || !config.consumerSecret) {
@@ -34,8 +33,8 @@ export const mediaApi = {
       url.searchParams.append('consumer_secret', config.consumerSecret);
     } else if (authMethod === 'app_password') {
       if (!config.wpUsername || !config.wpAppPassword) {
-        toast.error('WordPress Application Password not configured. Please check settings.');
-        throw new Error('WordPress Application Password not configured');
+        toast.error('WordPress username and application password required. Please check settings.');
+        throw new Error('WordPress credentials not configured');
       }
       // Using Basic Auth with application password
       const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
@@ -61,12 +60,12 @@ export const mediaApi = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         console.error('Media upload error response:', errorData);
         
         if (errorData.code === 'rest_cannot_create' || 
             errorData.message?.includes('not allowed to create posts')) {
-          throw new Error('Media upload permission denied. Please check your WooCommerce API permissions or use an administrator account.');
+          throw new Error('Media upload permission denied. Your WordPress user must have Administrator or Editor role with upload permissions.');
         }
         
         throw new Error(errorData.message || 'Media upload error');
@@ -78,7 +77,7 @@ export const mediaApi = {
       
       if (error.message?.includes('permission denied') || 
           error.message?.includes('not allowed to create posts')) {
-        toast.error('Permission denied: Your authentication credentials don\'t have media upload permissions. Please use an administrator account or check API key permissions.', {
+        toast.error('Permission denied: Your WordPress user does not have media upload permissions. Please use an administrator account.', {
           duration: 6000,
         });
       } else {

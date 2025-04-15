@@ -10,7 +10,7 @@ import { BrandLogoConfigProps } from "@/types/brandLogo";
 import { testConnection } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
 import { initiateWooCommerceOAuth } from "@/utils/api/woocommerceAuth";
-import { Save, RefreshCw, CheckCircle, Key, Lock } from "lucide-react";
+import { Save, RefreshCw, CheckCircle, Key, Lock, User } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
@@ -20,7 +20,7 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [wpUsername, setWpUsername] = useState('');
   const [wpAppPassword, setWpAppPassword] = useState('');
   const [isTesting, setIsTesting] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password' | 'oauth'>('consumer_keys');
+  const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password' | 'oauth'>('app_password');
   
   useEffect(() => {
     const savedConfig = getWooCommerceConfig();
@@ -29,7 +29,7 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     setConsumerSecret(savedConfig.consumerSecret || '');
     setWpUsername(savedConfig.wpUsername || '');
     setWpAppPassword(savedConfig.wpAppPassword || '');
-    setAuthMethod(savedConfig.authMethod || 'consumer_keys');
+    setAuthMethod(savedConfig.authMethod || 'app_password');
     
     const savedBrandLogoConfig = localStorage.getItem('brand_logo_config');
     if (savedBrandLogoConfig && config.saveConfigurations) {
@@ -82,6 +82,9 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     toast.success('WooCommerce settings saved');
+    
+    // Test connection
+    handleTestConnection();
   };
   
   const handleTestConnection = async () => {
@@ -127,10 +130,54 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
             <Label>Authentication Method</Label>
             <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'consumer_keys' | 'app_password' | 'oauth')}>
               <TabsList className="w-full">
-                <TabsTrigger value="consumer_keys" className="flex-1">API Keys</TabsTrigger>
-                <TabsTrigger value="app_password" className="flex-1">Application Password</TabsTrigger>
-                <TabsTrigger value="oauth" className="flex-1">OAuth</TabsTrigger>
+                <TabsTrigger value="app_password" className="flex-1">
+                  <User className="mr-2 h-4 w-4" />
+                  WordPress Login
+                </TabsTrigger>
+                <TabsTrigger value="consumer_keys" className="flex-1">
+                  <Key className="mr-2 h-4 w-4" />
+                  API Keys
+                </TabsTrigger>
+                <TabsTrigger value="oauth" className="flex-1">
+                  <Lock className="mr-2 h-4 w-4" />
+                  OAuth
+                </TabsTrigger>
               </TabsList>
+              
+              <TabsContent value="app_password" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wp-username">WordPress Username</Label>
+                  <Input
+                    id="wp-username"
+                    placeholder="admin"
+                    value={wpUsername}
+                    onChange={(e) => setWpUsername(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="wp-app-password">Application Password</Label>
+                  <Input
+                    id="wp-app-password"
+                    type="password"
+                    placeholder="XXXX XXXX XXXX XXXX XXXX XXXX"
+                    value={wpAppPassword}
+                    onChange={(e) => setWpAppPassword(e.target.value)}
+                  />
+                </div>
+                
+                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-md border border-blue-200 dark:border-blue-800">
+                  <h4 className="font-medium mb-2">How to create an Application Password</h4>
+                  <ol className="list-decimal pl-5 text-sm space-y-1 text-muted-foreground">
+                    <li>Go to your WordPress admin dashboard</li>
+                    <li>Navigate to Users → Profile</li>
+                    <li>Scroll down to "Application Passwords" section</li>
+                    <li>Enter "Brand Logo Uploader" as the name</li>
+                    <li>Click "Add New Application Password"</li>
+                    <li>Copy the generated password and paste it above</li>
+                  </ol>
+                </div>
+              </TabsContent>
               
               <TabsContent value="consumer_keys" className="space-y-4 pt-4">
                 <div className="space-y-2">
@@ -159,35 +206,8 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
                 </p>
               </TabsContent>
               
-              <TabsContent value="app_password" className="space-y-4 pt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="wp-username">WordPress Username</Label>
-                  <Input
-                    id="wp-username"
-                    placeholder="admin"
-                    value={wpUsername}
-                    onChange={(e) => setWpUsername(e.target.value)}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="wp-app-password">Application Password</Label>
-                  <Input
-                    id="wp-app-password"
-                    type="password"
-                    placeholder="XXXX XXXX XXXX XXXX XXXX XXXX"
-                    value={wpAppPassword}
-                    onChange={(e) => setWpAppPassword(e.target.value)}
-                  />
-                </div>
-                
-                <p className="text-xs text-muted-foreground mt-2">
-                  Generate this in WordPress → Users → Profile → Application Passwords
-                </p>
-              </TabsContent>
-              
               <TabsContent value="oauth" className="space-y-4 pt-4">
-                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-md">
                   <h4 className="font-medium mb-2">Connect with OAuth</h4>
                   <p className="text-sm text-muted-foreground mb-4">
                     This method will redirect you to your WooCommerce store where you can authorize access. 
@@ -203,9 +223,12 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
           </div>
           
           <div className="flex gap-2">
-            <Button onClick={handleSaveWooCommerceConfig} disabled={authMethod === 'oauth'}>
+            <Button 
+              onClick={handleSaveWooCommerceConfig} 
+              className="flex-1"
+            >
               <Save className="mr-2 h-4 w-4" />
-              Save API Settings
+              Save & Connect
             </Button>
             <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
               {isTesting ? (
@@ -213,7 +236,7 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
               ) : (
                 <CheckCircle className="mr-2 h-4 w-4" />
               )}
-              Test Connection
+              Test
             </Button>
           </div>
         </div>

@@ -35,7 +35,7 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
     consumerSecret: '',
     wpUsername: '',
     wpAppPassword: '',
-    authMethod: 'consumer_keys'
+    authMethod: 'app_password' // Default to WordPress application password
   };
 };
 
@@ -58,7 +58,7 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
   const url = new URL(`${cleanUrl}/wp-json/wc/v3/${endpoint}`);
   
   // Add authentication based on the selected method
-  const authMethod = config.authMethod || 'consumer_keys';
+  const authMethod = config.authMethod || 'app_password';
   
   // Headers to use for the request
   const headers: Record<string, string> = {
@@ -76,8 +76,8 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     url.searchParams.append('consumer_secret', config.consumerSecret);
   } else if (authMethod === 'app_password') {
     if (!config.wpUsername || !config.wpAppPassword) {
-      toast.error('WordPress Application Password not configured. Please check settings.');
-      throw new Error('WordPress Application Password not configured');
+      toast.error('WordPress login credentials not configured. Please check settings.');
+      throw new Error('WordPress login credentials not configured');
     }
     // Using Basic Auth with application password
     const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
@@ -106,14 +106,25 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
           errorData.message?.includes('cannot list resources') ||
           response.status === 401) {
         
-        toast.error('Authentication error: Your WooCommerce API credentials don\'t have sufficient permissions', {
-          description: 'Make sure your credentials have read/write access and are properly configured.',
-          duration: 6000,
-          action: {
-            label: 'Learn More',
-            onClick: () => window.open('https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication', '_blank')
-          }
-        });
+        if (authMethod === 'app_password') {
+          toast.error('Authentication error: Your WordPress username or password may be incorrect', {
+            description: 'Make sure you\'ve created an Application Password in WordPress → Users → Profile',
+            duration: 6000,
+            action: {
+              label: 'Learn More',
+              onClick: () => window.open('https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/', '_blank')
+            }
+          });
+        } else {
+          toast.error('Authentication error: Your WooCommerce API credentials don\'t have sufficient permissions', {
+            description: 'Make sure your credentials have read/write access and are properly configured.',
+            duration: 6000,
+            action: {
+              label: 'Learn More',
+              onClick: () => window.open('https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication', '_blank')
+            }
+          });
+        }
         
         console.error('WooCommerce API Permission Error:', errorData);
         throw new Error('WooCommerce authentication failed: Insufficient permissions');
