@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,7 +9,8 @@ import { toast } from "sonner";
 import { BrandLogoConfigProps } from "@/types/brandLogo";
 import { testConnection } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
-import { Save, RefreshCw, CheckCircle, Key } from "lucide-react";
+import { initiateWooCommerceOAuth } from "@/utils/api/woocommerceAuth";
+import { Save, RefreshCw, CheckCircle, Key, Lock } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
@@ -20,10 +20,9 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [wpUsername, setWpUsername] = useState('');
   const [wpAppPassword, setWpAppPassword] = useState('');
   const [isTesting, setIsTesting] = useState(false);
-  const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password'>('consumer_keys');
+  const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password' | 'oauth'>('consumer_keys');
   
   useEffect(() => {
-    // Load existing WooCommerce configuration
     const savedConfig = getWooCommerceConfig();
     setWoocommerceUrl(savedConfig.url || '');
     setConsumerKey(savedConfig.consumerKey || '');
@@ -32,7 +31,6 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     setWpAppPassword(savedConfig.wpAppPassword || '');
     setAuthMethod(savedConfig.authMethod || 'consumer_keys');
     
-    // Load saved brand logo config if available
     const savedBrandLogoConfig = localStorage.getItem('brand_logo_config');
     if (savedBrandLogoConfig && config.saveConfigurations) {
       try {
@@ -61,7 +59,6 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
       return;
     }
     
-    // Validate and clean URL format
     let cleanUrl = woocommerceUrl.trim().replace(/\/+$/, '');
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = 'https://' + cleanUrl;
@@ -99,6 +96,17 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     }
   };
   
+  const handleOAuthConnect = () => {
+    if (!woocommerceUrl) {
+      toast.error('Please enter your store URL first');
+      return;
+    }
+    
+    localStorage.setItem('wc_temp_store_url', woocommerceUrl);
+    
+    initiateWooCommerceOAuth(woocommerceUrl);
+  };
+  
   return (
     <div className="space-y-6">
       <div className="space-y-4">
@@ -117,10 +125,11 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
           
           <div className="space-y-2">
             <Label>Authentication Method</Label>
-            <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'consumer_keys' | 'app_password')}>
+            <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'consumer_keys' | 'app_password' | 'oauth')}>
               <TabsList className="w-full">
                 <TabsTrigger value="consumer_keys" className="flex-1">API Keys</TabsTrigger>
                 <TabsTrigger value="app_password" className="flex-1">Application Password</TabsTrigger>
+                <TabsTrigger value="oauth" className="flex-1">OAuth</TabsTrigger>
               </TabsList>
               
               <TabsContent value="consumer_keys" className="space-y-4 pt-4">
@@ -176,11 +185,25 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
                   Generate this in WordPress → Users → Profile → Application Passwords
                 </p>
               </TabsContent>
+              
+              <TabsContent value="oauth" className="space-y-4 pt-4">
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                  <h4 className="font-medium mb-2">Connect with OAuth</h4>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    This method will redirect you to your WooCommerce store where you can authorize access. 
+                    No need to create API keys manually.
+                  </p>
+                  <Button onClick={handleOAuthConnect} className="w-full">
+                    <Lock className="mr-2 h-4 w-4" />
+                    Connect to WooCommerce
+                  </Button>
+                </div>
+              </TabsContent>
             </Tabs>
           </div>
           
           <div className="flex gap-2">
-            <Button onClick={handleSaveWooCommerceConfig}>
+            <Button onClick={handleSaveWooCommerceConfig} disabled={authMethod === 'oauth'}>
               <Save className="mr-2 h-4 w-4" />
               Save API Settings
             </Button>

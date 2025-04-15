@@ -10,7 +10,7 @@ export interface WooCommerceConfig {
   consumerSecret: string;
   wpUsername?: string;
   wpAppPassword?: string;
-  authMethod?: 'consumer_keys' | 'app_password';
+  authMethod?: 'consumer_keys' | 'app_password' | 'oauth';
 }
 
 // Response type for WooCommerce API including headers
@@ -66,7 +66,7 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
   };
 
   // Authentication handling
-  if (authMethod === 'consumer_keys') {
+  if (authMethod === 'consumer_keys' || authMethod === 'oauth') {
     if (!config.consumerKey || !config.consumerSecret) {
       toast.error('WooCommerce API keys not configured. Please check settings.');
       throw new Error('WooCommerce API keys not configured');

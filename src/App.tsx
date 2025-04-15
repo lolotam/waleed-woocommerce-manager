@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +17,7 @@ import LogsPage from "./pages/LogsPage";
 import ProductsPage from "./pages/ProductsPage";
 import ScraperImporterPage from "./pages/ScraperImporterPage";
 import BrandLogoUploader from "./pages/BrandLogoUploader";
+import WooCommerceCallback from "./pages/WooCommerceCallback";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 
@@ -76,6 +76,9 @@ const App = () => {
 
             {/* Catch-all route */}
             <Route path="*" element={<NotFound />} />
+
+            {/* WooCommerce Callback Route */}
+            <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
           </Routes>
         </TooltipProvider>
       </BrowserRouter>
