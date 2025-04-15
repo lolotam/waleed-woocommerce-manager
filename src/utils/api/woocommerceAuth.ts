@@ -1,7 +1,3 @@
-
-/**
- * WooCommerce OAuth Authentication
- */
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 
@@ -18,19 +14,36 @@ export const buildWooCommerceAuthUrl = ({
   storeUrl,
   appName,
   returnUrl,
-  callbackUrl = window.location.origin + '/api/woocommerce-callback',
+  callbackUrl = window.location.origin + '/woocommerce-callback',
   scope = 'read_write',
   userId = uuidv4()
 }: AuthUrlParams): string => {
-  // Clean the store URL
+  // Enhanced URL validation with more comprehensive checks
   const cleanUrl = storeUrl.trim().replace(/\/+$/, '');
-  if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
-    throw new Error('Store URL must start with http:// or https://');
+  
+  // More robust URL validation
+  try {
+    const parsedUrl = new URL(
+      cleanUrl.startsWith('http://') || cleanUrl.startsWith('https://') 
+        ? cleanUrl 
+        : `https://${cleanUrl}`
+    );
+    
+    // Ensure it's a valid domain
+    if (!parsedUrl.hostname.includes('.')) {
+      throw new Error('Invalid store URL');
+    }
+  } catch (error) {
+    console.error('URL Validation Error:', error);
+    toast.error('Please enter a valid WooCommerce store URL', {
+      description: 'Make sure to use the full domain like mystore.com'
+    });
+    throw error;
   }
 
   // Build base URL
   const endpoint = '/wc-auth/v1/authorize';
-  const baseUrl = `${cleanUrl}${endpoint}`;
+  const baseUrl = `${cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`}${endpoint}`;
   
   // Build params
   const params = new URLSearchParams();
@@ -40,22 +53,33 @@ export const buildWooCommerceAuthUrl = ({
   params.append('return_url', returnUrl);
   params.append('callback_url', callbackUrl);
 
-  // Save state for tracking the auth flow
-  localStorage.setItem('wc_auth_in_progress', 'true');
-  localStorage.setItem('wc_auth_timestamp', Date.now().toString());
+  // Enhanced logging for debugging
+  console.log('WooCommerce Auth URL Generation:', {
+    baseUrl,
+    params: params.toString(),
+    fullUrl: `${baseUrl}?${params.toString()}`
+  });
+
+  // Save state for tracking the auth flow with more details
+  localStorage.setItem('wc_auth_in_progress', JSON.stringify({
+    timestamp: Date.now(),
+    storeUrl: cleanUrl,
+    appName
+  }));
 
   return `${baseUrl}?${params.toString()}`;
 };
 
-// Function to handle OAuth initiation
 export const initiateWooCommerceOAuth = (storeUrl: string) => {
   try {
     if (!storeUrl) {
-      toast.error('Please enter your store URL first');
+      toast.error('Please enter your WooCommerce store URL', {
+        description: 'The store URL is required to initiate authentication'
+      });
       return;
     }
     
-    // Store URL validation
+    // More comprehensive URL handling
     let cleanUrl = storeUrl.trim().replace(/\/+$/, '');
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = 'https://' + cleanUrl;
@@ -64,38 +88,46 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
     try {
       new URL(cleanUrl);
     } catch (e) {
-      toast.error('Please enter a valid URL');
+      toast.error('Invalid store URL', {
+        description: 'Please enter a valid WooCommerce store domain'
+      });
       return;
     }
     
-    // Save the current page to return to after auth
+    // Save context for return after authentication
     localStorage.setItem('wc_auth_return_page', window.location.pathname);
     localStorage.setItem('wc_temp_store_url', cleanUrl);
     
-    // Generate auth URL
+    // Generate auth URL with comprehensive error handling
     const authUrl = buildWooCommerceAuthUrl({
       storeUrl: cleanUrl,
       appName: 'Brand Logo Uploader',
       returnUrl: `${window.location.origin}/brand-logo-uploader?tab=config`,
-      callbackUrl: `${window.location.origin}/woocommerce-callback`, // Fixed URL path
+      callbackUrl: `${window.location.origin}/woocommerce-callback`
     });
     
-    // Show a loading toast
-    toast.info('Redirecting to WooCommerce for authentication...', {
-      duration: 3000,
+    // Enhanced toast with more context
+    toast.info('Redirecting to WooCommerce for authentication', {
+      description: `Connecting to ${cleanUrl}`,
+      duration: 5000
     });
     
-    console.log('Redirecting to WooCommerce auth URL:', authUrl);
+    console.log('OAuth Redirect Details:', {
+      storeUrl: cleanUrl,
+      authUrl,
+      currentPath: window.location.pathname
+    });
     
-    // Use direct location change for better browser compatibility
+    // Direct navigation to prevent any potential timeout issues
     window.location.href = authUrl;
   } catch (error) {
-    console.error('OAuth initiation error:', error);
-    toast.error(`Authentication error: ${error.message}`);
+    console.error('OAuth Initiation Critical Error:', error);
+    toast.error('Authentication Setup Failed', {
+      description: error.message || 'Unable to start WooCommerce authentication'
+    });
   }
 };
 
-// Function to save OAuth credentials received from the callback
 export const saveOAuthCredentials = (credentials: {
   consumer_key: string;
   consumer_secret: string;
@@ -123,7 +155,6 @@ export const saveOAuthCredentials = (credentials: {
   }
 };
 
-// Function to check if OAuth flow timed out
 export const checkOAuthTimeout = () => {
   const inProgress = localStorage.getItem('wc_auth_in_progress');
   if (inProgress === 'true') {
