@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -48,7 +47,6 @@ const BrandLogoProcessing = ({
         message.includes("permission denied")) {
       setHasPermissionError(true);
       
-      // Automatically switch to the troubleshooting tab when permission errors occur
       setActiveTab("troubleshooting");
     }
   };
@@ -199,73 +197,78 @@ const BrandLogoProcessing = ({
             
             <Alert variant="destructive" className="mb-4">
               <AlertOctagon className="h-4 w-4" />
-              <AlertTitle>Common Permission Error</AlertTitle>
+              <AlertTitle>Common Media Upload Permission Error</AlertTitle>
               <AlertDescription>
-                The "not allowed to create posts" error occurs when your API keys or application 
-                password don't have sufficient permissions to upload media files.
+                The "not allowed to create posts" error indicates insufficient API permissions 
+                for media file uploads. This typically happens when your WordPress or WooCommerce 
+                credentials lack the necessary rights.
               </AlertDescription>
             </Alert>
             
             <div>
-              <h5 className="font-medium mb-2">Solution Options:</h5>
+              <h5 className="font-medium mb-2">Recommended Solutions:</h5>
               <ol className="list-decimal list-inside space-y-4">
                 <li className="p-3 border rounded-md bg-muted/30">
-                  <h6 className="font-medium">Use Application Passwords (Recommended)</h6>
-                  <p className="text-sm mb-2">This method provides better permissions for media uploads.</p>
+                  <h6 className="font-medium">1. Use Application Passwords (Recommended)</h6>
+                  <p className="text-sm mb-2">Generate a dedicated application password with full media upload permissions.</p>
                   <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
-                    <li>Go to your WordPress dashboard → Users → Profile</li>
-                    <li>Scroll down to "Application Passwords" section</li>
-                    <li>Enter "Brand Logo Uploader" as the name</li>
+                    <li>Go to WordPress Dashboard → Users → Your Profile</li>
+                    <li>Scroll to "Application Passwords" section</li>
                     <li>Click "Add New Application Password"</li>
+                    <li>Name it "Brand Logo Uploader"</li>
                     <li>Copy the generated password</li>
-                    <li>Return to the Configuration tab and select "WordPress Login" method</li>
-                    <li>Enter your WordPress admin username and the application password</li>
+                    <li>Return to Configuration and select "WordPress Login"</li>
+                    <li>Enter your WordPress username and the new application password</li>
                   </ol>
                 </li>
                 
                 <li className="p-3 border rounded-md bg-muted/30">
-                  <h6 className="font-medium">Create New WooCommerce API Keys with Admin</h6>
-                  <p className="text-sm mb-2">Ensure you create API keys using an administrator account.</p>
+                  <h6 className="font-medium">2. Create WooCommerce API Keys with Admin Privileges</h6>
+                  <p className="text-sm mb-2">Generate API keys using an administrator account with full permissions.</p>
                   <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
-                    <li>Log in to WordPress as administrator</li>
-                    <li>Go to WooCommerce → Settings → Advanced → REST API</li>
+                    <li>Log in to WordPress as an administrator</li>
+                    <li>Navigate to WooCommerce → Settings → Advanced → REST API</li>
                     <li>Click "Add key"</li>
-                    <li>Enter "Brand Logo Uploader" as description</li>
-                    <li>Select your admin user from the dropdown</li>
-                    <li>Set permissions to "Read/Write"</li>
-                    <li>Click "Generate API Key"</li>
-                    <li>Copy the Consumer Key and Consumer Secret</li>
-                    <li>Return to the Configuration tab and select "API Keys" method</li>
+                    <li>Set Description to "Brand Logo Uploader"</li>
+                    <li>Select an admin user account</li>
+                    <li>Set Permissions to "Read/Write"</li>
+                    <li>Generate and copy the Consumer Key and Secret</li>
+                    <li>Return to Configuration and use API Keys method</li>
                   </ol>
                 </li>
                 
                 <li className="p-3 border rounded-md bg-muted/30">
-                  <h6 className="font-medium">Check Your WordPress User Role</h6>
-                  <p className="text-sm mb-2">Only users with administrator or editor roles can upload media.</p>
+                  <h6 className="font-medium">3. Verify User Role Permissions</h6>
+                  <p className="text-sm mb-2">Ensure your WordPress user has sufficient privileges.</p>
                   <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
-                    <li>Log in to your WordPress dashboard</li>
-                    <li>Go to Users → All Users</li>
-                    <li>Check that your user has the Administrator role</li>
-                    <li>If not, you'll need to use credentials from an Administrator account</li>
+                    <li>Check your user role in WordPress Users</li>
+                    <li>Confirm you have Administrator or Editor role</li>
+                    <li>If not, request role upgrade from site administrator</li>
+                    <li>Alternatively, use credentials from an admin account</li>
                   </ol>
                 </li>
               </ol>
             </div>
             
             <div className="mt-4">
-              <h5 className="font-medium mb-2">Still Having Issues?</h5>
+              <h5 className="font-medium mb-2">Additional Troubleshooting</h5>
               <div className="flex items-center space-x-2">
                 <Link 
                   to="/brand-logo-uploader?tab=config" 
                   className="text-blue-600 hover:underline inline-flex items-center"
                 >
-                  Return to configuration settings <ExternalLink className="ml-1 h-4 w-4" />
+                  Return to Configuration <ExternalLink className="ml-1 h-4 w-4" />
                 </Link>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Refer to the <a href="https://woocommerce.github.io/woocommerce-rest-api-docs/?shell#authentication-over-http" 
-                target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">WooCommerce API Documentation</a> for 
-                more details on authentication methods.
+                Refer to the <a 
+                  href="https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication-over-http" 
+                  target="_blank" 
+                  rel="noopener noreferrer" 
+                  className="text-blue-600 hover:underline"
+                >
+                  WooCommerce API Documentation
+                </a> for comprehensive authentication guidance.
               </p>
             </div>
           </div>
