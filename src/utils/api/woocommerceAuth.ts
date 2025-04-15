@@ -40,24 +40,55 @@ export const buildWooCommerceAuthUrl = ({
   params.append('return_url', returnUrl);
   params.append('callback_url', callbackUrl);
 
+  // Save state for tracking the auth flow
+  localStorage.setItem('wc_auth_in_progress', 'true');
+  localStorage.setItem('wc_auth_timestamp', Date.now().toString());
+
   return `${baseUrl}?${params.toString()}`;
 };
 
 // Function to handle OAuth initiation
 export const initiateWooCommerceOAuth = (storeUrl: string) => {
   try {
+    if (!storeUrl) {
+      toast.error('Please enter your store URL first');
+      return;
+    }
+    
+    // Store URL validation
+    let cleanUrl = storeUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    
+    try {
+      new URL(cleanUrl);
+    } catch (e) {
+      toast.error('Please enter a valid URL');
+      return;
+    }
+    
     // Save the current page to return to after auth
     localStorage.setItem('wc_auth_return_page', window.location.pathname);
+    localStorage.setItem('wc_temp_store_url', cleanUrl);
     
     // Generate auth URL
     const authUrl = buildWooCommerceAuthUrl({
-      storeUrl,
+      storeUrl: cleanUrl,
       appName: 'Brand Logo Uploader',
       returnUrl: `${window.location.origin}/brand-logo-uploader?tab=config`,
     });
     
-    // Redirect to WooCommerce auth page
-    window.location.href = authUrl;
+    // Show a loading toast
+    toast.info('Redirecting to WooCommerce for authentication...', {
+      duration: 3000,
+    });
+    
+    // Redirect after a short delay to ensure the toast is shown
+    setTimeout(() => {
+      console.log('Redirecting to WooCommerce auth URL:', authUrl);
+      window.location.href = authUrl;
+    }, 500);
   } catch (error) {
     console.error('OAuth initiation error:', error);
     toast.error(`Authentication error: ${error.message}`);
@@ -80,6 +111,8 @@ export const saveOAuthCredentials = (credentials: {
     
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     localStorage.removeItem('wc_temp_store_url');
+    localStorage.removeItem('wc_auth_in_progress');
+    localStorage.removeItem('wc_auth_timestamp');
     
     toast.success('WooCommerce authentication successful!');
     return true;
@@ -88,4 +121,21 @@ export const saveOAuthCredentials = (credentials: {
     toast.error(`Failed to save authentication: ${error.message}`);
     return false;
   }
+};
+
+// Function to check if OAuth flow timed out
+export const checkOAuthTimeout = () => {
+  const inProgress = localStorage.getItem('wc_auth_in_progress');
+  if (inProgress === 'true') {
+    const timestamp = parseInt(localStorage.getItem('wc_auth_timestamp') || '0');
+    const now = Date.now();
+    
+    // If more than 5 minutes passed, consider it timed out
+    if (now - timestamp > 5 * 60 * 1000) {
+      localStorage.removeItem('wc_auth_in_progress');
+      localStorage.removeItem('wc_auth_timestamp');
+      return true;
+    }
+  }
+  return false;
 };

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,9 +10,10 @@ import { toast } from "sonner";
 import { BrandLogoConfigProps } from "@/types/brandLogo";
 import { testConnection } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
-import { initiateWooCommerceOAuth } from "@/utils/api/woocommerceAuth";
-import { Save, RefreshCw, CheckCircle, Key, Lock, User } from "lucide-react";
+import { initiateWooCommerceOAuth, checkOAuthTimeout } from "@/utils/api/woocommerceAuth";
+import { Save, RefreshCw, CheckCircle, Key, Lock, User, ExternalLink } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocation } from "react-router-dom";
 
 const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [woocommerceUrl, setWoocommerceUrl] = useState('');
@@ -21,7 +23,9 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [wpAppPassword, setWpAppPassword] = useState('');
   const [isTesting, setIsTesting] = useState(false);
   const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password' | 'oauth'>('app_password');
-  
+  const [oauthConnecting, setOauthConnecting] = useState(false);
+  const location = useLocation();
+
   useEffect(() => {
     const savedConfig = getWooCommerceConfig();
     setWoocommerceUrl(savedConfig.url || '');
@@ -30,6 +34,16 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     setWpUsername(savedConfig.wpUsername || '');
     setWpAppPassword(savedConfig.wpAppPassword || '');
     setAuthMethod(savedConfig.authMethod || 'app_password');
+    
+    // Check for tab query parameter
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get('tab');
+    if (tab === 'config') {
+      // Check if OAuth timed out
+      if (checkOAuthTimeout()) {
+        toast.error('WooCommerce authentication timed out. Please try again.');
+      }
+    }
     
     const savedBrandLogoConfig = localStorage.getItem('brand_logo_config');
     if (savedBrandLogoConfig && config.saveConfigurations) {
@@ -105,9 +119,33 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
       return;
     }
     
-    localStorage.setItem('wc_temp_store_url', woocommerceUrl);
+    setOauthConnecting(true);
     
-    initiateWooCommerceOAuth(woocommerceUrl);
+    // First save the URL so it's available when we return
+    let cleanUrl = woocommerceUrl.trim().replace(/\/+$/, '');
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      cleanUrl = 'https://' + cleanUrl;
+    }
+    
+    try {
+      new URL(cleanUrl);
+    } catch (e) {
+      toast.error('Please enter a valid URL');
+      setOauthConnecting(false);
+      return;
+    }
+    
+    // Store the URL for later use
+    localStorage.setItem('wc_temp_store_url', cleanUrl);
+    
+    // Initiate OAuth flow with the specified URL
+    try {
+      initiateWooCommerceOAuth(cleanUrl);
+    } catch (error) {
+      console.error("OAuth connection failed:", error);
+      toast.error(`OAuth error: ${error.message || 'Failed to connect'}`);
+      setOauthConnecting(false);
+    }
   };
   
   return (
@@ -213,10 +251,44 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
                     This method will redirect you to your WooCommerce store where you can authorize access. 
                     No need to create API keys manually.
                   </p>
-                  <Button onClick={handleOAuthConnect} className="w-full">
-                    <Lock className="mr-2 h-4 w-4" />
-                    Connect to WooCommerce
-                  </Button>
+                  <div className="space-y-4">
+                    <Button 
+                      onClick={handleOAuthConnect} 
+                      className="w-full"
+                      disabled={oauthConnecting}
+                    >
+                      {oauthConnecting ? (
+                        <>
+                          <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                          Connecting...
+                        </>
+                      ) : (
+                        <>
+                          <Lock className="mr-2 h-4 w-4" />
+                          Connect to WooCommerce
+                        </>
+                      )}
+                    </Button>
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">Troubleshooting:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Make sure your store has WooCommerce installed and active</li>
+                        <li>You must be logged in to WordPress as an administrator</li>
+                        <li>Some security plugins might block this connection</li>
+                        <li>
+                          <a 
+                            href="https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-500 hover:underline inline-flex items-center"
+                          >
+                            Learn more about WooCommerce Auth
+                            <ExternalLink className="ml-1 h-3 w-3" />
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </TabsContent>
             </Tabs>
