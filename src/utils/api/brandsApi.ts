@@ -1,4 +1,3 @@
-
 /**
  * WooCommerce Brands API (using product tags)
  */
@@ -17,10 +16,12 @@ interface BrandApiParams {
 export const brandsApi = {
   getAll: async (params: BrandApiParams = {}) => {
     try {
-      // Ensure we're getting all tags by default for accurate count
+      // Ensure we're getting brands with valid parameters
       const finalParams = { ...params };
-      if (!finalParams.per_page) {
-        finalParams.per_page = '100'; // Use maximum allowed per page for better count accuracy
+      
+      // WooCommerce API limits per_page to 100 maximum
+      if (!finalParams.per_page || parseInt(finalParams.per_page) > 100) {
+        finalParams.per_page = '100'; // Respect WooCommerce API limit
       }
       
       if (!finalParams.page) {
@@ -54,6 +55,13 @@ export const brandsApi = {
               });
             }
           }
+        });
+      } else if (error.message?.includes('per_page')) {
+        // Handle specific error related to per_page parameter
+        console.error("Per page parameter error:", error);
+        toast.error('API parameter error', {
+          description: 'The per_page parameter must be between 1 and 100',
+          duration: 6000
         });
       }
       
