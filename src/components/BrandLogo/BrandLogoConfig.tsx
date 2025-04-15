@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -274,11 +273,22 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
                       )}
                     </Button>
                     <div className="text-xs text-muted-foreground">
-                      <p className="font-medium mb-1">Troubleshooting:</p>
+                      <p className="font-medium mb-1">Important Requirements:</p>
                       <ul className="list-disc pl-5 space-y-1">
-                        <li>Make sure your store has WooCommerce installed and active</li>
+                        <li>Your WooCommerce site must have the <strong>REST API enabled</strong></li>
                         <li>You must be logged in to WordPress as an administrator</li>
-                        <li>Some security plugins might block this connection</li>
+                        <li>Make sure popup blockers are disabled for this site</li>
+                        <li>Your store must use HTTPS with a valid SSL certificate</li>
+                        <li>Some security plugins may need to be temporarily disabled</li>
+                      </ul>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      <p className="font-medium mb-1">If you encounter errors:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Check that your WooCommerce version is 3.0 or higher</li>
+                        <li>Verify that your WordPress user has administrator privileges</li>
+                        <li>Make sure your site is publicly accessible (not localhost)</li>
+                        <li>Try using a private/incognito browser window</li>
                         <li>
                           <a 
                             href="https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication"

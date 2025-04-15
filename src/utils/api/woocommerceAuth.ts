@@ -65,7 +65,8 @@ export const buildWooCommerceAuthUrl = ({
   localStorage.setItem('wc_auth_in_progress', JSON.stringify({
     timestamp: Date.now(),
     storeUrl: cleanUrl,
-    appName
+    appName,
+    userId
   }));
 
   return `${baseUrl}?${params.toString()}`;
@@ -109,7 +110,7 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
     
     // Enhanced toast with more context
     toast.info('Redirecting to WooCommerce for authentication', {
-      description: `Connecting to ${cleanUrl}`,
+      description: `Connecting to ${cleanUrl}. Please complete the authorization in your browser.`,
       duration: 5000
     });
     
@@ -120,7 +121,15 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
     });
     
     // Force redirect to the authorization URL in a new tab
-    window.open(authUrl, '_blank');
+    const newWindow = window.open(authUrl, '_blank');
+    
+    // Check if popup was blocked
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+      toast.error('Popup blocked', {
+        description: 'Please allow popups for this site and try again',
+        duration: 5000
+      });
+    }
   } catch (error) {
     console.error('OAuth Initiation Critical Error:', error);
     toast.error('Authentication Setup Failed', {
@@ -145,7 +154,6 @@ export const saveOAuthCredentials = (credentials: {
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     localStorage.removeItem('wc_temp_store_url');
     localStorage.removeItem('wc_auth_in_progress');
-    localStorage.removeItem('wc_auth_timestamp');
     
     toast.success('WooCommerce authentication successful!');
     return true;
@@ -158,14 +166,20 @@ export const saveOAuthCredentials = (credentials: {
 
 export const checkOAuthTimeout = () => {
   const inProgress = localStorage.getItem('wc_auth_in_progress');
-  if (inProgress === 'true') {
-    const timestamp = parseInt(localStorage.getItem('wc_auth_timestamp') || '0');
-    const now = Date.now();
-    
-    // If more than 5 minutes passed, consider it timed out
-    if (now - timestamp > 5 * 60 * 1000) {
+  if (inProgress) {
+    try {
+      const authData = JSON.parse(inProgress);
+      const timestamp = authData.timestamp;
+      const now = Date.now();
+      
+      // If more than 5 minutes passed, consider it timed out
+      if (now - timestamp > 5 * 60 * 1000) {
+        localStorage.removeItem('wc_auth_in_progress');
+        return true;
+      }
+    } catch (e) {
+      // Handle JSON parsing error
       localStorage.removeItem('wc_auth_in_progress');
-      localStorage.removeItem('wc_auth_timestamp');
       return true;
     }
   }

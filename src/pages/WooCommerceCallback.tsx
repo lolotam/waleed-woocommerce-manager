@@ -38,7 +38,7 @@ const WooCommerceCallback = () => {
         // Check if we have the required credentials
         if (!consumerKey || !consumerSecret) {
           setStatus('empty');
-          setMessage('No authentication data received. The process may have been canceled.');
+          setMessage('No authentication data received. The process may have been canceled or blocked.');
           console.error('Missing OAuth credentials in callback');
           return;
         }
@@ -120,14 +120,16 @@ const WooCommerceCallback = () => {
               </div>
             )}
             
-            {status === 'empty' && (
+            {(status === 'empty' || status === 'error') && (
               <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900 rounded-md text-sm">
-                <p className="font-semibold">Possible reasons:</p>
+                <p className="font-semibold">Troubleshooting suggestions:</p>
                 <ul className="list-disc pl-5 mt-1">
-                  <li>You canceled the authentication</li>
-                  <li>Your store doesn't have WooCommerce properly installed</li>
-                  <li>You don't have administrator permissions</li>
-                  <li>A security plugin is blocking the connection</li>
+                  <li>Check if your store has WooCommerce REST API enabled</li>
+                  <li>Ensure you're logged in as an administrator on your WordPress site</li>
+                  <li>Try clearing browser cookies and cache</li>
+                  <li>Disable any security plugins temporarily that might block the API</li>
+                  <li>Check if your site uses HTTPS with a valid SSL certificate</li>
+                  <li>Verify that WooCommerce is properly installed and activated</li>
                 </ul>
               </div>
             )}
