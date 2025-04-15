@@ -1,7 +1,16 @@
 
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertOctagon, ExternalLink, Key, UserCircle, ShieldCheck, Info, Lock, AlertCircle } from "lucide-react";
+import { 
+  AlertOctagon, 
+  ExternalLink, 
+  Key, 
+  UserCircle, 
+  ShieldCheck, 
+  Info, 
+  Lock, 
+  AlertCircle 
+} from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
