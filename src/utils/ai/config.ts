@@ -129,12 +129,14 @@ export const getAiConfig = (): AIConfig => {
 export const isValidAPIKey = (key: string, provider: string): boolean => {
   if (!key || key.trim() === '') return false;
   
-  // Basic format checks for different providers
+  // More strict OpenAI key validation
   switch (provider) {
     case 'openai':
       // OpenAI API keys typically start with 'sk-' and are 51 characters long
-      // But we'll just check for the prefix and a reasonable length for flexibility
-      return key.startsWith('sk-') && key.length >= 20;
+      // But we'll do more thorough checks
+      return key.startsWith('sk-') && 
+             key.length === 51 && 
+             /^sk-[a-zA-Z0-9]{48}$/.test(key);
     case 'anthropic':
       return key.startsWith('sk-ant-') && key.length > 20;
     case 'google':
