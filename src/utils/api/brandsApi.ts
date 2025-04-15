@@ -1,5 +1,7 @@
+
 /**
- * WooCommerce Brands API (using product tags)
+ * WooCommerce Brands API
+ * Supporting both standard product tags and custom product_brand taxonomy
  */
 import { woocommerceApi } from "./woocommerceCore";
 import { toast } from "sonner";
@@ -11,8 +13,6 @@ interface BrandApiParams {
   page?: string;
 }
 
-// Using WooCommerce product tags as brands
-// This is a common approach when WooCommerce doesn't have a specific "brands" feature
 export const brandsApi = {
   getAll: async (params: BrandApiParams = {}) => {
     try {
@@ -30,7 +30,34 @@ export const brandsApi = {
       
       console.log(`Fetching brands with params:`, finalParams);
       
-      return await woocommerceApi(`products/tags?${new URLSearchParams(finalParams).toString()}`);
+      // Try first with the custom product_brand taxonomy
+      try {
+        const response = await woocommerceApi(`products/brands?${new URLSearchParams(finalParams).toString()}`);
+        console.log('Successfully fetched brands using products/brands endpoint');
+        return response;
+      } catch (brandError) {
+        // If the custom endpoint fails, fallback to the standard product tags
+        console.log('Failed to fetch from products/brands endpoint, falling back to product tags:', brandError);
+        
+        // Check if the error is a 404 (endpoint not found) which would suggest the brand taxonomy isn't available
+        if (brandError.message?.includes('404') || brandError.message?.includes('not found')) {
+          // Try alternative URL format for custom taxonomy
+          try {
+            const response = await woocommerceApi(`products/attributes/product_brand/terms?${new URLSearchParams(finalParams).toString()}`);
+            console.log('Successfully fetched brands using product_brand taxonomy terms');
+            return response;
+          } catch (taxonomyError) {
+            console.log('Failed to fetch from product_brand taxonomy:', taxonomyError);
+            
+            // Final fallback to standard product tags
+            console.log('Falling back to standard product tags');
+            return await woocommerceApi(`products/tags?${new URLSearchParams(finalParams).toString()}`);
+          }
+        } else {
+          // For other errors, just throw
+          throw brandError;
+        }
+      }
     } catch (error) {
       console.error("Failed to fetch brands:", error);
       
@@ -71,7 +98,22 @@ export const brandsApi = {
   
   get: async (id: number) => {
     try {
-      return await woocommerceApi(`products/tags/${id}`);
+      // Try first with custom product_brand endpoint
+      try {
+        return await woocommerceApi(`products/brands/${id}`);
+      } catch (brandError) {
+        // If endpoint not found, try with product_brand taxonomy
+        if (brandError.message?.includes('404') || brandError.message?.includes('not found')) {
+          try {
+            return await woocommerceApi(`products/attributes/product_brand/terms/${id}`);
+          } catch (taxonomyError) {
+            // Final fallback to standard product tags
+            return await woocommerceApi(`products/tags/${id}`);
+          }
+        } else {
+          throw brandError;
+        }
+      }
     } catch (error) {
       console.error(`Error fetching brand with ID ${id}:`, error);
       throw error;
@@ -80,14 +122,29 @@ export const brandsApi = {
   
   create: async (data: any) => {
     try {
-      return await woocommerceApi('products/tags', 'POST', data);
+      // Try first with custom product_brand endpoint
+      try {
+        return await woocommerceApi('products/brands', 'POST', data);
+      } catch (brandError) {
+        // If endpoint not found, try with product_brand taxonomy
+        if (brandError.message?.includes('404') || brandError.message?.includes('not found')) {
+          try {
+            return await woocommerceApi('products/attributes/product_brand/terms', 'POST', data);
+          } catch (taxonomyError) {
+            // Final fallback to standard product tags
+            return await woocommerceApi('products/tags', 'POST', data);
+          }
+        } else {
+          throw brandError;
+        }
+      }
     } catch (error) {
       console.error('Error creating brand:', error);
       
       if (error.message?.includes('authentication failed') || 
           error.message?.includes('cannot create')) {
         toast.error('Unable to create brand', {
-          description: 'Your WooCommerce user needs permission to create product tags',
+          description: 'Your WooCommerce user needs permission to create product brands',
           duration: 6000
         });
       }
@@ -98,14 +155,29 @@ export const brandsApi = {
   
   update: async (id: number, data: any) => {
     try {
-      return await woocommerceApi(`products/tags/${id}`, 'PUT', data);
+      // Try first with custom product_brand endpoint
+      try {
+        return await woocommerceApi(`products/brands/${id}`, 'PUT', data);
+      } catch (brandError) {
+        // If endpoint not found, try with product_brand taxonomy
+        if (brandError.message?.includes('404') || brandError.message?.includes('not found')) {
+          try {
+            return await woocommerceApi(`products/attributes/product_brand/terms/${id}`, 'PUT', data);
+          } catch (taxonomyError) {
+            // Final fallback to standard product tags
+            return await woocommerceApi(`products/tags/${id}`, 'PUT', data);
+          }
+        } else {
+          throw brandError;
+        }
+      }
     } catch (error) {
       console.error(`Error updating brand ID ${id}:`, error);
       
       if (error.message?.includes('authentication failed') || 
           error.message?.includes('cannot edit')) {
         toast.error('Unable to update brand', {
-          description: 'Your WooCommerce user needs permission to edit product tags',
+          description: 'Your WooCommerce user needs permission to edit product brands',
           duration: 6000
         });
       }
@@ -116,14 +188,29 @@ export const brandsApi = {
   
   delete: async (id: number) => {
     try {
-      return await woocommerceApi(`products/tags/${id}`, 'DELETE');
+      // Try first with custom product_brand endpoint
+      try {
+        return await woocommerceApi(`products/brands/${id}`, 'DELETE');
+      } catch (brandError) {
+        // If endpoint not found, try with product_brand taxonomy
+        if (brandError.message?.includes('404') || brandError.message?.includes('not found')) {
+          try {
+            return await woocommerceApi(`products/attributes/product_brand/terms/${id}`, 'DELETE');
+          } catch (taxonomyError) {
+            // Final fallback to standard product tags
+            return await woocommerceApi(`products/tags/${id}`, 'DELETE');
+          }
+        } else {
+          throw brandError;
+        }
+      }
     } catch (error) {
       console.error(`Error deleting brand ID ${id}:`, error);
       
       if (error.message?.includes('authentication failed') || 
           error.message?.includes('cannot delete')) {
         toast.error('Unable to delete brand', {
-          description: 'Your WooCommerce user needs permission to delete product tags',
+          description: 'Your WooCommerce user needs permission to delete product brands',
           duration: 6000
         });
       }

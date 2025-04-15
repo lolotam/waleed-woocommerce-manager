@@ -1,3 +1,4 @@
+
 /**
  * WooCommerce Core API utilities
  */
@@ -54,7 +55,21 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     throw new Error('Invalid WooCommerce URL format');
   }
 
-  const url = new URL(`${cleanUrl}/wp-json/wc/v3/${endpoint}`);
+  // Check if this is a custom endpoint and modify the URL accordingly
+  let apiUrl = `${cleanUrl}/wp-json/wc/v3/${endpoint}`;
+  
+  // Special handling for product_brand taxonomy if it's used
+  if (endpoint.includes('products/brands')) {
+    // For WooCommerce brands plugins - try the common endpoint patterns
+    apiUrl = `${cleanUrl}/wp-json/wc/v3/${endpoint}`;
+    console.log("Using WooCommerce Brands endpoint:", apiUrl);
+  } else if (endpoint.includes('product_brand')) {
+    // For custom brand taxonomies
+    apiUrl = `${cleanUrl}/wp-json/wc/v3/${endpoint}`;
+    console.log("Using custom product_brand taxonomy endpoint:", apiUrl);
+  }
+  
+  const url = new URL(apiUrl);
   
   // Add authentication based on the selected method
   const authMethod = config.authMethod || 'app_password';
@@ -88,6 +103,8 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for large catalogs
     
+    console.log(`Making API request to: ${url.toString()}`);
+    
     const response = await fetch(url.toString(), {
       method,
       headers,
@@ -97,8 +114,22 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     
     clearTimeout(timeoutId);
 
+    // Special handling for 404 errors on brand endpoints
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      
+      // Log more detailed API error information
+      console.error(`API Error ${response.status}:`, {
+        endpoint,
+        status: response.status,
+        statusText: response.statusText,
+        errorData
+      });
+      
+      // Special handling for specific taxonomy endpoints
+      if (response.status === 404 && endpoint.includes('brands')) {
+        throw new Error('404: Brands endpoint not found. The store may use a different endpoint for brands.');
+      }
       
       // Enhanced error handling for specific WooCommerce errors
       if (errorData.code === 'woocommerce_rest_cannot_view' || 
@@ -144,6 +175,12 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     // Parse pagination information if available
     const totalItems = parseInt(responseHeaders['x-wp-total'] || '0');
     const totalPages = parseInt(responseHeaders['x-wp-totalpages'] || '0');
+    
+    console.log(`API response for ${endpoint}:`, {
+      totalItems,
+      totalPages,
+      dataLength: Array.isArray(responseData) ? responseData.length : 'Not an array'
+    });
     
     return {
       data: responseData as T,
