@@ -10,13 +10,17 @@ import { toast } from "sonner";
 import { BrandLogoConfigProps } from "@/types/brandLogo";
 import { testConnection } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
-import { Save, RefreshCw, CheckCircle } from "lucide-react";
+import { Save, RefreshCw, CheckCircle, Key } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [woocommerceUrl, setWoocommerceUrl] = useState('');
   const [consumerKey, setConsumerKey] = useState('');
   const [consumerSecret, setConsumerSecret] = useState('');
+  const [wpUsername, setWpUsername] = useState('');
+  const [wpAppPassword, setWpAppPassword] = useState('');
   const [isTesting, setIsTesting] = useState(false);
+  const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password'>('consumer_keys');
   
   useEffect(() => {
     // Load existing WooCommerce configuration
@@ -24,6 +28,9 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     setWoocommerceUrl(savedConfig.url || '');
     setConsumerKey(savedConfig.consumerKey || '');
     setConsumerSecret(savedConfig.consumerSecret || '');
+    setWpUsername(savedConfig.wpUsername || '');
+    setWpAppPassword(savedConfig.wpAppPassword || '');
+    setAuthMethod(savedConfig.authMethod || 'consumer_keys');
     
     // Load saved brand logo config if available
     const savedBrandLogoConfig = localStorage.getItem('brand_logo_config');
@@ -39,8 +46,18 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   }, []);
   
   const handleSaveWooCommerceConfig = async () => {
-    if (!woocommerceUrl || !consumerKey || !consumerSecret) {
-      toast.error('All WooCommerce fields are required');
+    if (!woocommerceUrl) {
+      toast.error('Site URL is required');
+      return;
+    }
+    
+    if (authMethod === 'consumer_keys' && (!consumerKey || !consumerSecret)) {
+      toast.error('Consumer Key and Secret are required when using API Keys');
+      return;
+    }
+    
+    if (authMethod === 'app_password' && (!wpUsername || !wpAppPassword)) {
+      toast.error('WordPress Username and Application Password are required');
       return;
     }
     
@@ -60,7 +77,10 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     const config = {
       url: cleanUrl,
       consumerKey,
-      consumerSecret
+      consumerSecret,
+      wpUsername,
+      wpAppPassword,
+      authMethod
     };
     
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
@@ -96,24 +116,67 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="consumer-key">Consumer Key</Label>
-            <Input
-              id="consumer-key"
-              placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              value={consumerKey}
-              onChange={(e) => setConsumerKey(e.target.value)}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="consumer-secret">Consumer Secret</Label>
-            <Input
-              id="consumer-secret"
-              type="password"
-              placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-              value={consumerSecret}
-              onChange={(e) => setConsumerSecret(e.target.value)}
-            />
+            <Label>Authentication Method</Label>
+            <Tabs value={authMethod} onValueChange={(value) => setAuthMethod(value as 'consumer_keys' | 'app_password')}>
+              <TabsList className="w-full">
+                <TabsTrigger value="consumer_keys" className="flex-1">API Keys</TabsTrigger>
+                <TabsTrigger value="app_password" className="flex-1">Application Password</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="consumer_keys" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="consumer-key">Consumer Key</Label>
+                  <Input
+                    id="consumer-key"
+                    placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={consumerKey}
+                    onChange={(e) => setConsumerKey(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="consumer-secret">Consumer Secret</Label>
+                  <Input
+                    id="consumer-secret"
+                    type="password"
+                    placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                    value={consumerSecret}
+                    onChange={(e) => setConsumerSecret(e.target.value)}
+                  />
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  Generate these in WooCommerce → Settings → Advanced → REST API
+                </p>
+              </TabsContent>
+              
+              <TabsContent value="app_password" className="space-y-4 pt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="wp-username">WordPress Username</Label>
+                  <Input
+                    id="wp-username"
+                    placeholder="admin"
+                    value={wpUsername}
+                    onChange={(e) => setWpUsername(e.target.value)}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="wp-app-password">Application Password</Label>
+                  <Input
+                    id="wp-app-password"
+                    type="password"
+                    placeholder="XXXX XXXX XXXX XXXX XXXX XXXX"
+                    value={wpAppPassword}
+                    onChange={(e) => setWpAppPassword(e.target.value)}
+                  />
+                </div>
+                
+                <p className="text-xs text-muted-foreground mt-2">
+                  Generate this in WordPress → Users → Profile → Application Passwords
+                </p>
+              </TabsContent>
+            </Tabs>
           </div>
           
           <div className="flex gap-2">

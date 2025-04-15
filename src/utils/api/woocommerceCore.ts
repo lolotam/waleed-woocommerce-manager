@@ -8,6 +8,9 @@ export interface WooCommerceConfig {
   url: string;
   consumerKey: string;
   consumerSecret: string;
+  wpUsername?: string;
+  wpAppPassword?: string;
+  authMethod?: 'consumer_keys' | 'app_password';
 }
 
 // Response type for WooCommerce API including headers
@@ -29,7 +32,10 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
   return {
     url: '',
     consumerKey: '',
-    consumerSecret: ''
+    consumerSecret: '',
+    wpUsername: '',
+    wpAppPassword: '',
+    authMethod: 'consumer_keys'
   };
 };
 
@@ -37,8 +43,8 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
 export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', data = null): Promise<WooCommerceResponse<T>> => {
   const config = getWooCommerceConfig();
   
-  if (!config.url || !config.consumerKey || !config.consumerSecret) {
-    toast.error('WooCommerce API not configured. Please check settings.');
+  if (!config.url) {
+    toast.error('WooCommerce store URL not configured. Please check settings.');
     throw new Error('WooCommerce API not configured');
   }
 
@@ -51,9 +57,32 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
 
   const url = new URL(`${cleanUrl}/wp-json/wc/v3/${endpoint}`);
   
-  // Add authentication
-  url.searchParams.append('consumer_key', config.consumerKey);
-  url.searchParams.append('consumer_secret', config.consumerSecret);
+  // Add authentication based on the selected method
+  const authMethod = config.authMethod || 'consumer_keys';
+  
+  // Headers to use for the request
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Authentication handling
+  if (authMethod === 'consumer_keys') {
+    if (!config.consumerKey || !config.consumerSecret) {
+      toast.error('WooCommerce API keys not configured. Please check settings.');
+      throw new Error('WooCommerce API keys not configured');
+    }
+    // Using consumer key/secret as URL parameters
+    url.searchParams.append('consumer_key', config.consumerKey);
+    url.searchParams.append('consumer_secret', config.consumerSecret);
+  } else if (authMethod === 'app_password') {
+    if (!config.wpUsername || !config.wpAppPassword) {
+      toast.error('WordPress Application Password not configured. Please check settings.');
+      throw new Error('WordPress Application Password not configured');
+    }
+    // Using Basic Auth with application password
+    const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
+    headers['Authorization'] = `Basic ${auth}`;
+  }
 
   try {
     // Add a timeout to the fetch request
@@ -62,9 +91,7 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     
     const response = await fetch(url.toString(), {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers,
       body: data ? JSON.stringify(data) : null,
       signal: controller.signal
     });
@@ -79,8 +106,8 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
           errorData.message?.includes('cannot list resources') ||
           response.status === 401) {
         
-        toast.error('Authentication error: Your WooCommerce API keys don\'t have sufficient permissions', {
-          description: 'Make sure your API keys have read/write access and are properly configured.',
+        toast.error('Authentication error: Your WooCommerce API credentials don\'t have sufficient permissions', {
+          description: 'Make sure your credentials have read/write access and are properly configured.',
           duration: 6000,
           action: {
             label: 'Learn More',
@@ -99,18 +126,18 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     const responseData = await response.json();
     
     // Extract headers into an object
-    const headers: Record<string, string> = {};
+    const responseHeaders: Record<string, string> = {};
     response.headers.forEach((value, key) => {
-      headers[key] = value;
+      responseHeaders[key] = value;
     });
     
     // Parse pagination information if available
-    const totalItems = parseInt(headers['x-wp-total'] || '0');
-    const totalPages = parseInt(headers['x-wp-totalpages'] || '0');
+    const totalItems = parseInt(responseHeaders['x-wp-total'] || '0');
+    const totalPages = parseInt(responseHeaders['x-wp-totalpages'] || '0');
     
     return {
       data: responseData as T,
-      headers,
+      headers: responseHeaders,
       totalItems,
       totalPages
     };

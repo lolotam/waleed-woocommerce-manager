@@ -14,6 +14,7 @@ const BrandLogoUploader = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processLog, setProcessLog] = useState<string[]>([]);
   const [processedItems, setProcessedItems] = useState<{
     success: number;
     failed: number;
@@ -87,6 +88,10 @@ const BrandLogoUploader = () => {
     setConfig(prev => ({...prev, ...newConfig}));
   };
   
+  const addLogEntry = (message: string) => {
+    setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+  };
+  
   const handleStartProcessing = async () => {
     if (uploadedFiles.length === 0) {
       toast.error("No files to process");
@@ -95,11 +100,14 @@ const BrandLogoUploader = () => {
     
     setIsProcessing(true);
     setProcessedItems({success: 0, failed: 0, total: uploadedFiles.length});
+    setProcessLog([]);
     
     // Save configuration if enabled
     if (config.saveConfigurations) {
       localStorage.setItem('brand_logo_config', JSON.stringify(config));
     }
+    
+    addLogEntry(`Starting to process ${uploadedFiles.length} files`);
     
     try {
       // Process files one by one
@@ -107,6 +115,8 @@ const BrandLogoUploader = () => {
         const targetName = mappings[file.name];
         
         try {
+          addLogEntry(`Processing ${file.name} → ${targetName}`);
+          
           // Call the API to upload and assign the logo
           await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
             addToDescription: config.addToDescription
@@ -117,20 +127,26 @@ const BrandLogoUploader = () => {
             success: prev.success + 1
           }));
           
+          addLogEntry(`✅ Successfully processed ${file.name}`);
           toast.success(`Processed ${file.name}`);
         } catch (error) {
           console.error(`Error processing ${file.name}:`, error);
+          
           setProcessedItems(prev => ({
             ...prev,
             failed: prev.failed + 1
           }));
+          
+          addLogEntry(`❌ Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
           toast.error(`Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
         }
       }
       
+      addLogEntry(`Processing complete! ${processedItems.success} successful, ${processedItems.failed} failed`);
       toast.success("Processing complete!");
     } catch (error) {
       console.error("Processing error:", error);
+      addLogEntry(`Processing failed: ${error.message || 'Unknown error'}`);
       toast.error(`Processing failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);

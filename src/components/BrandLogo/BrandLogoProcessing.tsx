@@ -82,7 +82,7 @@ const BrandLogoProcessing = ({
           <AlertDescription>
             Your WooCommerce API keys don't have permission to upload media. 
             Please use an administrator account or check your API key permissions 
-            in WooCommerce.
+            in WooCommerce. Consider using WordPress Application Passwords for better media permissions.
           </AlertDescription>
         </Alert>
       )}

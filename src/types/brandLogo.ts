@@ -7,12 +7,16 @@ export interface BrandLogoConfigType {
   allowFolderUpload: boolean;
 }
 
-export interface ProcessedItem {
-  filename: string;
-  status: "pending" | "success" | "failed";
-  targetName: string;
-  message?: string;
-  mediaId?: number;
+export interface BrandLogoConfigProps {
+  config: BrandLogoConfigType;
+  onUpdateConfig: (config: Partial<BrandLogoConfigType>) => void;
+}
+
+export interface BrandLogoUploadProps {
+  files: File[];
+  onFilesAdded: (files: File[]) => void;
+  onRemoveFile: (filename: string) => void;
+  allowFolderUpload: boolean;
 }
 
 export interface BrandLogoMappingProps {
@@ -35,14 +39,9 @@ export interface BrandLogoProcessingProps {
   config: BrandLogoConfigType;
 }
 
-export interface BrandLogoConfigProps {
-  config: BrandLogoConfigType;
-  onUpdateConfig: (config: Partial<BrandLogoConfigType>) => void;
-}
-
-export interface BrandLogoUploadProps {
-  files: File[];
-  onFilesAdded: (files: File[]) => void;
-  onRemoveFile: (filename: string) => void;
-  allowFolderUpload: boolean;
+export interface ProcessedItem {
+  filename: string;
+  targetName: string;
+  status: 'pending' | 'success' | 'failed';
+  message?: string;
 }

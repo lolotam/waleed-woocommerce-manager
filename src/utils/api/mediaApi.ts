@@ -1,3 +1,4 @@
+
 /**
  * WordPress Media API
  */
@@ -10,14 +11,36 @@ export const mediaApi = {
   upload: async (file: File, metadata = {}) => {
     const config = getWooCommerceConfig();
     
-    if (!config.url || !config.consumerKey || !config.consumerSecret) {
-      toast.error('WooCommerce API not configured. Please check settings.');
+    if (!config.url) {
+      toast.error('WooCommerce store URL not configured. Please check settings.');
       throw new Error('WooCommerce API not configured');
     }
 
     const url = new URL(`${config.url}/wp-json/wp/v2/media`);
-    url.searchParams.append('consumer_key', config.consumerKey);
-    url.searchParams.append('consumer_secret', config.consumerSecret);
+    
+    // Headers to use for the request
+    const headers: Record<string, string> = {};
+    
+    // Set up authentication based on the selected method
+    const authMethod = config.authMethod || 'consumer_keys';
+    
+    if (authMethod === 'consumer_keys') {
+      if (!config.consumerKey || !config.consumerSecret) {
+        toast.error('WooCommerce API keys not configured. Please check settings.');
+        throw new Error('WooCommerce API keys not configured');
+      }
+      // Using consumer key/secret as URL parameters
+      url.searchParams.append('consumer_key', config.consumerKey);
+      url.searchParams.append('consumer_secret', config.consumerSecret);
+    } else if (authMethod === 'app_password') {
+      if (!config.wpUsername || !config.wpAppPassword) {
+        toast.error('WordPress Application Password not configured. Please check settings.');
+        throw new Error('WordPress Application Password not configured');
+      }
+      // Using Basic Auth with application password
+      const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
+      headers['Authorization'] = `Basic ${auth}`;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -33,6 +56,7 @@ export const mediaApi = {
       
       const response = await fetch(url.toString(), {
         method: 'POST',
+        headers,
         body: formData,
       });
 
@@ -54,7 +78,7 @@ export const mediaApi = {
       
       if (error.message?.includes('permission denied') || 
           error.message?.includes('not allowed to create posts')) {
-        toast.error('Permission denied: Your WooCommerce API keys don\'t have media upload permissions. Please use an administrator account or check API key permissions.', {
+        toast.error('Permission denied: Your authentication credentials don\'t have media upload permissions. Please use an administrator account or check API key permissions.', {
           duration: 6000,
         });
       } else {
@@ -68,20 +92,41 @@ export const mediaApi = {
   getAll: (params = {}) => {
     const config = getWooCommerceConfig();
     
-    if (!config.url || !config.consumerKey || !config.consumerSecret) {
-      toast.error('WooCommerce API not configured. Please check settings.');
+    if (!config.url) {
+      toast.error('WooCommerce store URL not configured. Please check settings.');
       throw new Error('WooCommerce API not configured');
     }
 
     const url = new URL(`${config.url}/wp-json/wp/v2/media`);
-    url.searchParams.append('consumer_key', config.consumerKey);
-    url.searchParams.append('consumer_secret', config.consumerSecret);
+    
+    // Headers to use for the request
+    const headers: Record<string, string> = {};
+    
+    // Set up authentication based on the selected method
+    const authMethod = config.authMethod || 'consumer_keys';
+    
+    if (authMethod === 'consumer_keys') {
+      if (!config.consumerKey || !config.consumerSecret) {
+        toast.error('WooCommerce API keys not configured. Please check settings.');
+        throw new Error('WooCommerce API keys not configured');
+      }
+      url.searchParams.append('consumer_key', config.consumerKey);
+      url.searchParams.append('consumer_secret', config.consumerSecret);
+    } else if (authMethod === 'app_password') {
+      if (!config.wpUsername || !config.wpAppPassword) {
+        toast.error('WordPress Application Password not configured. Please check settings.');
+        throw new Error('WordPress Application Password not configured');
+      }
+      // Using Basic Auth with application password
+      const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
+      headers['Authorization'] = `Basic ${auth}`;
+    }
     
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, value.toString());
     });
 
-    return fetch(url.toString())
+    return fetch(url.toString(), { headers })
       .then(response => {
         if (!response.ok) {
           throw new Error(`HTTP error ${response.status}`);
@@ -98,21 +143,42 @@ export const mediaApi = {
   update: async (id: number, metadata: any) => {
     const config = getWooCommerceConfig();
     
-    if (!config.url || !config.consumerKey || !config.consumerSecret) {
-      toast.error('WooCommerce API not configured. Please check settings.');
+    if (!config.url) {
+      toast.error('WooCommerce store URL not configured. Please check settings.');
       throw new Error('WooCommerce API not configured');
     }
 
     const url = new URL(`${config.url}/wp-json/wp/v2/media/${id}`);
-    url.searchParams.append('consumer_key', config.consumerKey);
-    url.searchParams.append('consumer_secret', config.consumerSecret);
+    
+    // Headers to use for the request
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Set up authentication based on the selected method
+    const authMethod = config.authMethod || 'consumer_keys';
+    
+    if (authMethod === 'consumer_keys') {
+      if (!config.consumerKey || !config.consumerSecret) {
+        toast.error('WooCommerce API keys not configured. Please check settings.');
+        throw new Error('WooCommerce API keys not configured');
+      }
+      url.searchParams.append('consumer_key', config.consumerKey);
+      url.searchParams.append('consumer_secret', config.consumerSecret);
+    } else if (authMethod === 'app_password') {
+      if (!config.wpUsername || !config.wpAppPassword) {
+        toast.error('WordPress Application Password not configured. Please check settings.');
+        throw new Error('WordPress Application Password not configured');
+      }
+      // Using Basic Auth with application password
+      const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
+      headers['Authorization'] = `Basic ${auth}`;
+    }
 
     try {
       const response = await fetch(url.toString(), {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(metadata),
       });
 
