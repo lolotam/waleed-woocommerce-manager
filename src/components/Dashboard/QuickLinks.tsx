@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from 'react-router-dom';
-import { Package, Tag, ShoppingBag, MessageSquare, FileSpreadsheet, FolderTree } from "lucide-react";
+import { Package, Tag, ShoppingBag, MessageSquare, FileSpreadsheet, FolderTree, Globe } from "lucide-react";
 
 const QuickLinks = () => {
   const links = [
@@ -10,10 +10,11 @@ const QuickLinks = () => {
     { title: 'Manage Brands', icon: Tag, path: '/brands', description: 'Create and organize product brands (tags)' },
     { title: 'AI Prompts', icon: MessageSquare, path: '/prompts', description: 'Configure AI prompts for content generation' },
     { title: 'Import/Export', icon: FileSpreadsheet, path: '/import-export', description: 'Bulk manage your products with Excel' },
+    { title: 'Scraper & Importer', icon: Globe, path: '/scraper', description: 'Scrape product data from any e-commerce site' },
   ];
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
       {links.map((link, index) => (
         <Link key={index} to={link.path} className="block">
           <Card className="h-full transition-all hover:shadow-md">
