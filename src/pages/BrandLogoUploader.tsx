@@ -3,12 +3,17 @@ import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button"
+import { AlertCircle, Settings } from "lucide-react";
 import BrandLogoConfig from "@/components/BrandLogo/BrandLogoConfig";
 import BrandLogoUpload from "@/components/BrandLogo/BrandLogoUpload";
 import BrandLogoMapping from "@/components/BrandLogo/BrandLogoMapping";
 import BrandLogoProcessing from "@/components/BrandLogo/BrandLogoProcessing";
 import { BrandLogoConfigType, ProcessedItem } from "@/types/brandLogo";
 import { mediaApi } from "@/utils/api";
+import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const BrandLogoUploader = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -30,8 +35,33 @@ const BrandLogoUploader = () => {
     allowFolderUpload: true
   });
   
-  // Load saved configuration on component mount
+  const [activeTab, setActiveTab] = useState<string>("config");
+  const [isConfigured, setIsConfigured] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check if WooCommerce is configured
   useEffect(() => {
+    const wcConfig = getWooCommerceConfig();
+    const isConfigValid = Boolean(
+      (wcConfig.authMethod === 'app_password' && wcConfig.wpUsername && wcConfig.wpAppPassword) ||
+      (wcConfig.authMethod === 'consumer_keys' && wcConfig.consumerKey && wcConfig.consumerSecret) ||
+      (wcConfig.authMethod === 'oauth' && wcConfig.consumerKey && wcConfig.consumerSecret)
+    ) && Boolean(wcConfig.url);
+    
+    setIsConfigured(isConfigValid);
+    
+    // Check if there's a tab parameter in the URL
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ['config', 'upload', 'mapping', 'processing'].includes(tabParam)) {
+      setActiveTab(tabParam);
+    } else if (!isConfigValid) {
+      // If not configured, always start at config tab
+      setActiveTab('config');
+    }
+    
+    // Load saved configuration on component mount
     const savedConfig = localStorage.getItem('brand_logo_config');
     if (savedConfig) {
       try {
@@ -41,7 +71,13 @@ const BrandLogoUploader = () => {
         console.error("Error loading saved configuration:", error);
       }
     }
-  }, []);
+  }, [location.search]);
+  
+  // Update URL when tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    navigate(`/brand-logo-uploader?tab=${value}`, { replace: true });
+  };
   
   const handleFilesAdded = (files: File[]) => {
     setUploadedFiles(prev => {
@@ -194,12 +230,31 @@ const BrandLogoUploader = () => {
         </p>
       </div>
       
-      <Tabs defaultValue="config" className="space-y-4">
+      {!isConfigured && activeTab !== 'config' && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertDescription className="flex justify-between items-center">
+            <span>WooCommerce connection not configured properly</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => handleTabChange('config')}
+              className="ml-2"
+            >
+              <Settings className="mr-2 h-4 w-4" />
+              Go to Settings
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
           <TabsTrigger value="config">Configuration</TabsTrigger>
-          <TabsTrigger value="upload">Upload Logos</TabsTrigger>
-          <TabsTrigger value="mapping">Brand Mapping</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
+          <TabsTrigger value="upload" disabled={!isConfigured}>Upload Logos</TabsTrigger>
+          <TabsTrigger value="mapping" disabled={!isConfigured || uploadedFiles.length === 0}>Brand Mapping</TabsTrigger>
+          <TabsTrigger value="processing" disabled={!isConfigured || uploadedFiles.length === 0}>Processing</TabsTrigger>
         </TabsList>
         
         <TabsContent value="config">
@@ -278,6 +333,22 @@ const BrandLogoUploader = () => {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {activeTab !== 'config' && processTracking.failed > 0 && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Authentication/Permission Issues</AlertTitle>
+          <AlertDescription className="text-sm">
+            <p>If you're seeing permission errors, check that:</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>Your WooCommerce user has Administrator privileges</li>
+              <li>Your Application Password has been created correctly</li>
+              <li>Consumer Key and Secret have correct permissions</li>
+              <li>The API is enabled in WooCommerce settings</li>
+            </ul>
+          </AlertDescription>
+        </Alert>
+      )}
     </div>
   );
 };
