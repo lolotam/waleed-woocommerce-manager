@@ -8,6 +8,10 @@ import { MODEL_CONFIGS } from './config';
 
 // Save log entry to localStorage
 export const saveLogEntry = (prompt: string, result: string, model: AIModel) => {
+  // First check if logging is enabled
+  const loggingEnabled = localStorage.getItem('log_ai_requests') !== 'false';
+  if (!loggingEnabled) return;
+  
   const logs = JSON.parse(localStorage.getItem('ai_logs') || '[]');
   logs.push({
     timestamp: new Date().toISOString(),

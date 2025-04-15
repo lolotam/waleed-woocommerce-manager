@@ -6,15 +6,15 @@
 
 // Re-export types
 import { AIModel, BatchPrompt, ApiTestResponse } from './ai/types';
-export type { AIModel, BatchPrompt };
+export type { AIModel, BatchPrompt, ApiTestResponse };
 
 // Re-export core functionality
 import { generateContent, generateContentBatch } from './ai/generator';
 export { generateContent, generateContentBatch };
 
 // Re-export configuration utilities
-import { getAvailableModels } from './ai/config';
-export { getAvailableModels };
+import { getAvailableModels, isValidAPIKey } from './ai/config';
+export { getAvailableModels, isValidAPIKey };
 
 // Re-export logging utilities
 import { getAllLogs, exportLogsToExcel } from './ai/logs';
@@ -35,5 +35,6 @@ export default {
   exportLogsToExcel,
   testOpenAIConnection,
   testClaudeConnection,
-  testGeminiConnection
+  testGeminiConnection,
+  isValidAPIKey
 };
