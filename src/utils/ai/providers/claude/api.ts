@@ -50,7 +50,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
         'Content-Type': 'application/json',
         'x-api-key': config.claudeApiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true' // Fix: Set as string 'true' instead of 'enabled'
+        'anthropic-dangerous-direct-browser-access': 'true' // Fixing the header: Set as string 'true'
       },
       body: JSON.stringify({
         model: modelConfig.apiModel,
