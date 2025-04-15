@@ -7,7 +7,7 @@ import BrandLogoConfig from "@/components/BrandLogo/BrandLogoConfig";
 import BrandLogoUpload from "@/components/BrandLogo/BrandLogoUpload";
 import BrandLogoMapping from "@/components/BrandLogo/BrandLogoMapping";
 import BrandLogoProcessing from "@/components/BrandLogo/BrandLogoProcessing";
-import { BrandLogoConfigType } from "@/types/brandLogo";
+import { BrandLogoConfigType, ProcessedItem } from "@/types/brandLogo";
 import { mediaApi } from "@/utils/api";
 
 const BrandLogoUploader = () => {
@@ -15,7 +15,8 @@ const BrandLogoUploader = () => {
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [processLog, setProcessLog] = useState<string[]>([]);
-  const [processedItems, setProcessedItems] = useState<{
+  const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
+  const [processTracking, setProcessTracking] = useState<{
     success: number;
     failed: number;
     total: number;
@@ -58,7 +59,7 @@ const BrandLogoUploader = () => {
     // Generate initial mappings based on filenames
     const newMappings = {...mappings};
     files.forEach(file => {
-      const name = file.name.replace(/\.(png|jpg|jpeg|gif)$/i, '');
+      const name = file.name.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
       // Don't overwrite existing mappings
       if (!newMappings[file.name]) {
         newMappings[file.name] = name;
@@ -99,8 +100,9 @@ const BrandLogoUploader = () => {
     }
     
     setIsProcessing(true);
-    setProcessedItems({success: 0, failed: 0, total: uploadedFiles.length});
+    setProcessTracking({success: 0, failed: 0, total: uploadedFiles.length});
     setProcessLog([]);
+    setProcessedItems([]);
     
     // Save configuration if enabled
     if (config.saveConfigurations) {
@@ -117,33 +119,63 @@ const BrandLogoUploader = () => {
         try {
           addLogEntry(`Processing ${file.name} → ${targetName}`);
           
+          // Track the file as pending
+          const pendingItem: ProcessedItem = {
+            filename: file.name,
+            targetName,
+            status: 'pending'
+          };
+          setProcessedItems(prev => [...prev, pendingItem]);
+          
           // Call the API to upload and assign the logo
           await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
             addToDescription: config.addToDescription
           });
           
-          setProcessedItems(prev => ({
+          setProcessTracking(prev => ({
             ...prev,
             success: prev.success + 1
           }));
+          
+          // Update item status to success
+          setProcessedItems(prev => 
+            prev.map(item => 
+              item.filename === file.name && item.status === 'pending'
+                ? { ...item, status: 'success' }
+                : item
+            )
+          );
           
           addLogEntry(`✅ Successfully processed ${file.name}`);
           toast.success(`Processed ${file.name}`);
         } catch (error) {
           console.error(`Error processing ${file.name}:`, error);
           
-          setProcessedItems(prev => ({
+          setProcessTracking(prev => ({
             ...prev,
             failed: prev.failed + 1
           }));
+          
+          // Update item status to failed
+          setProcessedItems(prev => 
+            prev.map(item => 
+              item.filename === file.name && item.status === 'pending'
+                ? { 
+                    ...item, 
+                    status: 'failed',
+                    message: error.message || 'Unknown error' 
+                  }
+                : item
+            )
+          );
           
           addLogEntry(`❌ Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
           toast.error(`Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
         }
       }
       
-      addLogEntry(`Processing complete! ${processedItems.success} successful, ${processedItems.failed} failed`);
-      toast.success("Processing complete!");
+      addLogEntry(`Processing complete! ${processTracking.success} successful, ${processTracking.failed} failed`);
+      toast.success(`Processing complete! ${processTracking.success} successful, ${processTracking.failed} failed`);
     } catch (error) {
       console.error("Processing error:", error);
       addLogEntry(`Processing failed: ${error.message || 'Unknown error'}`);
@@ -238,7 +270,7 @@ const BrandLogoUploader = () => {
                 files={uploadedFiles}
                 mappings={mappings}
                 isProcessing={isProcessing}
-                processed={processedItems}
+                processed={processTracking}
                 onStartProcessing={handleStartProcessing}
                 config={config}
               />
