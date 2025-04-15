@@ -17,6 +17,7 @@ import PromptsPage from "./pages/PromptsPage";
 import LogsPage from "./pages/LogsPage";
 import ProductsPage from "./pages/ProductsPage";
 import ScraperImporterPage from "./pages/ScraperImporterPage";
+import BrandLogoUploader from "./pages/BrandLogoUploader";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 
@@ -67,6 +68,7 @@ const App = () => {
                 <Route path="/prompts" element={<PromptsPage />} />
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/scraper" element={<ScraperImporterPage />} />
+                <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
               </Route>
             ) : (
               <Route path="*" element={<Navigate to="/license" replace />} />

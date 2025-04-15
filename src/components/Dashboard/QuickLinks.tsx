@@ -1,31 +1,87 @@
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link } from 'react-router-dom';
-import { Package, Tag, ShoppingBag, MessageSquare, FileSpreadsheet, FolderTree, Globe } from "lucide-react";
+import { Link } from "react-router-dom";
+import { 
+  ShoppingBag, 
+  Tags, 
+  Folder, 
+  Upload, 
+  ListFilter, 
+  MessageSquareText,
+  FileSpreadsheet,
+  Upload as UploadIcon
+} from "lucide-react";
+
+const links = [
+  {
+    title: "Products",
+    description: "Manage your product catalog",
+    icon: <ShoppingBag className="h-8 w-8" />,
+    href: "/products",
+  },
+  {
+    title: "Categories",
+    description: "Organize products with categories",
+    icon: <Folder className="h-8 w-8" />,
+    href: "/categories",
+  },
+  {
+    title: "Brands",
+    description: "Manage product brands",
+    icon: <Tags className="h-8 w-8" />,
+    href: "/brands",
+  },
+  {
+    title: "Import & Export",
+    description: "Import or export product data",
+    icon: <FileSpreadsheet className="h-8 w-8" />,
+    href: "/import-export",
+  },
+  {
+    title: "Web Scraper",
+    description: "Scrape products from websites",
+    icon: <Upload className="h-8 w-8" />,
+    href: "/scraper",
+  },
+  {
+    title: "Brand Logo Uploader",
+    description: "Upload logos to brands & categories",
+    icon: <UploadIcon className="h-8 w-8" />,
+    href: "/brand-logo-uploader",
+  },
+  {
+    title: "Prompt Maker",
+    description: "Create AI prompts for products",
+    icon: <MessageSquareText className="h-8 w-8" />,
+    href: "/prompts",
+  },
+  {
+    title: "Settings",
+    description: "Configure application settings",
+    icon: <ListFilter className="h-8 w-8" />,
+    href: "/settings",
+  },
+];
 
 const QuickLinks = () => {
-  const links = [
-    { title: 'Manage Products', icon: Package, path: '/products', description: 'Add, edit, or remove products from your store' },
-    { title: 'Manage Categories', icon: FolderTree, path: '/categories', description: 'Organize your product categories' },
-    { title: 'Manage Brands', icon: Tag, path: '/brands', description: 'Create and organize product brands (tags)' },
-    { title: 'AI Prompts', icon: MessageSquare, path: '/prompts', description: 'Configure AI prompts for content generation' },
-    { title: 'Import/Export', icon: FileSpreadsheet, path: '/import-export', description: 'Bulk manage your products with Excel' },
-    { title: 'Scraper & Importer', icon: Globe, path: '/scraper', description: 'Scrape product data from any e-commerce site' },
-  ];
-
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
-      {links.map((link, index) => (
-        <Link key={index} to={link.path} className="block">
-          <Card className="h-full transition-all hover:shadow-md">
-            <CardHeader className="pb-2">
-              <link.icon className="h-5 w-5 text-muted-foreground mb-1" />
-              <CardTitle className="text-lg">{link.title}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <CardDescription>{link.description}</CardDescription>
-            </CardContent>
-          </Card>
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      {links.map((link) => (
+        <Link
+          key={link.title}
+          to={link.href}
+          className="group relative rounded-lg border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow dark:border-slate-800 dark:bg-slate-950"
+        >
+          <div className="flex h-full flex-col justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="grid place-items-center rounded-md bg-slate-900 p-2 text-white dark:bg-slate-700">
+                {link.icon}
+              </div>
+              <div>
+                <h3 className="font-semibold">{link.title}</h3>
+                <p className="text-sm text-muted-foreground">{link.description}</p>
+              </div>
+            </div>
+          </div>
         </Link>
       ))}
     </div>

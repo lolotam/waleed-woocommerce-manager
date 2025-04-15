@@ -114,6 +114,86 @@ export const mediaApi = {
       throw error;
     }
   },
+  
+  // Upload logo and assign to brand or category
+  uploadAndAssignLogo: async (file: File, targetName: string, targetType: "brands" | "categories", options = { addToDescription: false }) => {
+    try {
+      // Step 1: Upload the image to media library
+      const uploadResult = await mediaApi.upload(file, {
+        title: `${targetName} Logo`,
+        alt_text: `${targetName} Logo`,
+        caption: `Logo for ${targetName}`
+      });
+      
+      if (!uploadResult || !uploadResult.id) {
+        throw new Error('Media upload failed');
+      }
+      
+      // Step 2: Find the target (brand or category) by name
+      let targetId = null;
+      let targetData = null;
+      
+      if (targetType === 'brands') {
+        const brandsResponse = await brandsApi.getAll();
+        if (brandsResponse && brandsResponse.data) {
+          const brand = brandsResponse.data.find(b => 
+            b.name.toLowerCase() === targetName.toLowerCase()
+          );
+          if (brand) {
+            targetId = brand.id;
+            targetData = brand;
+          }
+        }
+      } else {
+        const categoriesResponse = await categoriesApi.getAll();
+        if (categoriesResponse && categoriesResponse.data) {
+          const category = categoriesResponse.data.find(c => 
+            c.name.toLowerCase() === targetName.toLowerCase()
+          );
+          if (category) {
+            targetId = category.id;
+            targetData = category;
+          }
+        }
+      }
+      
+      if (!targetId) {
+        throw new Error(`${targetType === 'brands' ? 'Brand' : 'Category'} "${targetName}" not found`);
+      }
+      
+      // Step 3: Update the target with the new image
+      const updateData: any = {
+        image: {
+          id: uploadResult.id
+        }
+      };
+      
+      // Optionally add to description
+      if (options.addToDescription) {
+        const existingDescription = targetData?.description || '';
+        const imageHtml = `<p><img src="${uploadResult.source_url}" alt="${targetName} Logo" class="brand-logo" /></p>`;
+        updateData.description = imageHtml + existingDescription;
+      }
+      
+      // Step 4: Update the target entity
+      let updateResult;
+      if (targetType === 'brands') {
+        updateResult = await brandsApi.update(targetId, updateData);
+      } else {
+        updateResult = await categoriesApi.update(targetId, updateData);
+      }
+      
+      return {
+        success: true,
+        mediaId: uploadResult.id,
+        targetId: targetId,
+        message: `Logo successfully assigned to ${targetName}`
+      };
+    } catch (error) {
+      console.error('Logo assignment error:', error);
+      throw error;
+    }
+  }
 };
 
 export default mediaApi;
