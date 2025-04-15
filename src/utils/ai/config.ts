@@ -1,8 +1,7 @@
-
 /**
  * AI Service Configuration
  */
-import { AIModel, AIProvider, ModelConfig } from './types';
+import { AIModel, ModelConfig, ModelInfo } from './types';
 
 // Define model configurations
 export const MODEL_CONFIGS: Record<AIModel, ModelConfig> = {
@@ -144,25 +143,46 @@ export const getAiConfig = (): AIConfig => {
   }
 };
 
-// Get available models based on configured API keys
-export const getAvailableModels = (): AIModel[] => {
+// Get available models based on configured API keys, returning ModelInfo objects
+export const getAvailableModels = (): ModelInfo[] => {
   const config = getAiConfig();
-  const models: AIModel[] = [];
+  const modelInfos: ModelInfo[] = [];
   
   // Add models based on available API keys
   if (config.openaiApiKey && isValidAPIKey(config.openaiApiKey, 'openai')) {
-    models.push('gpt4o', 'gpt4o_mini', 'gpt45', 'o1', 'o1_mini', 'o1_mini_high');
+    const openaiModels: AIModel[] = ['gpt4o', 'gpt4o_mini', 'gpt45', 'o1', 'o1_mini', 'o1_mini_high'];
+    openaiModels.forEach(model => {
+      modelInfos.push({
+        id: model,
+        description: MODEL_CONFIGS[model].description,
+        provider: 'openai'
+      });
+    });
   }
   
   if (config.claudeApiKey && isValidAPIKey(config.claudeApiKey, 'anthropic')) {
-    models.push('claude37', 'claude35_sonnet', 'claude35_haiku', 'claude3_opus');
+    const claudeModels: AIModel[] = ['claude37', 'claude35_sonnet', 'claude35_haiku', 'claude3_opus'];
+    claudeModels.forEach(model => {
+      modelInfos.push({
+        id: model,
+        description: MODEL_CONFIGS[model].description,
+        provider: 'anthropic'
+      });
+    });
   }
   
   if (config.geminiApiKey && isValidAPIKey(config.geminiApiKey, 'google')) {
-    models.push('gemini_flash', 'gemini_flash_thinking', 'gemini_pro', 'gemini_research');
+    const geminiModels: AIModel[] = ['gemini_flash', 'gemini_flash_thinking', 'gemini_pro', 'gemini_research'];
+    geminiModels.forEach(model => {
+      modelInfos.push({
+        id: model,
+        description: MODEL_CONFIGS[model].description,
+        provider: 'google'
+      });
+    });
   }
   
-  return models;
+  return modelInfos;
 };
 
 // Updated to support various API key formats including sk-proj

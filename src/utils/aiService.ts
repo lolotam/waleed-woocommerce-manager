@@ -5,8 +5,8 @@
  */
 
 // Re-export types
-import { AIModel, BatchPrompt, ApiTestResponse } from './ai/types';
-export type { AIModel, BatchPrompt, ApiTestResponse };
+import { AIModel, BatchPrompt, ApiTestResponse, ModelInfo } from './ai/types';
+export type { AIModel, BatchPrompt, ApiTestResponse, ModelInfo };
 
 // Re-export core functionality
 import { generateContent, generateContentBatch } from './ai/generator';

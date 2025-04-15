@@ -28,6 +28,13 @@ export interface ModelConfig {
   description: string;
 }
 
+// Model information for UI displays
+export interface ModelInfo {
+  id: AIModel;
+  description: string;
+  provider: 'openai' | 'anthropic' | 'google';
+}
+
 // Batch processing interface
 export interface BatchPrompt {
   id: string;
