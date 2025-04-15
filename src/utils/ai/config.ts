@@ -51,7 +51,7 @@ export const MODEL_CONFIGS: Record<AIModel, ModelConfig> = {
   
   // Claude models
   claude37: { 
-    apiModel: 'claude-3-7-sonnet-20240620',
+    apiModel: 'claude-3-sonnet-20240229',
     provider: 'anthropic',
     maxTokens: 4000,
     temperature: 0.7,
