@@ -16,9 +16,11 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
   }
 
   if (!isValidAPIKey(config.openaiApiKey, 'openai')) {
-    throw new Error('Invalid OpenAI API key format');
+    throw new Error('Invalid OpenAI API key format. OpenAI keys should start with "sk-"');
   }
 
+  console.log(`Attempting to use OpenAI model: ${modelConfig.apiModel}`);
+  
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // Increased timeout to 30 seconds
@@ -39,9 +41,13 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
     });
 
     clearTimeout(timeoutId);
+    
+    console.log('OpenAI API response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
+      console.error('OpenAI API error response:', errorData);
+      
       let errorMessage = `OpenAI API error: ${response.status}`;
       
       try {
@@ -68,6 +74,7 @@ export const generateWithOpenAI = async (prompt: string, modelKey: AIModel): Pro
     }
 
     const data = await response.json();
+    console.log('OpenAI API response received successfully');
     return data.choices[0].message.content;
   } catch (error) {
     console.error('OpenAI API error:', error);
@@ -95,6 +102,8 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
     
+    console.log('Testing OpenAI connection with API key:', apiKey.substring(0, 5) + '...');
+    
     const response = await fetch('https://api.openai.com/v1/models', {
       method: 'GET',
       headers: {
@@ -105,6 +114,8 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
     });
 
     clearTimeout(timeoutId);
+    
+    console.log('OpenAI test connection response status:', response.status);
 
     if (response.ok) {
       return { 
@@ -113,6 +124,8 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
       };
     } else {
       const errorData = await response.text();
+      console.error('OpenAI test connection error response:', errorData);
+      
       let errorMessage = `OpenAI API error: ${response.status}`;
       
       try {
