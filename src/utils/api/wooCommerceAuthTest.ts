@@ -1,7 +1,6 @@
-
+import axios from 'axios';
 import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
-import axios from 'axios';
 
 /**
  * Test API permissions specifically for media upload capabilities
