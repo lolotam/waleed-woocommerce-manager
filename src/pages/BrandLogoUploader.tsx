@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,6 +8,7 @@ import BrandLogoUpload from "@/components/BrandLogo/BrandLogoUpload";
 import BrandLogoMapping from "@/components/BrandLogo/BrandLogoMapping";
 import BrandLogoProcessing from "@/components/BrandLogo/BrandLogoProcessing";
 import { BrandLogoConfigType } from "@/types/brandLogo";
+import { mediaApi } from "@/utils/api";
 
 const BrandLogoUploader = () => {
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
@@ -23,12 +24,35 @@ const BrandLogoUploader = () => {
     targetType: "brands", // brands or categories
     addToDescription: false,
     fuzzyMatching: true,
-    saveConfigurations: true
+    saveConfigurations: true,
+    allowFolderUpload: true
   });
   
+  // Load saved configuration on component mount
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('brand_logo_config');
+    if (savedConfig) {
+      try {
+        const parsedConfig = JSON.parse(savedConfig);
+        setConfig(prev => ({...prev, ...parsedConfig}));
+      } catch (error) {
+        console.error("Error loading saved configuration:", error);
+      }
+    }
+  }, []);
+  
   const handleFilesAdded = (files: File[]) => {
-    setUploadedFiles(files);
-    toast.success(`${files.length} files added`);
+    setUploadedFiles(prev => {
+      // Filter out any duplicates
+      const existingFileNames = new Set(prev.map(f => f.name));
+      const uniqueNewFiles = files.filter(file => !existingFileNames.has(file.name));
+      
+      if (uniqueNewFiles.length < files.length) {
+        toast.info(`${files.length - uniqueNewFiles.length} duplicate files were skipped`);
+      }
+      
+      return [...prev, ...uniqueNewFiles];
+    });
     
     // Generate initial mappings based on filenames
     const newMappings = {...mappings};
@@ -83,9 +107,10 @@ const BrandLogoUploader = () => {
         const targetName = mappings[file.name];
         
         try {
-          // We'll implement the actual API calls here
-          // Placeholder for now with a delay to simulate processing
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          // Call the API to upload and assign the logo
+          await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
+            addToDescription: config.addToDescription
+          });
           
           setProcessedItems(prev => ({
             ...prev,
@@ -99,14 +124,14 @@ const BrandLogoUploader = () => {
             ...prev,
             failed: prev.failed + 1
           }));
-          toast.error(`Failed to process ${file.name}`);
+          toast.error(`Failed to process ${file.name}: ${error.message || 'Unknown error'}`);
         }
       }
       
       toast.success("Processing complete!");
     } catch (error) {
       console.error("Processing error:", error);
-      toast.error("Processing failed");
+      toast.error(`Processing failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsProcessing(false);
     }
@@ -159,6 +184,7 @@ const BrandLogoUploader = () => {
                 files={uploadedFiles}
                 onFilesAdded={handleFilesAdded}
                 onRemoveFile={handleRemoveFile}
+                allowFolderUpload={config.allowFolderUpload}
               />
             </CardContent>
           </Card>

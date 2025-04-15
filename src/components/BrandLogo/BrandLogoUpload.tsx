@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { BrandLogoUploadProps } from "@/types/brandLogo";
-import { Upload, X, File as FileIcon, Image } from "lucide-react";
+import { Upload, X, File as FileIcon, Image, Folder } from "lucide-react";
 
-const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile }: BrandLogoUploadProps) => {
+const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload }: BrandLogoUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
   
   const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -49,12 +50,21 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile }: BrandLogoUploadP
     
     if (newFiles.length > 0) {
       onFilesAdded(newFiles);
+      toast.success(`${newFiles.length} image files added`);
+    } else {
+      toast.error("No valid image files found");
     }
   };
   
   const triggerFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
+    }
+  };
+  
+  const triggerFolderInput = () => {
+    if (folderInputRef.current) {
+      folderInputRef.current.click();
     }
   };
   
@@ -88,9 +98,49 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile }: BrandLogoUploadP
         />
       </div>
       
+      {allowFolderUpload && (
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            className="w-full py-6" 
+            onClick={triggerFolderInput}
+          >
+            <Folder className="mr-2 h-5 w-5" />
+            Select Folder with Logo Images
+          </Button>
+          <input
+            ref={folderInputRef}
+            type="file"
+            webkitdirectory="true"
+            directory=""
+            multiple
+            onChange={handleFileInput}
+            className="hidden"
+          />
+          <p className="text-xs text-muted-foreground mt-2">
+            Select an entire folder containing logo images
+          </p>
+        </div>
+      )}
+      
       {files.length > 0 && (
         <div className="space-y-4">
-          <h3 className="text-lg font-medium">Uploaded Files ({files.length})</h3>
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-medium">Uploaded Files ({files.length})</h3>
+            {files.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  files.forEach(file => onRemoveFile(file.name));
+                  toast.info("All files removed");
+                }}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Remove All
+              </Button>
+            )}
+          </div>
           <div className="grid gap-2">
             {files.map((file) => (
               <div 

@@ -4,6 +4,7 @@ export interface BrandLogoConfigType {
   addToDescription: boolean;
   fuzzyMatching: boolean;
   saveConfigurations: boolean;
+  allowFolderUpload: boolean;
 }
 
 export interface ProcessedItem {
@@ -43,4 +44,5 @@ export interface BrandLogoUploadProps {
   files: File[];
   onFilesAdded: (files: File[]) => void;
   onRemoveFile: (filename: string) => void;
+  allowFolderUpload: boolean;
 }
