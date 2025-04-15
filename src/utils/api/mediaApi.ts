@@ -98,6 +98,13 @@ export const mediaApi = {
 
     try {
       console.log(`Attempting to upload file ${file.name} to ${url.toString()}`);
+      console.log('Authentication method:', authMethod);
+      
+      // Log auth details (without sensitive info)
+      if (authMethod === 'app_password') {
+        console.log('Using username:', config.wpUsername);
+        console.log('App password length:', config.wpAppPassword ? config.wpAppPassword.length : 0);
+      }
       
       const response = await fetch(url.toString(), {
         method: 'POST',
@@ -109,19 +116,21 @@ export const mediaApi = {
         const errorData = await response.json().catch(() => ({}));
         console.error('Media upload error response:', errorData);
         
+        // Enhanced error handling with more detailed messaging
         if (errorData.code === 'rest_cannot_create' || 
             errorData.message?.includes('not allowed to create posts')) {
           const errorMessage = 'Permission denied: Your WordPress user lacks media upload permissions.';
           
-          // Display more detailed toast message with instructions
-          toast.error(errorMessage, {
-            description: 'Use an administrator account or configure application passwords.',
+          // Show more detailed toast message with specific steps
+          toast.error('WordPress Media Permission Error', {
+            description: 'Your current credentials don\'t have permission to upload files.',
             duration: 8000
           });
           
           throw new Error(errorMessage);
         }
         
+        // Improved general error details
         throw new Error(errorData.message || 'Media upload error');
       }
 
@@ -129,10 +138,13 @@ export const mediaApi = {
     } catch (error) {
       console.error('Media upload error:', error);
       
+      // Enhanced permission error detection and guidance
       if (error.message?.includes('permission denied') || 
-          error.message?.includes('not allowed to create posts')) {
+          error.message?.includes('not allowed to create posts') ||
+          error.message?.includes('rest_cannot_create') ||
+          error.message?.includes('insufficient capabilities')) {
         toast.error('WordPress Permission Error', {
-          description: 'Your current credentials lack media upload permissions. Please use an admin account.',
+          description: 'Check the Troubleshooting tab for detailed fix instructions.',
           duration: 8000,
         });
       } else {
@@ -365,9 +377,10 @@ export const mediaApi = {
         };
       } catch (error) {
         if (error.message?.includes('permission denied') || 
-            error.message?.includes('not allowed to create')) {
-          // Convert the error to a more user-friendly message
-          throw new Error(`Permission Error: Your WooCommerce API keys don't have the required permissions. Please use the application password method with an administrator account.`);
+            error.message?.includes('not allowed to create') ||
+            error.message?.includes('rest_cannot_create')) {
+          // Convert the error to a more user-friendly message with detailed guidance
+          throw new Error(`Permission Error: Your WooCommerce API keys don't have sufficient permissions to upload media files. Go to the Troubleshooting tab for detailed instructions.`);
         }
         throw error;
       }

@@ -9,7 +9,8 @@ import {
   ShieldCheck, 
   Info, 
   Lock, 
-  AlertCircle 
+  AlertCircle,
+  CheckCircle2
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -117,6 +118,16 @@ const TroubleshootingGuide = () => {
           <li>Click "Save & Connect"</li>
           <li>Test the connection before proceeding</li>
         </ol>
+        
+        <div className="mt-3 p-3 border rounded-md bg-green-50 dark:bg-green-950">
+          <h6 className="font-medium flex items-center text-green-700 dark:text-green-400">
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Test Your Credentials
+          </h6>
+          <p className="text-sm mt-1 text-green-700 dark:text-green-400">
+            After updating your credentials, always test the connection to verify media upload permissions.
+          </p>
+        </div>
         
         <div className="flex justify-between items-center mt-4">
           <Link 

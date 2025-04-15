@@ -48,14 +48,16 @@ const BrandLogoProcessing = ({
   const addLogEntry = (message: string) => {
     setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
 
-    // Check for common permission error messages
+    // Enhanced permission error detection
     if (
       message.includes("not allowed to create posts") || 
       message.includes("permission denied") ||
       message.includes("insufficient capabilities") ||
       message.includes("rest_cannot_create") ||
-      message.includes("woocommerce_rest_cannot_create")
+      message.includes("woocommerce_rest_cannot_create") ||
+      message.includes("you don't have permission")
     ) {
+      console.log("Permission error detected in log:", message);
       setHasPermissionError(true);
       setActiveTab("troubleshooting");
     }
