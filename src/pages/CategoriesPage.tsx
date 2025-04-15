@@ -19,7 +19,7 @@ const CategoriesPage = () => {
   const { data: categoriesResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
-      const response = await categoriesApi.getAll({ per_page: 100 });
+      const response = await categoriesApi.getAll({ per_page: "100" });
       return extractData<Category[]>(response);
     },
   });

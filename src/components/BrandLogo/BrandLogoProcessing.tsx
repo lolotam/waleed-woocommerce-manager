@@ -174,7 +174,7 @@ const BrandLogoProcessing = ({
         </div>
       </div>
 
-      <Alert variant="info">
+      <Alert variant="default" className="border border-blue-200 bg-blue-50 text-blue-800">
         <Info className="h-4 w-4" />
         <AlertTitle>WooCommerce API Permission Note</AlertTitle>
         <AlertDescription>

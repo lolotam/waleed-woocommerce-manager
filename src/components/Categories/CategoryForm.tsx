@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { categoriesApi, mediaApi, extractData } from '@/utils/api';
@@ -37,7 +38,7 @@ const CategoryForm: React.FC<CategoryFormProps> = ({ category, onSaved }) => {
   const { data: categoriesResponse } = useQuery({
     queryKey: ['categories-dropdown'],
     queryFn: async () => {
-      const response = await categoriesApi.getAll({ per_page: 100 });
+      const response = await categoriesApi.getAll({ per_page: "100" });
       return extractData(response);
     },
   });
