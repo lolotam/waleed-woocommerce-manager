@@ -5,8 +5,9 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { toast } from "sonner";
-import { Play, AlertOctagon, CheckCircle2, Clock, X } from "lucide-react";
+import { Play, AlertOctagon, CheckCircle2, Clock, X, Info } from "lucide-react";
 import { mediaApi, brandsApi, categoriesApi } from "@/utils/api";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const BrandLogoProcessing = ({
   files,
@@ -18,6 +19,7 @@ const BrandLogoProcessing = ({
 }: BrandLogoProcessingProps) => {
   const [processLog, setProcessLog] = useState<string[]>([]);
   const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
+  const [hasPermissionError, setHasPermissionError] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
@@ -26,15 +28,27 @@ const BrandLogoProcessing = ({
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
   }, [processLog]);
+
+  // Reset errors when files change
+  useEffect(() => {
+    setHasPermissionError(false);
+  }, [files]);
   
   const clearLog = () => {
     setProcessLog([]);
     setProcessedItems([]);
+    setHasPermissionError(false);
   };
   
   // This will be called when actual processing is implemented
   const addLogEntry = (message: string) => {
     setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+
+    // Check for permission errors
+    if (message.includes("not allowed to create posts") || 
+        message.includes("permission denied")) {
+      setHasPermissionError(true);
+    }
   };
   
   return (
@@ -60,6 +74,18 @@ const BrandLogoProcessing = ({
           </Button>
         </div>
       </div>
+
+      {hasPermissionError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertOctagon className="h-4 w-4" />
+          <AlertTitle>Permission Error</AlertTitle>
+          <AlertDescription>
+            Your WooCommerce API keys don't have permission to upload media. 
+            Please use an administrator account or check your API key permissions 
+            in WooCommerce.
+          </AlertDescription>
+        </Alert>
+      )}
       
       {isProcessing && (
         <div className="space-y-2">
@@ -88,7 +114,7 @@ const BrandLogoProcessing = ({
           {processLog.length > 0 ? (
             <div className="space-y-1 font-mono text-sm">
               {processLog.map((log, index) => (
-                <div key={index}>{log}</div>
+                <div key={index} className={log.includes("error") || log.includes("failed") ? "text-red-500" : ""}>{log}</div>
               ))}
             </div>
           ) : (
@@ -147,6 +173,16 @@ const BrandLogoProcessing = ({
           </div>
         </div>
       </div>
+
+      <Alert variant="info">
+        <Info className="h-4 w-4" />
+        <AlertTitle>WooCommerce API Permission Note</AlertTitle>
+        <AlertDescription>
+          For uploading logos, your WooCommerce API keys must have write permissions 
+          for Media and {config.targetType === 'brands' ? 'Product Tags' : 'Product Categories'}.
+          Please verify these permissions in your WooCommerce REST API settings.
+        </AlertDescription>
+      </Alert>
     </div>
   );
 };

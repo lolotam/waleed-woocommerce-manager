@@ -8,6 +8,7 @@ import { Upload, X, File as FileIcon, Image, Folder } from "lucide-react";
 
 const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload }: BrandLogoUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
+  const [isFolderSupported, setIsFolderSupported] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
   
@@ -37,6 +38,7 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
   
   const handleFiles = (fileList: FileList) => {
     const newFiles: File[] = [];
+    const invalidFiles: string[] = [];
     
     // Filter for image files only
     for (let i = 0; i < fileList.length; i++) {
@@ -44,14 +46,24 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
       if (file.type.startsWith('image/')) {
         newFiles.push(file);
       } else {
-        toast.error(`${file.name} is not an image file`);
+        invalidFiles.push(file.name);
       }
     }
     
     if (newFiles.length > 0) {
       onFilesAdded(newFiles);
       toast.success(`${newFiles.length} image files added`);
-    } else {
+    }
+    
+    if (invalidFiles.length > 0) {
+      if (invalidFiles.length <= 3) {
+        toast.error(`These files are not images: ${invalidFiles.join(', ')}`);
+      } else {
+        toast.error(`${invalidFiles.length} non-image files were skipped`);
+      }
+    }
+    
+    if (newFiles.length === 0 && invalidFiles.length === 0) {
       toast.error("No valid image files found");
     }
   };
@@ -68,18 +80,22 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
     }
   };
 
-  // If folder upload fails in some browsers, try this fallback method
+  // Check folder upload support more thoroughly
   const checkFolderUploadSupport = () => {
     if (folderInputRef.current) {
       try {
-        // If the browser doesn't support webkitdirectory, this will throw an error
-        // @ts-ignore - TypeScript will complain but we need to check this property
-        const supported = 'webkitdirectory' in folderInputRef.current;
-        if (!supported) {
-          toast.error("Your browser doesn't support folder upload. Please use Chrome, Edge, or Firefox.");
+        // Test if the browser supports the directory attribute
+        const isDirectorySupported = 'webkitdirectory' in folderInputRef.current || 
+                                   'directory' in folderInputRef.current;
+        
+        setIsFolderSupported(isDirectorySupported);
+        
+        if (!isDirectorySupported) {
+          console.warn("Folder upload not supported in this browser");
         }
       } catch (error) {
         console.error("Error checking folder upload support:", error);
+        setIsFolderSupported(false);
       }
     }
   };
@@ -125,8 +141,9 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
         <div className="text-center">
           <Button 
             variant="outline" 
-            className="w-full py-6" 
+            className={`w-full py-6 ${!isFolderSupported ? 'opacity-50' : ''}`}
             onClick={triggerFolderInput}
+            disabled={!isFolderSupported}
           >
             <Folder className="mr-2 h-5 w-5" />
             Select Folder with Logo Images
@@ -134,7 +151,7 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
           <input
             ref={folderInputRef}
             type="file"
-            // Use attribute spread instead of direct props for non-standard attributes
+            // Use attribute spreading instead of direct props for non-standard attributes
             {...{
               webkitdirectory: "",
               directory: "",
@@ -144,7 +161,9 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
             className="hidden"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Select an entire folder containing logo images (Chrome, Edge, Firefox recommended)
+            {isFolderSupported
+              ? "Select an entire folder containing logo images (Chrome, Edge, Firefox recommended)"
+              : "Folder upload is not supported in your browser. Please use Chrome, Edge, or Firefox."}
           </p>
         </div>
       )}

@@ -8,6 +8,7 @@ import { woocommerceApi } from "./woocommerceCore";
 interface BrandApiParams {
   [key: string]: string | undefined;
   per_page?: string;
+  page?: string;
 }
 
 // Using WooCommerce product tags as brands
@@ -19,6 +20,14 @@ export const brandsApi = {
     if (!finalParams.per_page) {
       finalParams.per_page = '100'; // Use maximum allowed per page for better count accuracy
     }
+    
+    if (!finalParams.page) {
+      finalParams.page = '1'; // Default to first page if not specified
+    }
+    
+    // Add logging for debugging
+    console.log(`Fetching brands with params:`, finalParams);
+    
     return woocommerceApi(`products/tags?${new URLSearchParams(finalParams).toString()}`);
   },
   get: (id: number) => woocommerceApi(`products/tags/${id}`),

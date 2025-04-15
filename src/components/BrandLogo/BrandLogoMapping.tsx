@@ -18,40 +18,71 @@ const BrandLogoMapping = ({
   const [availableOptions, setAvailableOptions] = useState<{id: number, name: string}[]>([]);
   const [matchStatus, setMatchStatus] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
+  const [loadedCount, setLoadedCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
   
+  // Load brands/categories when component mounts or target type changes
   useEffect(() => {
     if (files.length > 0) {
-      loadOptions();
+      loadOptions(1, true);
     }
   }, [targetType, files]);
   
-  // Load brands/categories from API
-  const loadOptions = async () => {
+  // Load brands/categories from API with pagination
+  const loadOptions = async (pageNum = 1, reset = false) => {
     if (loading) return;
     
     setLoading(true);
     try {
+      const params = {
+        per_page: '100', // Maximum allowed per page
+        page: pageNum.toString(),
+      };
+      
       let data;
+      let total = 0;
+      
       if (targetType === 'brands') {
-        data = await brandsApi.getAll({per_page: '100'});
+        data = await brandsApi.getAll(params);
+        total = data.totalItems || 0;
       } else {
-        data = await categoriesApi.getAll({per_page: '100'});
+        data = await categoriesApi.getAll(params);
+        total = data.totalItems || 0;
       }
       
       if (data) {
         const options = Array.isArray(data.data) ? data.data : [];
-        setAvailableOptions(options);
+        
+        // If reset is true, replace the existing options, otherwise append
+        if (reset) {
+          setAvailableOptions(options);
+          setLoadedCount(options.length);
+        } else {
+          setAvailableOptions(prev => [...prev, ...options]);
+          setLoadedCount(prev => prev + options.length);
+        }
+        
+        setTotalCount(total);
+        setPage(pageNum);
         
         // Check if mappings match available names
-        updateMatchStatus(options);
+        updateMatchStatus(reset ? options : [...availableOptions, ...options]);
         
-        toast.success(`Loaded ${options.length} ${targetType}`);
+        toast.success(`Loaded ${options.length} ${targetType} (${options.length} of ${total})`);
       }
     } catch (error) {
       console.error(`Error loading ${targetType}:`, error);
       toast.error(`Failed to load ${targetType}. ${error.message || ''}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Load more items
+  const loadMore = () => {
+    if (loadedCount < totalCount) {
+      loadOptions(page + 1);
     }
   };
   
@@ -119,18 +150,42 @@ const BrandLogoMapping = ({
     }
   };
   
-  // Auto-generate mappings based on filenames
+  // Auto-generate mappings based on filenames with improved matching
   const autoGenerateMappings = () => {
     files.forEach(file => {
-      // Extract name from filename (remove extension)
-      const nameWithoutExtension = file.name.replace(/\.(png|jpg|jpeg|gif)$/i, '');
-      // Format name (replace underscores/hyphens with spaces, capitalize words)
-      const formattedName = nameWithoutExtension
+      // Extract name from filename (remove extension and clean up)
+      let nameWithoutExtension = file.name
+        .replace(/\.(png|jpg|jpeg|gif)$/i, '')
         .replace(/[_-]/g, ' ')
+        .trim();
+      
+      // Capitalize words
+      const formattedName = nameWithoutExtension
         .replace(/\b\w/g, c => c.toUpperCase());
       
-      onUpdateMapping(file.name, formattedName);
-      checkMapping(file.name, formattedName);
+      // Try to find a close match in available options
+      let bestMatch = null;
+      let bestMatchName = formattedName;
+      
+      for (const option of availableOptions) {
+        // Check for exact match (case-insensitive)
+        if (option.name.toLowerCase() === formattedName.toLowerCase()) {
+          bestMatch = option;
+          bestMatchName = option.name;
+          break;
+        }
+        
+        // Simple partial matching
+        if (option.name.toLowerCase().includes(formattedName.toLowerCase()) ||
+            formattedName.toLowerCase().includes(option.name.toLowerCase())) {
+          bestMatch = option;
+          bestMatchName = option.name;
+          // Don't break here to allow finding better matches
+        }
+      }
+      
+      onUpdateMapping(file.name, bestMatchName);
+      checkMapping(file.name, bestMatchName);
     });
     
     toast.success("Generated mappings from filenames");
@@ -150,7 +205,7 @@ const BrandLogoMapping = ({
         </div>
         <Button 
           variant="outline" 
-          onClick={loadOptions}
+          onClick={() => loadOptions(1, true)}
           disabled={loading}
         >
           {loading ? (
@@ -163,11 +218,27 @@ const BrandLogoMapping = ({
         <Button
           variant="secondary"
           onClick={autoGenerateMappings}
-          disabled={files.length === 0}
+          disabled={files.length === 0 || availableOptions.length === 0}
         >
           Auto-Match
         </Button>
       </div>
+      
+      {loadedCount > 0 && loadedCount < totalCount && (
+        <div className="text-center">
+          <p className="text-sm text-muted-foreground mb-2">
+            Loaded {loadedCount} of {totalCount} {targetType}
+          </p>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={loadMore}
+            disabled={loading}
+          >
+            {loading ? "Loading..." : `Load More ${targetType}`}
+          </Button>
+        </div>
+      )}
       
       {files.length > 0 ? (
         <div className="space-y-4">

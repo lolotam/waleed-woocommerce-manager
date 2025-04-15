@@ -1,4 +1,3 @@
-
 /**
  * WordPress Media API
  */
@@ -23,7 +22,6 @@ export const mediaApi = {
     const formData = new FormData();
     formData.append('file', file);
     
-    // Add metadata if provided
     if (metadata) {
       Object.entries(metadata).forEach(([key, value]) => {
         formData.append(key, value as string);
@@ -31,6 +29,8 @@ export const mediaApi = {
     }
 
     try {
+      console.log(`Attempting to upload file ${file.name} to ${url.toString()}`);
+      
       const response = await fetch(url.toString(), {
         method: 'POST',
         body: formData,
@@ -38,18 +38,33 @@ export const mediaApi = {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Media upload error response:', errorData);
+        
+        if (errorData.code === 'rest_cannot_create' || 
+            errorData.message?.includes('not allowed to create posts')) {
+          throw new Error('Media upload permission denied. Please check your WooCommerce API permissions or use an administrator account.');
+        }
+        
         throw new Error(errorData.message || 'Media upload error');
       }
 
       return await response.json();
     } catch (error) {
       console.error('Media upload error:', error);
-      toast.error(`Media upload error: ${error.message || 'Unknown error'}`);
+      
+      if (error.message?.includes('permission denied') || 
+          error.message?.includes('not allowed to create posts')) {
+        toast.error('Permission denied: Your WooCommerce API keys don\'t have media upload permissions. Please use an administrator account or check API key permissions.', {
+          duration: 6000,
+        });
+      } else {
+        toast.error(`Media upload error: ${error.message || 'Unknown error'}`);
+      }
+      
       throw error;
     }
   },
   
-  // Get all media
   getAll: (params = {}) => {
     const config = getWooCommerceConfig();
     
@@ -59,11 +74,9 @@ export const mediaApi = {
     }
 
     const url = new URL(`${config.url}/wp-json/wp/v2/media`);
-    // Add authentication
     url.searchParams.append('consumer_key', config.consumerKey);
     url.searchParams.append('consumer_secret', config.consumerSecret);
     
-    // Add additional params
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.append(key, value.toString());
     });
@@ -82,7 +95,6 @@ export const mediaApi = {
       });
   },
   
-  // Update media metadata
   update: async (id: number, metadata: any) => {
     const config = getWooCommerceConfig();
     
@@ -117,10 +129,10 @@ export const mediaApi = {
     }
   },
   
-  // Upload logo and assign to brand or category
   uploadAndAssignLogo: async (file: File, targetName: string, targetType: "brands" | "categories", options = { addToDescription: false }) => {
     try {
-      // Step 1: Upload the image to media library
+      console.log(`Attempting to upload logo for ${targetName} (${targetType})`);
+      
       const uploadResult = await mediaApi.upload(file, {
         title: `${targetName} Logo`,
         alt_text: `${targetName} Logo`,
@@ -131,12 +143,11 @@ export const mediaApi = {
         throw new Error('Media upload failed');
       }
       
-      // Step 2: Find the target (brand or category) by name
       let targetId = null;
       let targetData = null;
       
       if (targetType === 'brands') {
-        const brandsResponse = await brandsApi.getAll();
+        const brandsResponse = await brandsApi.getAll({per_page: '200'});
         if (brandsResponse && brandsResponse.data) {
           const brand = brandsResponse.data.find(b => 
             b.name.toLowerCase() === targetName.toLowerCase()
@@ -147,7 +158,7 @@ export const mediaApi = {
           }
         }
       } else {
-        const categoriesResponse = await categoriesApi.getAll();
+        const categoriesResponse = await categoriesApi.getAll({per_page: '200'});
         if (categoriesResponse && categoriesResponse.data) {
           const category = categoriesResponse.data.find(c => 
             c.name.toLowerCase() === targetName.toLowerCase()
@@ -163,21 +174,18 @@ export const mediaApi = {
         throw new Error(`${targetType === 'brands' ? 'Brand' : 'Category'} "${targetName}" not found`);
       }
       
-      // Step 3: Update the target with the new image
       const updateData: any = {
         image: {
           id: uploadResult.id
         }
       };
       
-      // Optionally add to description
       if (options.addToDescription) {
         const existingDescription = targetData?.description || '';
         const imageHtml = `<p><img src="${uploadResult.source_url}" alt="${targetName} Logo" class="brand-logo" /></p>`;
         updateData.description = imageHtml + existingDescription;
       }
       
-      // Step 4: Update the target entity
       let updateResult;
       if (targetType === 'brands') {
         updateResult = await brandsApi.update(targetId, updateData);
