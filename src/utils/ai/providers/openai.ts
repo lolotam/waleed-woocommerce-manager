@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { AIModel } from '../types';
 import { MODEL_CONFIGS, getAiConfig, isValidAPIKey } from '../config';
@@ -60,7 +61,7 @@ export const testOpenAIConnection = async (apiKey: string): Promise<{ success: b
   if (!apiKey || !isValidAPIKey(apiKey, 'openai')) {
     return { 
       success: false, 
-      message: 'API key format is invalid. OpenAI keys should start with "sk-"' 
+      message: 'API key format is invalid. OpenAI keys should start with "sk-" or "sess-"' 
     };
   }
 
