@@ -51,21 +51,21 @@ export const MODEL_CONFIGS: Record<AIModel, ModelConfig> = {
   
   // Claude models
   claude37: { 
-    apiModel: 'claude-3-sonnet-20240229',
+    apiModel: 'claude-3-opus-20240229',
     provider: 'anthropic',
     maxTokens: 4000,
     temperature: 0.7,
     description: 'Claude 3.7 Sonnet - Most intelligent'
   },
   claude35_sonnet: { 
-    apiModel: 'claude-3-5-sonnet-20241022',
+    apiModel: 'claude-3-sonnet-20240229',
     provider: 'anthropic',
     maxTokens: 4000,
     temperature: 0.7,
     description: 'Claude 3.5 Sonnet - Oct 2024'
   },
   claude35_haiku: { 
-    apiModel: 'claude-3-5-haiku-20240307',
+    apiModel: 'claude-3-haiku-20240307',
     provider: 'anthropic',
     maxTokens: 1000,
     temperature: 0.7,

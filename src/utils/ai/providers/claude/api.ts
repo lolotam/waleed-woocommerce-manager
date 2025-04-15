@@ -20,6 +20,8 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     throw new Error('Invalid Claude API key format');
   }
 
+  console.log(`Attempting to use Claude model: ${modelConfig.apiModel}`);
+
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
@@ -43,6 +45,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
     
     console.log('Connecting to Claude API via:', proxyUrl ? `CORS proxy (${proxyUrl})` : 'Direct connection');
     console.log('Using URL:', fetchUrl);
+    console.log('Using model:', modelConfig.apiModel);
     
     const response = await fetch(fetchUrl, {
       method: 'POST',
@@ -50,7 +53,7 @@ export const generateWithClaude = async (prompt: string, modelKey: AIModel): Pro
         'Content-Type': 'application/json',
         'x-api-key': config.claudeApiKey,
         'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true' // Fixing the header: Set as string 'true'
+        'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
         model: modelConfig.apiModel,
