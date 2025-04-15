@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Progress } from "@/components/ui/progress";
 import { productsApi, extractData, extractDataWithPagination } from "@/utils/api";
 import { ScrapedProduct, ImportConfig, ImportMapping } from "@/types/scraper";
-import { Upload, CheckCircle, RotateCw, Settings2, Save } from "lucide-react";
+import { Upload, CheckCircle, RotateCw, Settings2, Save, X } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 interface ImportSettingsProps {
