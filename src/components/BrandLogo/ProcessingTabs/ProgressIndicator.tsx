@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Progress } from "@/components/ui/progress";
+import { AlertCircle } from "lucide-react";
 
 interface ProgressIndicatorProps {
   processed: {
@@ -12,21 +13,25 @@ interface ProgressIndicatorProps {
 
 const ProgressIndicator = ({ processed }: ProgressIndicatorProps) => {
   const completedPercentage = ((processed.success + processed.failed) / processed.total) * 100;
+  const hasErrors = processed.failed > 0;
   
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <span>Processing files...</span>
+        <span className="flex items-center">
+          {hasErrors && <AlertCircle className="h-4 w-4 text-red-500 mr-1" />}
+          Processing files...
+        </span>
         <span>{processed.success + processed.failed} of {processed.total}</span>
       </div>
       <Progress 
         value={completedPercentage} 
-        className="h-2"
+        className={`h-2 ${hasErrors ? 'bg-red-100' : ''}`}
       />
       <div className="flex justify-between text-sm">
         <span className="text-green-500">{processed.success} successful</span>
         {processed.failed > 0 && (
-          <span className="text-red-500">{processed.failed} failed</span>
+          <span className="text-red-500 font-medium">{processed.failed} failed (permission error)</span>
         )}
       </div>
     </div>
