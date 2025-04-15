@@ -14,6 +14,9 @@ const WooCommerceCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log("WooCommerce callback page loaded");
+    console.log("URL params:", window.location.search);
+    
     const processCallback = async () => {
       try {
         // Get URL parameters

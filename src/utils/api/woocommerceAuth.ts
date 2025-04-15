@@ -77,6 +77,7 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
       storeUrl: cleanUrl,
       appName: 'Brand Logo Uploader',
       returnUrl: `${window.location.origin}/brand-logo-uploader?tab=config`,
+      callbackUrl: `${window.location.origin}/woocommerce-callback`, // Fixed URL path
     });
     
     // Show a loading toast
@@ -84,11 +85,10 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
       duration: 3000,
     });
     
-    // Redirect after a short delay to ensure the toast is shown
-    setTimeout(() => {
-      console.log('Redirecting to WooCommerce auth URL:', authUrl);
-      window.location.href = authUrl;
-    }, 500);
+    console.log('Redirecting to WooCommerce auth URL:', authUrl);
+    
+    // Use direct location change for better browser compatibility
+    window.location.href = authUrl;
   } catch (error) {
     console.error('OAuth initiation error:', error);
     toast.error(`Authentication error: ${error.message}`);
