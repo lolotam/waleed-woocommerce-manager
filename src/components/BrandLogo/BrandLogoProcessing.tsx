@@ -1,13 +1,13 @@
-
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { toast } from "sonner";
-import { Play, AlertOctagon, CheckCircle2, Clock, X, Info } from "lucide-react";
+import { Play, AlertOctagon, CheckCircle2, Clock, X, Info, ExternalLink } from "lucide-react";
 import { mediaApi, brandsApi, categoriesApi } from "@/utils/api";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Link } from "react-router-dom";
 
 const BrandLogoProcessing = ({
   files,
@@ -23,13 +23,11 @@ const BrandLogoProcessing = ({
   const logRef = useRef<HTMLDivElement>(null);
   
   useEffect(() => {
-    // Scroll to bottom of log when new items are added
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
     }
   }, [processLog]);
 
-  // Reset errors when files change
   useEffect(() => {
     setHasPermissionError(false);
   }, [files]);
@@ -40,11 +38,9 @@ const BrandLogoProcessing = ({
     setHasPermissionError(false);
   };
   
-  // This will be called when actual processing is implemented
   const addLogEntry = (message: string) => {
     setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
 
-    // Check for permission errors
     if (message.includes("not allowed to create posts") || 
         message.includes("permission denied")) {
       setHasPermissionError(true);
@@ -176,11 +172,36 @@ const BrandLogoProcessing = ({
 
       <Alert variant="default" className="border border-blue-200 bg-blue-50 text-blue-800">
         <Info className="h-4 w-4" />
-        <AlertTitle>WooCommerce API Permission Note</AlertTitle>
-        <AlertDescription>
-          For uploading logos, your WooCommerce API keys must have write permissions 
-          for Media and {config.targetType === 'brands' ? 'Product Tags' : 'Product Categories'}.
-          Please verify these permissions in your WooCommerce REST API settings.
+        <AlertTitle>WooCommerce API Permission Requirements</AlertTitle>
+        <AlertDescription className="space-y-2">
+          <p>
+            To upload logos successfully, your WooCommerce API keys must have 
+            <strong> write permissions </strong> for:
+          </p>
+          <ul className="list-disc list-inside">
+            <li>Media Library</li>
+            <li>{config.targetType === 'brands' ? 'Product Tags' : 'Product Categories'}</li>
+          </ul>
+          <div className="flex items-center space-x-2 mt-2">
+            <span>How to set up permissions:</span>
+            <a 
+              href="https://woocommerce.github.io/woocommerce-rest-api-docs/#authentication" 
+              target="_blank" 
+              rel="noopener noreferrer" 
+              className="inline-flex items-center text-blue-600 hover:underline"
+            >
+              WooCommerce API Documentation <ExternalLink className="ml-1 h-4 w-4" />
+            </a>
+          </div>
+          <div className="flex items-center space-x-2 mt-2">
+            <span>Recommended Authentication:</span>
+            <Link 
+              to="/brand-logo-uploader?tab=config" 
+              className="inline-flex items-center text-blue-600 hover:underline"
+            >
+              Switch to Application Password <ExternalLink className="ml-1 h-4 w-4" />
+            </Link>
+          </div>
         </AlertDescription>
       </Alert>
     </div>
