@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,7 +39,6 @@ const BrandLogoUploader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if WooCommerce is configured
   useEffect(() => {
     const wcConfig = getWooCommerceConfig();
     const isConfigValid = Boolean(
@@ -51,17 +49,14 @@ const BrandLogoUploader = () => {
     
     setIsConfigured(isConfigValid);
     
-    // Check if there's a tab parameter in the URL
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
     if (tabParam && ['config', 'upload', 'mapping', 'processing'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (!isConfigValid) {
-      // If not configured, always start at config tab
       setActiveTab('config');
     }
     
-    // Load saved configuration on component mount
     const savedConfig = localStorage.getItem('brand_logo_config');
     if (savedConfig) {
       try {
@@ -73,7 +68,6 @@ const BrandLogoUploader = () => {
     }
   }, [location.search]);
   
-  // Update URL when tab changes
   const handleTabChange = (value: string) => {
     setActiveTab(value);
     navigate(`/brand-logo-uploader?tab=${value}`, { replace: true });
@@ -81,7 +75,6 @@ const BrandLogoUploader = () => {
   
   const handleFilesAdded = (files: File[]) => {
     setUploadedFiles(prev => {
-      // Filter out any duplicates
       const existingFileNames = new Set(prev.map(f => f.name));
       const uniqueNewFiles = files.filter(file => !existingFileNames.has(file.name));
       
@@ -92,11 +85,9 @@ const BrandLogoUploader = () => {
       return [...prev, ...uniqueNewFiles];
     });
     
-    // Generate initial mappings based on filenames
     const newMappings = {...mappings};
     files.forEach(file => {
       const name = file.name.replace(/\.(png|jpg|jpeg|gif|webp)$/i, '');
-      // Don't overwrite existing mappings
       if (!newMappings[file.name]) {
         newMappings[file.name] = name;
       }
@@ -140,7 +131,6 @@ const BrandLogoUploader = () => {
     setProcessLog([]);
     setProcessedItems([]);
     
-    // Save configuration if enabled
     if (config.saveConfigurations) {
       localStorage.setItem('brand_logo_config', JSON.stringify(config));
     }
@@ -148,14 +138,12 @@ const BrandLogoUploader = () => {
     addLogEntry(`Starting to process ${uploadedFiles.length} files`);
     
     try {
-      // Process files one by one
       for (const file of uploadedFiles) {
         const targetName = mappings[file.name];
         
         try {
           addLogEntry(`Processing ${file.name} → ${targetName}`);
           
-          // Track the file as pending
           const pendingItem: ProcessedItem = {
             filename: file.name,
             targetName,
@@ -163,7 +151,6 @@ const BrandLogoUploader = () => {
           };
           setProcessedItems(prev => [...prev, pendingItem]);
           
-          // Call the API to upload and assign the logo
           const result = await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
             addToDescription: config.addToDescription,
             fuzzyMatching: config.fuzzyMatching
@@ -174,7 +161,6 @@ const BrandLogoUploader = () => {
             success: prev.success + 1
           }));
           
-          // Update item status to success
           setProcessedItems(prev => 
             prev.map(item => 
               item.filename === file.name && item.status === 'pending'
@@ -183,7 +169,6 @@ const BrandLogoUploader = () => {
             )
           );
           
-          // Display success message with fuzzy match information if applicable
           if (result.message && result.message.includes('matched from')) {
             addLogEntry(`✅ ${result.message}`);
             toast.success(result.message);
@@ -199,7 +184,6 @@ const BrandLogoUploader = () => {
             failed: prev.failed + 1
           }));
           
-          // Update item status to failed
           setProcessedItems(prev => 
             prev.map(item => 
               item.filename === file.name && item.status === 'pending'
@@ -349,7 +333,7 @@ const BrandLogoUploader = () => {
             <p>If you're seeing permission errors, check that:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Your WooCommerce user has Administrator privileges</li>
-              <li>Your Application Password has been created correctly</li>
+              <li>Your Application Username and Password have been created correctly</li>
               <li>Consumer Key and Secret have correct permissions</li>
               <li>The API is enabled in WooCommerce settings</li>
             </ul>

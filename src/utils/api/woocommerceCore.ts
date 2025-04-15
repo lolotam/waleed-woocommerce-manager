@@ -1,4 +1,3 @@
-
 /**
  * WooCommerce Core API utilities
  */
@@ -76,8 +75,8 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     url.searchParams.append('consumer_secret', config.consumerSecret);
   } else if (authMethod === 'app_password') {
     if (!config.wpUsername || !config.wpAppPassword) {
-      toast.error('WordPress login credentials not configured. Please check settings.');
-      throw new Error('WordPress login credentials not configured');
+      toast.error('Application username and password not configured. Please check settings.');
+      throw new Error('Application credentials not configured');
     }
     // Using Basic Auth with application password
     const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);

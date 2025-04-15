@@ -184,7 +184,7 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
               
               <TabsContent value="app_password" className="space-y-4 pt-4">
                 <div className="space-y-2">
-                  <Label htmlFor="wp-username">WordPress Username</Label>
+                  <Label htmlFor="wp-username">Application Username</Label>
                   <Input
                     id="wp-username"
                     placeholder="admin"
