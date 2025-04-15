@@ -164,8 +164,9 @@ const BrandLogoUploader = () => {
           setProcessedItems(prev => [...prev, pendingItem]);
           
           // Call the API to upload and assign the logo
-          await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
-            addToDescription: config.addToDescription
+          const result = await mediaApi.uploadAndAssignLogo(file, targetName, config.targetType, {
+            addToDescription: config.addToDescription,
+            fuzzyMatching: config.fuzzyMatching
           });
           
           setProcessTracking(prev => ({
@@ -182,8 +183,14 @@ const BrandLogoUploader = () => {
             )
           );
           
-          addLogEntry(`✅ Successfully processed ${file.name}`);
-          toast.success(`Processed ${file.name}`);
+          // Display success message with fuzzy match information if applicable
+          if (result.message && result.message.includes('matched from')) {
+            addLogEntry(`✅ ${result.message}`);
+            toast.success(result.message);
+          } else {
+            addLogEntry(`✅ Successfully processed ${file.name}`);
+            toast.success(`Processed ${file.name}`);
+          }
         } catch (error) {
           console.error(`Error processing ${file.name}:`, error);
           

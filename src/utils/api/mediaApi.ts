@@ -1,4 +1,3 @@
-
 /**
  * WordPress Media API
  */
@@ -6,6 +5,52 @@ import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
 import brandsApi from "./brandsApi";
 import categoriesApi from "./categoriesApi";
+
+// Simple fuzzy matching utility function
+const fuzzyMatch = (name1: string, name2: string, threshold = 0.7): boolean => {
+  // Convert to lowercase for case-insensitive matching
+  const s1 = name1.toLowerCase();
+  const s2 = name2.toLowerCase();
+  
+  // Exact match
+  if (s1 === s2) return true;
+  
+  // Check if one is a substring of the other
+  if (s1.includes(s2) || s2.includes(s1)) return true;
+  
+  // Levenshtein distance implementation for fuzzy matching
+  const m = s1.length;
+  const n = s2.length;
+  
+  // If one string is empty, the distance is the length of the other
+  if (m === 0) return n === 0;
+  if (n === 0) return false;
+  
+  // Create the distance matrix
+  const d: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
+  
+  // Initialize the first row and column
+  for (let i = 0; i <= m; i++) d[i][0] = i;
+  for (let j = 0; j <= n; j++) d[0][j] = j;
+  
+  // Fill the distance matrix
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
+      d[i][j] = Math.min(
+        d[i - 1][j] + 1,      // deletion
+        d[i][j - 1] + 1,      // insertion
+        d[i - 1][j - 1] + cost // substitution
+      );
+    }
+  }
+  
+  // Calculate similarity as 1 - (distance / max length)
+  const maxLength = Math.max(m, n);
+  const similarity = 1 - d[m][n] / maxLength;
+  
+  return similarity >= threshold;
+};
 
 export const mediaApi = {
   upload: async (file: File, metadata = {}) => {
@@ -204,7 +249,7 @@ export const mediaApi = {
     }
   },
   
-  uploadAndAssignLogo: async (file: File, targetName: string, targetType: "brands" | "categories", options = { addToDescription: false }) => {
+  uploadAndAssignLogo: async (file: File, targetName: string, targetType: "brands" | "categories", options = { addToDescription: false, fuzzyMatching: true }) => {
     try {
       console.log(`Attempting to upload logo for ${targetName} (${targetType})`);
       
@@ -221,24 +266,63 @@ export const mediaApi = {
         
         let targetId = null;
         let targetData = null;
+        let matchedName = targetName;
         
         if (targetType === 'brands') {
-          const brandsResponse = await brandsApi.getAll({per_page: '200'});
+          const brandsResponse = await brandsApi.getAll({per_page: '100'});
           if (brandsResponse && brandsResponse.data) {
-            const brand = brandsResponse.data.find(b => 
+            // First try exact match
+            let brand = brandsResponse.data.find(b => 
               b.name.toLowerCase() === targetName.toLowerCase()
             );
+            
+            // If no exact match and fuzzy matching is enabled, try fuzzy matching
+            if (!brand && options.fuzzyMatching) {
+              console.log(`No exact match found for "${targetName}", trying fuzzy matching...`);
+              
+              // Find the best fuzzy match
+              let bestMatch = null;
+              let bestSimilarity = 0;
+              
+              for (const b of brandsResponse.data) {
+                if (fuzzyMatch(b.name, targetName)) {
+                  // Found a fuzzy match
+                  brand = b;
+                  matchedName = b.name; // Store the matched brand name
+                  console.log(`Found fuzzy match: "${targetName}" → "${b.name}"`);
+                  break;
+                }
+              }
+            }
+            
             if (brand) {
               targetId = brand.id;
               targetData = brand;
             }
           }
         } else {
-          const categoriesResponse = await categoriesApi.getAll({per_page: '200'});
+          const categoriesResponse = await categoriesApi.getAll({per_page: '100'});
           if (categoriesResponse && categoriesResponse.data) {
-            const category = categoriesResponse.data.find(c => 
+            // First try exact match
+            let category = categoriesResponse.data.find(c => 
               c.name.toLowerCase() === targetName.toLowerCase()
             );
+            
+            // If no exact match and fuzzy matching is enabled, try fuzzy matching
+            if (!category && options.fuzzyMatching) {
+              console.log(`No exact match found for "${targetName}", trying fuzzy matching...`);
+              
+              for (const c of categoriesResponse.data) {
+                if (fuzzyMatch(c.name, targetName)) {
+                  // Found a fuzzy match
+                  category = c;
+                  matchedName = c.name; // Store the matched category name
+                  console.log(`Found fuzzy match: "${targetName}" → "${c.name}"`);
+                  break;
+                }
+              }
+            }
+            
             if (category) {
               targetId = category.id;
               targetData = category;
@@ -247,7 +331,11 @@ export const mediaApi = {
         }
         
         if (!targetId) {
-          throw new Error(`${targetType === 'brands' ? 'Brand' : 'Category'} "${targetName}" not found`);
+          if (options.fuzzyMatching) {
+            throw new Error(`${targetType === 'brands' ? 'Brand' : 'Category'} "${targetName}" not found, even with fuzzy matching`);
+          } else {
+            throw new Error(`${targetType === 'brands' ? 'Brand' : 'Category'} "${targetName}" not found`);
+          }
         }
         
         const updateData: any = {
@@ -258,7 +346,7 @@ export const mediaApi = {
         
         if (options.addToDescription) {
           const existingDescription = targetData?.description || '';
-          const imageHtml = `<p><img src="${uploadResult.source_url}" alt="${targetName} Logo" class="brand-logo" /></p>`;
+          const imageHtml = `<p><img src="${uploadResult.source_url}" alt="${matchedName} Logo" class="brand-logo" /></p>`;
           updateData.description = imageHtml + existingDescription;
         }
         
@@ -273,7 +361,7 @@ export const mediaApi = {
           success: true,
           mediaId: uploadResult.id,
           targetId: targetId,
-          message: `Logo successfully assigned to ${targetName}`
+          message: `Logo successfully assigned to ${matchedName}${matchedName !== targetName ? ` (matched from "${targetName}")` : ''}`
         };
       } catch (error) {
         if (error.message?.includes('permission denied') || 
