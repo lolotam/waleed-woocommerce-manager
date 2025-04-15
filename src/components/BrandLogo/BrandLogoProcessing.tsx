@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info } from "lucide-react";
+import { Info, ShieldAlert } from "lucide-react";
 
 // Import the separated components
 import ProcessingControls from "./ProcessingControls";
@@ -26,6 +26,19 @@ const BrandLogoProcessing = ({
   const [hasPermissionError, setHasPermissionError] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("log");
   
+  // Check the processed items for permission errors
+  useEffect(() => {
+    if (processed.failed > 0) {
+      // Set permission error flag to show the alert
+      setHasPermissionError(true);
+      
+      // Automatically switch to troubleshooting tab if there are permission errors
+      if (processed.failed > 0 && processed.failed === processed.total) {
+        setActiveTab("troubleshooting");
+      }
+    }
+  }, [processed.failed, processed.total]);
+  
   const clearLog = () => {
     setProcessLog([]);
     setProcessedItems([]);
@@ -35,8 +48,14 @@ const BrandLogoProcessing = ({
   const addLogEntry = (message: string) => {
     setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
 
-    if (message.includes("not allowed to create posts") || 
-        message.includes("permission denied")) {
+    // Check for common permission error messages
+    if (
+      message.includes("not allowed to create posts") || 
+      message.includes("permission denied") ||
+      message.includes("insufficient capabilities") ||
+      message.includes("rest_cannot_create") ||
+      message.includes("woocommerce_rest_cannot_create")
+    ) {
       setHasPermissionError(true);
       setActiveTab("troubleshooting");
     }
@@ -64,7 +83,7 @@ const BrandLogoProcessing = ({
           <TabsTrigger value="log" className="flex-1">Processing Log</TabsTrigger>
           <TabsTrigger value="items" className="flex-1">Processed Items</TabsTrigger>
           <TabsTrigger value="troubleshooting" className="flex-1">
-            {hasPermissionError && <Info className="h-4 w-4 mr-1 text-red-500" />}
+            {hasPermissionError && <ShieldAlert className="h-4 w-4 mr-1 text-red-500" />}
             Troubleshooting
           </TabsTrigger>
         </TabsList>

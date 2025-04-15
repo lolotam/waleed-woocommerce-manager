@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertOctagon, ExternalLink, Key, UserCircle, ShieldCheck } from "lucide-react";
+import { AlertOctagon, ExternalLink, Key, UserCircle, ShieldCheck, Info, Lock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 
@@ -14,13 +14,16 @@ const TroubleshootingGuide = () => {
         <AlertOctagon className="h-4 w-4" />
         <AlertTitle>Media Upload Permission Error</AlertTitle>
         <AlertDescription>
-          The "not allowed to create posts" error indicates that your API credentials lack the necessary 
+          The <strong>"not allowed to create posts"</strong> error indicates that your API credentials lack the necessary 
           permissions to upload files to the WordPress media library, which is required for brand logos.
         </AlertDescription>
       </Alert>
       
       <div>
-        <h5 className="font-medium mb-2">How to Fix API Permission Issues:</h5>
+        <h5 className="font-medium mb-3 flex items-center">
+          <Lock className="h-4 w-4 mr-2" />
+          How to Fix API Permission Issues:
+        </h5>
         <ol className="list-decimal list-inside space-y-4">
           <li className="p-3 border rounded-md bg-muted/30">
             <div className="flex items-start">
@@ -37,6 +40,10 @@ const TroubleshootingGuide = () => {
                   <li>Return to Configuration tab and select "WordPress Login" method</li>
                   <li>Enter your WordPress admin username and the new application password</li>
                 </ol>
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded text-xs flex items-start">
+                  <Info className="h-3 w-3 text-blue-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>The Application Password feature requires WordPress 5.6+ and allows fine-grained API access without sharing your main password.</span>
+                </div>
                 <Button 
                   variant="link" 
                   size="sm" 
@@ -54,18 +61,22 @@ const TroubleshootingGuide = () => {
               <Key className="h-5 w-5 mr-2 mt-0.5 text-blue-500" />
               <div>
                 <h6 className="font-medium">Option 2: Create New REST API Keys</h6>
-                <p className="text-sm mb-2">Based on your screenshot, create REST API keys with proper permissions:</p>
+                <p className="text-sm mb-2">Create REST API keys with proper permissions:</p>
                 <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
                   <li>Log in to WordPress as an administrator</li>
                   <li>Go to WooCommerce → Settings → Advanced → REST API</li>
-                  <li>Click "Add Key" button (as shown in your screenshot)</li>
+                  <li>Click "Add Key" button</li>
                   <li>Set Description to "Brand Logo Uploader"</li>
-                  <li>Set User to an administrator account (like "ioiofam" in your screenshot)</li>
-                  <li>Set Permission to <strong>Read/Write</strong> (crucial for media uploads)</li>
+                  <li>Set User to an administrator account</li>
+                  <li>Set Permission to <strong className="text-red-500">Read/Write</strong> (crucial for media uploads)</li>
                   <li>Click "Generate API Key"</li>
                   <li>Copy both the Consumer Key and Consumer Secret</li>
                   <li>Return to Configuration tab and use "API Keys" authentication method</li>
                 </ol>
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs flex items-start">
+                  <AlertCircle className="h-3 w-3 text-amber-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>The permission level <strong>MUST</strong> be set to "Read/Write" for media uploads to work correctly.</span>
+                </div>
               </div>
             </div>
           </li>
@@ -77,11 +88,11 @@ const TroubleshootingGuide = () => {
                 <h6 className="font-medium">Option 3: Check User Role and Permissions</h6>
                 <p className="text-sm mb-2">Verify the user associated with your API keys has proper permissions:</p>
                 <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
-                  <li>In your screenshot, the user "ioiofam" has Read/Write permissions</li>
-                  <li>Ensure this user has the Administrator role in WordPress</li>
                   <li>Go to Users → All Users and check the user's role</li>
+                  <li>Ensure this user has the Administrator role in WordPress</li>
                   <li>If not an Administrator, change the role or use a different user</li>
                   <li>Consider creating a new dedicated admin user just for API connections</li>
+                  <li>Check if any security plugins are blocking API requests</li>
                 </ol>
               </div>
             </div>
