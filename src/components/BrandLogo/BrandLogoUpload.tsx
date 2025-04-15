@@ -1,5 +1,5 @@
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -67,6 +67,29 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
       folderInputRef.current.click();
     }
   };
+
+  // If folder upload fails in some browsers, try this fallback method
+  const checkFolderUploadSupport = () => {
+    if (folderInputRef.current) {
+      try {
+        // If the browser doesn't support webkitdirectory, this will throw an error
+        // @ts-ignore - TypeScript will complain but we need to check this property
+        const supported = 'webkitdirectory' in folderInputRef.current;
+        if (!supported) {
+          toast.error("Your browser doesn't support folder upload. Please use Chrome, Edge, or Firefox.");
+        }
+      } catch (error) {
+        console.error("Error checking folder upload support:", error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Check if folder upload is supported when component mounts
+    if (allowFolderUpload) {
+      checkFolderUploadSupport();
+    }
+  }, [allowFolderUpload]);
   
   return (
     <div className="space-y-6">
@@ -121,7 +144,7 @@ const BrandLogoUpload = ({ files, onFilesAdded, onRemoveFile, allowFolderUpload 
             className="hidden"
           />
           <p className="text-xs text-muted-foreground mt-2">
-            Select an entire folder containing logo images
+            Select an entire folder containing logo images (Chrome, Edge, Firefox recommended)
           </p>
         </div>
       )}

@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { BrandLogoMappingProps } from "@/types/brandLogo";
-import { Search, CheckCircle2, AlertCircle } from "lucide-react";
+import { Search, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
 import { categoriesApi, brandsApi } from "@/utils/api";
 import { toast } from "sonner";
 
@@ -20,10 +20,15 @@ const BrandLogoMapping = ({
   const [searchTerm, setSearchTerm] = useState('');
   
   useEffect(() => {
-    loadOptions();
-  }, [targetType]);
+    if (files.length > 0) {
+      loadOptions();
+    }
+  }, [targetType, files]);
   
+  // Load brands/categories from API
   const loadOptions = async () => {
+    if (loading) return;
+    
     setLoading(true);
     try {
       let data;
@@ -34,39 +39,101 @@ const BrandLogoMapping = ({
       }
       
       if (data) {
-        setAvailableOptions(Array.isArray(data.data) ? data.data : []);
+        const options = Array.isArray(data.data) ? data.data : [];
+        setAvailableOptions(options);
         
         // Check if mappings match available names
-        const newMatchStatus: Record<string, boolean> = {};
-        for (const filename in mappings) {
-          const targetName = mappings[filename];
-          const match = (Array.isArray(data.data) ? data.data : []).some(
-            option => option.name.toLowerCase() === targetName.toLowerCase()
-          );
-          newMatchStatus[filename] = match;
-        }
-        setMatchStatus(newMatchStatus);
+        updateMatchStatus(options);
+        
+        toast.success(`Loaded ${options.length} ${targetType}`);
       }
     } catch (error) {
       console.error(`Error loading ${targetType}:`, error);
-      toast.error(`Failed to load ${targetType}`);
+      toast.error(`Failed to load ${targetType}. ${error.message || ''}`);
     } finally {
       setLoading(false);
     }
   };
   
+  // Update match status based on available options
+  const updateMatchStatus = (options: {id: number, name: string}[]) => {
+    const newMatchStatus: Record<string, boolean> = {};
+    
+    for (const filename in mappings) {
+      const targetName = mappings[filename];
+      if (targetName) {
+        // Case-insensitive matching
+        const match = options.some(
+          option => option.name.toLowerCase() === targetName.toLowerCase()
+        );
+        newMatchStatus[filename] = match;
+      } else {
+        newMatchStatus[filename] = false;
+      }
+    }
+    
+    setMatchStatus(newMatchStatus);
+  };
+  
+  // Check if a specific mapping matches an available option
+  const checkMapping = (filename: string, targetName: string) => {
+    const match = availableOptions.some(
+      option => option.name.toLowerCase() === targetName.toLowerCase()
+    );
+    
+    setMatchStatus(prev => ({
+      ...prev,
+      [filename]: match
+    }));
+    
+    return match;
+  };
+  
+  // Filter options based on search term
   const filteredOptions = searchTerm
     ? availableOptions.filter(option => 
         option.name.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : availableOptions;
   
+  // Handle selection of an option for a file
   const handleSelect = (filename: string, brandId: number, brandName: string) => {
     onUpdateMapping(filename, brandName);
     setMatchStatus(prev => ({
       ...prev,
       [filename]: true
     }));
+  };
+  
+  // Handle updating the mapping manually through input
+  const handleManualMapping = (filename: string, value: string) => {
+    onUpdateMapping(filename, value);
+    
+    if (value) {
+      checkMapping(filename, value);
+    } else {
+      setMatchStatus(prev => ({
+        ...prev,
+        [filename]: false
+      }));
+    }
+  };
+  
+  // Auto-generate mappings based on filenames
+  const autoGenerateMappings = () => {
+    files.forEach(file => {
+      // Extract name from filename (remove extension)
+      const nameWithoutExtension = file.name.replace(/\.(png|jpg|jpeg|gif)$/i, '');
+      // Format name (replace underscores/hyphens with spaces, capitalize words)
+      const formattedName = nameWithoutExtension
+        .replace(/[_-]/g, ' ')
+        .replace(/\b\w/g, c => c.toUpperCase());
+      
+      onUpdateMapping(file.name, formattedName);
+      checkMapping(file.name, formattedName);
+    });
+    
+    toast.success("Generated mappings from filenames");
   };
   
   return (
@@ -86,7 +153,19 @@ const BrandLogoMapping = ({
           onClick={loadOptions}
           disabled={loading}
         >
-          Refresh
+          {loading ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <RefreshCw className="h-4 w-4" />
+          )}
+          <span className="ml-2">Refresh</span>
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={autoGenerateMappings}
+          disabled={files.length === 0}
+        >
+          Auto-Match
         </Button>
       </div>
       
@@ -96,7 +175,7 @@ const BrandLogoMapping = ({
           
           <div className="space-y-4">
             {files.map((file) => (
-              <div key={file.name} className="space-y-2">
+              <div key={file.name} className="space-y-2 border rounded-md p-3">
                 <div className="flex items-center gap-2">
                   <div className="w-10 h-10 rounded-md overflow-hidden bg-muted">
                     <img 
@@ -127,21 +206,21 @@ const BrandLogoMapping = ({
                   <div className="flex-1">
                     <Input
                       value={mappings[file.name] || ''}
-                      onChange={(e) => onUpdateMapping(file.name, e.target.value)}
+                      onChange={(e) => handleManualMapping(file.name, e.target.value)}
                       placeholder="Target name"
                     />
                   </div>
                   <Button 
                     variant="outline" 
                     size="sm"
-                    onClick={() => loadOptions()}
+                    onClick={() => checkMapping(file.name, mappings[file.name] || '')}
                     className="whitespace-nowrap"
                   >
                     Check Match
                   </Button>
                 </div>
                 
-                {searchTerm || mappings[file.name] ? (
+                {(searchTerm || mappings[file.name]) && (
                   <div className="border rounded-md p-2 max-h-40 overflow-y-auto">
                     {filteredOptions.length > 0 ? (
                       <div className="grid gap-1">
@@ -163,7 +242,7 @@ const BrandLogoMapping = ({
                       </p>
                     )}
                   </div>
-                ) : null}
+                )}
               </div>
             ))}
           </div>
