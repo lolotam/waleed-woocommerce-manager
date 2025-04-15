@@ -4,6 +4,8 @@
  */
 import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
+import brandsApi from "./brandsApi";
+import categoriesApi from "./categoriesApi";
 
 export const mediaApi = {
   upload: async (file: File, metadata = {}) => {
