@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { BrandLogoMappingProps } from "@/types/brandLogo";
-import { Search, CheckCircle2, AlertCircle, RefreshCw } from "lucide-react";
+import { Search, CheckCircle2, AlertCircle, RefreshCw, Download } from "lucide-react";
 import { categoriesApi, brandsApi } from "@/utils/api";
 import { toast } from "sonner";
 
@@ -15,6 +14,7 @@ const BrandLogoMapping = ({
   targetType 
 }: BrandLogoMappingProps) => {
   const [loading, setLoading] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [availableOptions, setAvailableOptions] = useState<{id: number, name: string}[]>([]);
   const [matchStatus, setMatchStatus] = useState<Record<string, boolean>>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -76,6 +76,71 @@ const BrandLogoMapping = ({
       toast.error(`Failed to load ${targetType}. ${error.message || ''}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Load all items - recursively fetch all pages
+  const loadAllOptions = async () => {
+    if (loadingAll) return;
+    
+    setLoadingAll(true);
+    try {
+      let allOptions: {id: number, name: string}[] = [];
+      let currentPage = 1;
+      let hasMorePages = true;
+      let totalItems = 0;
+      
+      // First reset the state
+      setAvailableOptions([]);
+      setLoadedCount(0);
+      
+      toast.info(`Starting to load all ${targetType}...`);
+      
+      while (hasMorePages) {
+        const params = {
+          per_page: '100', // Maximum allowed per page
+          page: currentPage.toString(),
+        };
+        
+        let data;
+        
+        if (targetType === 'brands') {
+          data = await brandsApi.getAll(params);
+        } else {
+          data = await categoriesApi.getAll(params);
+        }
+        
+        const options = Array.isArray(data.data) ? data.data : [];
+        if (options.length === 0) {
+          hasMorePages = false;
+        } else {
+          allOptions = [...allOptions, ...options];
+          currentPage++;
+          totalItems = data.totalItems || 0;
+          
+          // Update state after each page to show progress
+          setAvailableOptions(allOptions);
+          setLoadedCount(allOptions.length);
+          setTotalCount(totalItems);
+          setPage(currentPage);
+          
+          toast.success(`Loaded ${allOptions.length} of ${totalItems} ${targetType}`);
+        }
+      }
+      
+      // Final update with all options
+      setAvailableOptions(allOptions);
+      setLoadedCount(allOptions.length);
+      
+      // Check if mappings match available names
+      updateMatchStatus(allOptions);
+      
+      toast.success(`Successfully loaded all ${allOptions.length} ${targetType}`);
+    } catch (error) {
+      console.error(`Error loading all ${targetType}:`, error);
+      toast.error(`Failed to load all ${targetType}. ${error.message || ''}`);
+    } finally {
+      setLoadingAll(false);
     }
   };
   
@@ -206,7 +271,7 @@ const BrandLogoMapping = ({
         <Button 
           variant="outline" 
           onClick={() => loadOptions(1, true)}
-          disabled={loading}
+          disabled={loading || loadingAll}
         >
           {loading ? (
             <RefreshCw className="h-4 w-4 animate-spin" />
@@ -214,6 +279,18 @@ const BrandLogoMapping = ({
             <RefreshCw className="h-4 w-4" />
           )}
           <span className="ml-2">Refresh</span>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={loadAllOptions}
+          disabled={loading || loadingAll}
+        >
+          {loadingAll ? (
+            <RefreshCw className="h-4 w-4 animate-spin" />
+          ) : (
+            <Download className="h-4 w-4" />
+          )}
+          <span className="ml-2">Load All {targetType}</span>
         </Button>
         <Button
           variant="secondary"
@@ -224,7 +301,7 @@ const BrandLogoMapping = ({
         </Button>
       </div>
       
-      {loadedCount > 0 && loadedCount < totalCount && (
+      {loadedCount > 0 && loadedCount < totalCount && !loadingAll && (
         <div className="text-center">
           <p className="text-sm text-muted-foreground mb-2">
             Loaded {loadedCount} of {totalCount} {targetType}
