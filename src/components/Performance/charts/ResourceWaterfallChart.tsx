@@ -118,6 +118,9 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
     );
   };
 
+  // Fix for the FillProps type error - using a function to determine color
+  const getBarFill = (data: any) => getResourceTypeColor(data.initiatorType);
+
   return (
     <div className="h-full flex flex-col">
       <ResponsiveContainer width="100%" height={chartConfig.customHeight}>
@@ -156,7 +159,8 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
             dataKey="duration" 
             stackId="a" 
             name="Download Time" 
-            fill={(data) => getResourceTypeColor(data.initiatorType)}
+            fill="#4f46e5"
+            fillOpacity={(data) => data.initiatorType === 'script' ? 0.8 : 0.5}
           />
         </BarChart>
       </ResponsiveContainer>
