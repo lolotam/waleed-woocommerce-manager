@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { ChartContainer } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -65,6 +66,7 @@ const ResourceWaterfallChart = () => {
     item.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  // Pre-process the data to include color information
   const coloredData = filteredData.map(item => ({
     ...item,
     color: getResourceTypeColor(item.type)
@@ -141,10 +143,21 @@ const ResourceWaterfallChart = () => {
               dataKey="duration"
               background={{ fill: '#eee' }}
               radius={[0, 4, 4, 0]}
-              fill="#8884d8"
               fillOpacity={0.8}
               stroke="none"
-              fill={(entry) => entry.color}
+              fill="#8884d8"
+              // Use fillOpacity attribute to make fill work with colors from data
+              getBar={(props) => {
+                const { fill, x, y, width, height, background, radius, index, ...others } = props;
+                const item = coloredData[index];
+                return (
+                  <path
+                    {...others}
+                    fill={item.color}
+                    d={`M${x},${y + height}h${width}a${radius[0]},${radius[0]},0,0,1,${radius[0]},${-radius[0]}v${height - radius[0] - radius[1]}a${radius[1]},${radius[1]},0,0,1,${radius[1]},${-radius[1]}h${-width}Z`}
+                  />
+                );
+              }}
             />
           </BarChart>
         </ChartContainer>
