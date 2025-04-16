@@ -26,6 +26,11 @@ export const deleteProduct = async (id: number) => {
   return woocommerceApi(`products/${id}`, 'DELETE');
 };
 
+// Function to get product tags
+export const getTags = async (params?: any) => {
+  return woocommerceApi('products/tags', 'GET', null, params);
+};
+
 // Update product SEO data
 export const updateProductSeo = async (id: number | string, seoData: any) => {
   interface ProductData {
@@ -134,27 +139,12 @@ export const extractData = (response: any) => {
 export const extractDataWithPagination = (response: any) => {
   return {
     data: response.data,
-    totalItems: response.totalItems,
+    totalItems: response.totalPages,
     totalPages: response.totalPages
   };
 };
 
-// Re-export functions that other files might need
-export { 
-  getProducts as getAll,
-  getProduct,
-  updateProduct as update,
-  createProduct as create,
-  deleteProduct as delete,
-  getTags
-};
-
-// Function to get product tags
-export const getTags = async (params?: any) => {
-  return woocommerceApi('products/tags', 'GET', null, params);
-};
-
-// Export products API functions as default export
+// Create aliases for functions to match expected API in other files
 const productsApi = {
   getProducts,
   getProduct,
