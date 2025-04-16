@@ -46,7 +46,10 @@ const BrandLogoProcessing = ({
   };
   
   const addLogEntry = (message: string) => {
-    setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    const timestamp = new Date().toLocaleTimeString();
+    console.log(`[LOG ${timestamp}] ${message}`);
+    
+    setProcessLog(prev => [...prev, `[${timestamp}] ${message}`]);
 
     // Enhanced permission error detection
     if (
@@ -55,7 +58,11 @@ const BrandLogoProcessing = ({
       message.includes("insufficient capabilities") ||
       message.includes("rest_cannot_create") ||
       message.includes("woocommerce_rest_cannot_create") ||
-      message.includes("you don't have permission")
+      message.includes("you don't have permission") || 
+      message.includes("Permission Error") ||
+      message.includes("Authentication Failed") ||
+      message.includes("401") ||
+      message.includes("403")
     ) {
       console.log("Permission error detected in log:", message);
       setHasPermissionError(true);
@@ -69,7 +76,14 @@ const BrandLogoProcessing = ({
         isProcessing={isProcessing}
         hasFiles={files.length > 0}
         hasLogs={processLog.length > 0}
-        onStartProcessing={onStartProcessing}
+        onStartProcessing={() => {
+          addLogEntry("Starting processing...");
+          addLogEntry(`Authentication method: ${config.authMethod}`);
+          addLogEntry(`Store URL: ${config.url}`);
+          addLogEntry(`Using target: ${config.targetType}`);
+          addLogEntry(`Files to process: ${files.length}`);
+          onStartProcessing();
+        }}
         onClearLog={clearLog}
       />
 

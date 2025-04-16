@@ -1,3 +1,4 @@
+
 /**
  * WordPress Media API
  */
@@ -100,38 +101,88 @@ export const mediaApi = {
       console.log(`Attempting to upload file ${file.name} to ${url.toString()}`);
       console.log('Authentication method:', authMethod);
       
-      // Log auth details (without sensitive info)
+      // Enhanced logging for debugging
       if (authMethod === 'app_password') {
         console.log('Using username:', config.wpUsername);
+        console.log('App password first 4 chars:', config.wpAppPassword ? config.wpAppPassword.substring(0, 4) : 'none');
         console.log('App password length:', config.wpAppPassword ? config.wpAppPassword.length : 0);
+      } else {
+        console.log('Using consumer key/secret authentication');
+        console.log('Consumer key first 4 chars:', config.consumerKey ? config.consumerKey.substring(0, 4) : 'none');
       }
       
+      // Add more headers for debugging
+      headers['X-Debug-Info'] = 'Brand-Logo-Uploader-App';
+      
+      // Attempt the upload
       const response = await fetch(url.toString(), {
         method: 'POST',
         headers,
         body: formData,
       });
 
+      // Log the full response for debugging
+      console.log('Upload response status:', response.status);
+      console.log('Upload response headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Media upload error response:', errorData);
+        const errorText = await response.text();
+        let errorData = {};
+        
+        try {
+          errorData = JSON.parse(errorText);
+          console.error('Media upload error response:', errorData);
+        } catch (e) {
+          console.error('Media upload error response (raw):', errorText);
+          errorData = { message: errorText };
+        }
         
         // Enhanced error handling with more detailed messaging
         if (errorData.code === 'rest_cannot_create' || 
             errorData.message?.includes('not allowed to create posts')) {
-          const errorMessage = 'Permission denied: Your WordPress user lacks media upload permissions.';
+          
+          console.error('Permission error details:', errorData);
+          
+          // More specific error message based on response
+          let errorMessage = 'Permission denied: Your WordPress user lacks media upload permissions.';
+          
+          // Check for specific WordPress error codes
+          if (errorData.code === 'rest_cannot_create') {
+            errorMessage += ' (Error: rest_cannot_create)';
+          } else if (errorData.code === 'rest_forbidden') {
+            errorMessage += ' (Error: rest_forbidden)';
+          }
           
           // Improved detailed toast message with specific information about the error
           toast.error('WordPress Media Permission Error', {
-            description: 'Your credentials don\'t have permission to create posts in WordPress media library.',
-            duration: 8000
+            description: 'Your credentials don\'t have permission to create posts in WordPress media library. Error code: ' + 
+                        (errorData.code || 'unknown'),
+            duration: 10000
           });
           
           throw new Error(errorMessage);
         }
         
+        // Check for authentication errors
+        if (response.status === 401) {
+          toast.error('WordPress Authentication Failed', {
+            description: 'Your username or application password is incorrect.',
+            duration: 8000
+          });
+          throw new Error('Authentication failed. Check your username and password.');
+        }
+        
+        // Check for other common errors
+        if (response.status === 404) {
+          toast.error('WordPress REST API Endpoint Not Found', {
+            description: 'The media upload endpoint could not be found. Your WordPress might not have REST API enabled.',
+            duration: 8000
+          });
+          throw new Error('WordPress REST API endpoint not found. Check if REST API is enabled.');
+        }
+        
         // Improved general error details
-        throw new Error(errorData.message || 'Media upload error');
+        throw new Error(errorData.message || `Media upload error (HTTP ${response.status})`);
       }
 
       return await response.json();
@@ -145,7 +196,7 @@ export const mediaApi = {
           error.message?.includes('insufficient capabilities')) {
         toast.error('WordPress Permission Error', {
           description: 'Check the troubleshooting guide for step-by-step instructions to fix this.',
-          duration: 8000,
+          duration: 10000,
           action: {
             label: 'View Guide',
             onClick: () => {
@@ -153,6 +204,11 @@ export const mediaApi = {
               window.location.href = '/brand-logo-uploader?tab=troubleshooting';
             }
           }
+        });
+      } else if (error.message?.includes('fetch failed') || error.message?.includes('Network Error')) {
+        toast.error('Network Error', {
+          description: 'Could not connect to your WordPress site. Check your site URL and network connection.',
+          duration: 8000
         });
       } else {
         toast.error(`Media upload error: ${error.message || 'Unknown error'}`);

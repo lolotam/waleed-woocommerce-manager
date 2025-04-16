@@ -11,7 +11,10 @@ import {
   Lock, 
   AlertCircle,
   CheckCircle2,
-  Settings
+  Settings,
+  Globe,
+  FileJson,
+  Database
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -108,6 +111,67 @@ const TroubleshootingGuide = () => {
                 <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs flex items-start">
                   <AlertCircle className="h-3 w-3 text-amber-500 mr-1 mt-0.5 flex-shrink-0" />
                   <span>Some WordPress security plugins may block REST API access. Check for plugins like Wordfence, iThemes Security, or others that might need configuration to allow API access.</span>
+                </div>
+              </div>
+            </div>
+          </li>
+          
+          <li className="p-3 border rounded-md bg-muted/30">
+            <div className="flex items-start">
+              <Globe className="h-5 w-5 mr-2 mt-0.5 text-blue-500" />
+              <div>
+                <h6 className="font-medium">Option 4: Check WordPress REST API Configuration</h6>
+                <p className="text-sm mb-2">Ensure that the WordPress REST API is properly enabled:</p>
+                <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
+                  <li>Verify that your WordPress is running version 5.0 or higher</li>
+                  <li>Check if the REST API is enabled in WordPress settings</li>
+                  <li>Try accessing <code>{'{your-site-url}'}/wp-json/</code> in your browser - it should return JSON data</li>
+                  <li>Check your site's permalink settings (Settings → Permalinks) - they should not be set to "Plain"</li>
+                  <li>Make sure your web server properly handles OPTIONS requests (for CORS preflight)</li>
+                </ol>
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded text-xs flex items-start">
+                  <Info className="h-3 w-3 text-blue-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>The WordPress REST API is required for media uploads. If it's disabled by a security plugin or server configuration, you'll need to enable it.</span>
+                </div>
+              </div>
+            </div>
+          </li>
+          
+          <li className="p-3 border rounded-md bg-muted/30">
+            <div className="flex items-start">
+              <FileJson className="h-5 w-5 mr-2 mt-0.5 text-blue-500" />
+              <div>
+                <h6 className="font-medium">Option 5: Test with WordPress REST API Directly</h6>
+                <p className="text-sm mb-2">Test if your credentials work with the WordPress REST API:</p>
+                <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
+                  <li>Try accessing <code>{'{your-site-url}'}/wp-json/wp/v2/media</code> with your credentials</li>
+                  <li>Use a tool like Postman to test the API endpoints with your credentials</li>
+                  <li>Try a simple GET request first to see if authentication works</li>
+                  <li>Then try a POST request to the media endpoint to test upload permissions</li>
+                </ol>
+                <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-950 rounded text-xs flex items-start">
+                  <Info className="h-3 w-3 text-blue-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>Testing with an API client like Postman can help isolate whether the issue is with your credentials or with the app itself.</span>
+                </div>
+              </div>
+            </div>
+          </li>
+          
+          <li className="p-3 border rounded-md bg-muted/30">
+            <div className="flex items-start">
+              <Database className="h-5 w-5 mr-2 mt-0.5 text-blue-500" />
+              <div>
+                <h6 className="font-medium">Option 6: Check WordPress Database Permissions</h6>
+                <p className="text-sm mb-2">Verify that WordPress can write to the database and file system:</p>
+                <ol className="list-decimal list-inside ml-4 text-sm space-y-1 text-muted-foreground">
+                  <li>Check if you can upload media through the WordPress dashboard</li>
+                  <li>Verify that your uploads directory is writable</li>
+                  <li>Try creating a post manually to see if that works</li>
+                  <li>Check your WordPress error logs for any database permission issues</li>
+                </ol>
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs flex items-start">
+                  <AlertCircle className="h-3 w-3 text-amber-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>If you can't upload media through the WordPress dashboard either, it might be a file system permission issue rather than an API permission issue.</span>
                 </div>
               </div>
             </div>
