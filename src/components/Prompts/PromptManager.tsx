@@ -7,10 +7,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash, Pencil, Plus, Copy, Check } from "lucide-react";
+import { Trash, Pencil, Plus, Copy, Check, Info } from "lucide-react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIModel } from "@/utils/ai/types";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const PROMPT_CATEGORIES = [
   { id: 'product_long_description', name: 'Product Long Description', group: 'product' },
@@ -69,6 +70,27 @@ const AI_ROLES = [
   { id: 'analytical', name: 'Analytical' },
 ];
 
+const PLACEHOLDER_EXAMPLES = {
+  product_name: "Luxury Perfume Set",
+  brand_name: "Chanel",
+  category_name: "Fragrances",
+  keyword: "luxury perfume gift set",
+  product_type: "gift set",
+  id: "123456",
+  title: "Chanel No. 5 Eau de Parfum",
+  url: "https://example.com/product/chanel-no-5",
+  competitor_websites: [
+    "https://www.fragrantica.com",
+    "https://klinq.com",
+    "https://www.brandatt.com"
+  ],
+  hyperlinks: [
+    "https://example.com/category/new-arrival/",
+    "https://example.com/category/best-sellers/",
+    "https://example.com/brand/chanel/"
+  ]
+};
+
 const DEFAULT_PROMPTS = {
   product_long_description: "Write a detailed product description for {product_name}. Include key features, benefits, and specifications. Make it engaging and SEO-friendly with a focus on the keyword {keyword}.",
   product_short_description: "Create a concise product description (max 50 words) for {product_name} that highlights the key selling points.",
@@ -95,6 +117,7 @@ const PromptManager = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<string>("product");
+  const [previewWithPlaceholders, setPreviewWithPlaceholders] = useState(false);
 
   useEffect(() => {
     const savedPrompts = localStorage.getItem('saved_prompts');
@@ -184,6 +207,31 @@ const PromptManager = () => {
     setTimeout(() => {
       setCopiedId(null);
     }, 2000);
+  };
+
+  const getPreviewWithExamples = (promptText: string): string => {
+    if (!previewWithPlaceholders) return promptText;
+    
+    let result = promptText;
+    
+    Object.entries(PLACEHOLDER_EXAMPLES).forEach(([key, value]) => {
+      if (typeof value === 'string') {
+        const regex = new RegExp(`{{${key}}}`, 'g');
+        result = result.replace(regex, value);
+      }
+    });
+    
+    if (result.includes('{{competitor_websites}}')) {
+      result = result.replace('{{competitor_websites}}', 
+        PLACEHOLDER_EXAMPLES.competitor_websites.map(w => `- ${w}`).join('\n'));
+    }
+    
+    if (result.includes('{{hyperlinks}}')) {
+      result = result.replace('{{hyperlinks}}', 
+        PLACEHOLDER_EXAMPLES.hyperlinks.map(link => `  - ${link}`).join('\n'));
+    }
+    
+    return result;
   };
 
   const filteredPrompts = prompts.filter(prompt => {
@@ -505,18 +553,139 @@ const PromptManager = () => {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="prompt">Prompt Text</Label>
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="prompt">Prompt Text</Label>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewWithPlaceholders(!previewWithPlaceholders)}
+                        className="text-xs flex items-center text-muted-foreground hover:text-foreground"
+                      >
+                        {previewWithPlaceholders ? "Hide examples" : "Show placeholder examples"}
+                      </button>
+                    </div>
+                  </div>
                   <Textarea 
                     id="prompt" 
-                    value={selectedPrompt.prompt} 
+                    value={previewWithPlaceholders ? getPreviewWithExamples(selectedPrompt.prompt) : selectedPrompt.prompt} 
                     onChange={(e) => setSelectedPrompt({...selectedPrompt, prompt: e.target.value})}
                     placeholder="Enter prompt text"
                     rows={8}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    Use placeholders like {"{product_name}"}, {"{brand_name}"}, {"{category_name}"}, 
-                    {"{keyword}"}, {"{product_type}"} to make your prompts dynamic.
-                  </p>
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <p>Available placeholders:</p>
+                    <div className="flex flex-wrap gap-2">
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{product_name}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Product name/title</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{id}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Product ID</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{title}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Product title</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{url}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Product URL</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{brand_name}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Brand name</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{category_name}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Category name</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{keyword}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Focus keyword</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{product_type}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Product type</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{competitor_websites}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>List of competitor websites to research</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="inline-block bg-muted px-2 py-1 rounded-md text-xs">{'{{hyperlinks}}'}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>List of hyperlinks to include in content</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </div>
                 </div>
               </div>
               
