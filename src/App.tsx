@@ -61,8 +61,11 @@ const App = () => {
               {/* License Activation Route (public) */}
               <Route path="/license" element={<LicenseActivation />} />
               
-              {/* License Generator Route (admin only) */}
-              <Route path="/license-generator" element={<LicenseGenerator />} />
+              {/* License Generator Route (admin only - restrict access) */}
+              <Route 
+                path="/license-generator" 
+                element={isLicensed ? <LicenseGenerator /> : <Navigate to="/license" replace />} 
+              />
 
               {/* Protected Routes */}
               {isLicensed ? (
@@ -89,7 +92,7 @@ const App = () => {
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
 
-              {/* WooCommerce Callback Route */}
+              {/* WooCommerce Callback Route - should be accessible without license for OAuth flow */}
               <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
             </Routes>
           </div>

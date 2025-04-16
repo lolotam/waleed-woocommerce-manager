@@ -2,159 +2,202 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Download, Key, RefreshCw, Clock, Shield } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { toast } from "sonner";
+import { KeyRound, Copy, Download, Check, Lock } from "lucide-react";
 import { generateLicenseKeys } from "@/utils/licenseKeyGenerator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+import { isLicenseValid } from "@/utils/licenseManager";
 
 const LicenseGenerator = () => {
+  const navigate = useNavigate();
   const [licenseType, setLicenseType] = useState<'one_time' | 'time_limited' | 'permanent'>('one_time');
-  const [quantity, setQuantity] = useState<number>(10);
-  const [expiryDays, setExpiryDays] = useState<number>(1);
+  const [quantity, setQuantity] = useState(1);
+  const [expiryDays, setExpiryDays] = useState(30);
   const [generatedKeys, setGeneratedKeys] = useState<string[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // The expected admin password - in a real app, this would be stored securely
+  const ADMIN_PASSWORD = "admin123"; // This is just for demo purposes
+  
+  // Check if user is licensed
+  useState(() => {
+    const checkLicense = async () => {
+      const valid = await isLicenseValid();
+      if (!valid) {
+        // If not licensed, redirect to license activation
+        navigate('/license');
+      }
+    };
+    
+    checkLicense();
+  });
+  
+  const authenticateAdmin = () => {
+    if (adminPassword === ADMIN_PASSWORD) {
+      setIsAuthenticated(true);
+      toast.success("Administrator authenticated");
+    } else {
+      toast.error("Invalid administrator password");
+    }
+  };
 
   const handleGenerate = async () => {
     setIsGenerating(true);
+    
     try {
       const keys = await generateLicenseKeys(licenseType, quantity, expiryDays);
       setGeneratedKeys(keys);
-      toast.success(`Generated ${keys.length} ${licenseType.replace('_', ' ')} license keys`);
+      toast.success(`${quantity} license key${quantity > 1 ? 's' : ''} generated successfully`);
     } catch (error) {
-      console.error('Error generating keys:', error);
-      toast.error('Failed to generate license keys');
+      toast.error(`Error generating keys: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleExport = () => {
-    if (generatedKeys.length === 0) {
-      toast.error("No license keys to export");
-      return;
-    }
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        toast.success('License key copied to clipboard');
+      })
+      .catch(() => {
+        toast.error('Failed to copy to clipboard');
+      });
+  };
 
-    // Create CSV content
-    const csvContent = generatedKeys.join('\n');
-    
-    // Create blob and download
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+  const copyAllToClipboard = () => {
+    const allKeys = generatedKeys.join('\n');
+    navigator.clipboard.writeText(allKeys)
+      .then(() => {
+        toast.success('All license keys copied to clipboard');
+      })
+      .catch(() => {
+        toast.error('Failed to copy to clipboard');
+      });
+  };
+
+  const downloadAsCSV = () => {
+    const allKeys = generatedKeys.join('\n');
+    const blob = new Blob([allKeys], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.setAttribute('href', url);
-    a.setAttribute('download', `${licenseType}_licenses.csv`);
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    
-    toast.success("Licenses exported successfully");
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `license_keys_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success('License keys downloaded as CSV');
   };
 
-  const getLicenseIcon = () => {
-    switch (licenseType) {
-      case 'one_time':
-        return <Key className="h-6 w-6 text-blue-600 dark:text-blue-300" />;
-      case 'time_limited':
-        return <Clock className="h-6 w-6 text-orange-600 dark:text-orange-300" />;
-      case 'permanent':
-        return <Shield className="h-6 w-6 text-green-600 dark:text-green-300" />;
-      default:
-        return <Key className="h-6 w-6 text-blue-600 dark:text-blue-300" />;
-    }
-  };
-
-  const handleBulkGenerate = async () => {
-    setIsGenerating(true);
-    let allKeys: string[] = [];
-    
-    try {
-      // Generate 100 one-time licenses
-      const oneTimeKeys = await generateLicenseKeys('one_time', 100, 0);
-      
-      // Generate 1000 time-limited licenses (1 day)
-      const timeLimitedKeys = await generateLicenseKeys('time_limited', 1000, 1);
-      
-      // Generate 100 permanent licenses
-      const permanentKeys = await generateLicenseKeys('permanent', 100, 0);
-      
-      allKeys = [...oneTimeKeys, ...timeLimitedKeys, ...permanentKeys];
-      setGeneratedKeys(allKeys);
-      
-      toast.success(`Generated all requested license keys (${allKeys.length} total)`);
-    } catch (error) {
-      console.error('Error generating bulk keys:', error);
-      toast.error('Failed to generate bulk license keys');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
-      <div className="w-full max-w-4xl">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">License Key Generator</h1>
-          <p className="text-muted-foreground mt-2">Generate license keys for Waleed Smart WooCommerce</p>
-        </div>
-        
-        <div className="grid md:grid-cols-2 gap-6">
-          <Card>
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+        <div className="w-full max-w-md">
+          <Card className="shadow-lg">
             <CardHeader>
-              <div className="mx-auto bg-blue-100 dark:bg-blue-900 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-2">
-                {getLicenseIcon()}
+              <div className="mx-auto bg-amber-100 dark:bg-amber-900 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-2">
+                <Lock className="h-6 w-6 text-amber-600 dark:text-amber-300" />
               </div>
-              <CardTitle className="text-center">Generate License Keys</CardTitle>
-              <CardDescription className="text-center">
-                Create license keys for your application
+              <CardTitle className="text-center text-xl md:text-2xl">Administrator Authentication</CardTitle>
+              <CardDescription className="text-center text-sm md:text-base">
+                Enter the administrator password to access the license generator
               </CardDescription>
             </CardHeader>
-            
             <CardContent>
               <div className="space-y-4">
                 <div className="space-y-2">
+                  <Label htmlFor="admin-password">Administrator Password</Label>
+                  <Input 
+                    id="admin-password"
+                    type="password"
+                    placeholder="Enter administrator password"
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    className="text-base md:text-base"
+                  />
+                </div>
+                <Button 
+                  className="w-full text-base" 
+                  onClick={authenticateAdmin}
+                  size="lg"
+                >
+                  Authenticate
+                </Button>
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-center">
+              <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+                Return to Dashboard
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="w-full max-w-3xl">
+        <Card className="shadow-lg">
+          <CardHeader>
+            <div className="mx-auto bg-green-100 dark:bg-green-900 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-2">
+              <KeyRound className="h-6 w-6 text-green-600 dark:text-green-300" />
+            </div>
+            <CardTitle className="text-center text-xl md:text-2xl">License Key Generator</CardTitle>
+            <CardDescription className="text-center text-sm md:text-base">
+              Generate license keys to activate the application
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <div className="space-y-2">
                   <Label htmlFor="license-type">License Type</Label>
-                  <Select
-                    value={licenseType}
+                  <Select 
+                    value={licenseType} 
                     onValueChange={(value) => setLicenseType(value as 'one_time' | 'time_limited' | 'permanent')}
                   >
                     <SelectTrigger id="license-type">
-                      <SelectValue placeholder="Select License Type" />
+                      <SelectValue placeholder="Select license type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="one_time">One-Time Use</SelectItem>
-                      <SelectItem value="time_limited">Time-Limited</SelectItem>
-                      <SelectItem value="permanent">Permanent</SelectItem>
+                      <SelectItem value="one_time">One-Time License</SelectItem>
+                      <SelectItem value="time_limited">Time-Limited License</SelectItem>
+                      <SelectItem value="permanent">Permanent License</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input
-                    id="quantity"
-                    type="number"
-                    min="1"
-                    max="1000"
-                    value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || 10)}
+                  <Label htmlFor="quantity">Quantity ({quantity})</Label>
+                  <Slider 
+                    id="quantity" 
+                    min={1} 
+                    max={100} 
+                    step={1} 
+                    value={[quantity]} 
+                    onValueChange={(value) => setQuantity(value[0])}
                   />
                 </div>
                 
                 {licenseType === 'time_limited' && (
                   <div className="space-y-2">
-                    <Label htmlFor="expiry-days">Expiry (Days)</Label>
-                    <Input
-                      id="expiry-days"
-                      type="number"
-                      min="1"
-                      max="365"
-                      value={expiryDays}
-                      onChange={(e) => setExpiryDays(parseInt(e.target.value) || 1)}
+                    <Label htmlFor="expiry-days">Expiry Period ({expiryDays} days)</Label>
+                    <Slider 
+                      id="expiry-days" 
+                      min={1} 
+                      max={365} 
+                      step={1} 
+                      value={[expiryDays]} 
+                      onValueChange={(value) => setExpiryDays(value[0])}
                     />
                   </div>
                 )}
@@ -164,93 +207,76 @@ const LicenseGenerator = () => {
                   onClick={handleGenerate}
                   disabled={isGenerating}
                 >
-                  {isGenerating ? (
-                    <>
-                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    'Generate Keys'
-                  )}
+                  {isGenerating ? 'Generating...' : `Generate ${quantity} Key${quantity > 1 ? 's' : ''}`}
                 </Button>
-                
-                <div className="border-t pt-4 mt-4">
-                  <Button 
-                    onClick={handleBulkGenerate} 
-                    className="w-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600"
-                    disabled={isGenerating}
-                  >
-                    Generate All Requested Keys (1200 total)
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    This will generate 100 one-time, 1000 time-limited (1 day), and 100 permanent licenses
-                  </p>
-                </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Generated License Keys</CardTitle>
-              <CardDescription>
-                {generatedKeys.length ? `${generatedKeys.length} keys generated` : 'No keys generated yet'}
-              </CardDescription>
-            </CardHeader>
-            
-            <CardContent className="p-0">
-              <div className="max-h-80 overflow-y-auto border rounded-md">
-                {generatedKeys.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">#</TableHead>
-                        <TableHead>License Key</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {generatedKeys.slice(0, 50).map((key, index) => (
-                        <TableRow key={index}>
-                          <TableCell className="font-mono">{index + 1}</TableCell>
-                          <TableCell className="font-mono text-xs">{key}</TableCell>
-                        </TableRow>
+              
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <Label htmlFor="generated-keys">Generated Keys</Label>
+                    {generatedKeys.length > 0 && (
+                      <div className="space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={copyAllToClipboard}
+                          title="Copy all keys"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={downloadAsCSV}
+                          title="Download as CSV"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                  <Textarea 
+                    id="generated-keys" 
+                    readOnly 
+                    value={generatedKeys.join('\n')}
+                    placeholder="Generated license keys will appear here"
+                    className="h-48 font-mono text-sm"
+                  />
+                </div>
+                
+                {generatedKeys.length > 0 && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Individual Keys:</p>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {generatedKeys.map((key, index) => (
+                        <div 
+                          key={index}
+                          className="flex items-center justify-between p-2 border rounded bg-gray-50 dark:bg-gray-800"
+                        >
+                          <code className="text-xs truncate">{key}</code>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => copyToClipboard(key)}
+                            title="Copy key"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                       ))}
-                      {generatedKeys.length > 50 && (
-                        <TableRow>
-                          <TableCell colSpan={2} className="text-center text-muted-foreground">
-                            And {generatedKeys.length - 50} more keys...
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="flex items-center justify-center h-32 text-muted-foreground">
-                    Generate keys to see them here
+                    </div>
                   </div>
                 )}
               </div>
-            </CardContent>
-            
-            <CardFooter className="flex justify-end pt-6">
-              <Button 
-                variant="outline" 
-                onClick={handleExport}
-                disabled={generatedKeys.length === 0}
-                className="gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Export to CSV
-              </Button>
-            </CardFooter>
-          </Card>
-        </div>
-        
-        <div className="text-center mt-6">
-          <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} Waleed Mohamed. All rights reserved.
-          </p>
-        </div>
+            </div>
+          </CardContent>
+          <CardFooter className="flex justify-center">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
+              Return to Dashboard
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ interface LicenseInfo {
   activated: boolean;
   activationDate: string;
   expiryDate?: string; // For time-limited licenses
+  activationAttempts?: number; // Track failed activation attempts
 }
 
 // Mock function to get hardware ID (in a real app, this would use native APIs)
@@ -56,9 +57,16 @@ const decodeLicenseType = (key: string): { valid: boolean; type: 'one_time' | 't
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30);
     return { valid: true, type: 'time_limited', expiryDate: expiryDate.toISOString() };
-  } else {
-    // Treat as one-time license if no specific prefix
+  } else if (key.startsWith('ONCE')) {
+    // Treat as one-time license
     return { valid: true, type: 'one_time' };
+  } else {
+    // For testing purposes, accept keys starting with TEST-
+    if (key.startsWith('TEST-')) {
+      return { valid: true, type: 'permanent' };
+    }
+    // Invalid license key format
+    return { valid: false, type: 'one_time' };
   }
 };
 
@@ -150,8 +158,15 @@ export const isLicenseValid = async (): Promise<boolean> => {
   }
 };
 
+// Clear existing license (for testing purposes)
+export const clearLicense = (): void => {
+  localStorage.removeItem('license_info');
+  toast.info('License has been removed');
+};
+
 export default {
   activateLicense,
   getLicenseInfo,
-  isLicenseValid
+  isLicenseValid,
+  clearLicense
 };

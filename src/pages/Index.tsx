@@ -1,12 +1,31 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { isLicenseValid } from '@/utils/licenseManager';
 import { toast } from 'sonner';
 
 const Index = () => {
-  // Check if we're returning from OAuth flow
+  const [isLicensed, setIsLicensed] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if the user has a valid license
   useEffect(() => {
+    const checkLicense = async () => {
+      const valid = await isLicenseValid();
+      setIsLicensed(valid);
+      setIsLoading(false);
+      
+      if (!valid) {
+        toast.warning('Valid license required to access the application', {
+          description: 'Please enter your license key to continue',
+          duration: 5000
+        });
+      }
+    };
+    
+    checkLicense();
+    
+    // Check if we're returning from OAuth flow
     const authInProgress = localStorage.getItem('wc_auth_in_progress');
     if (authInProgress) {
       // Parse the auth data
@@ -40,10 +59,18 @@ const Index = () => {
         localStorage.removeItem('wc_auth_in_progress');
       }
     }
-    
-    isLicenseValid();
   }, []);
 
+  if (isLoading) {
+    return null; // Show nothing while loading
+  }
+
+  // If not licensed, redirect to license page
+  if (!isLicensed) {
+    return <Navigate to="/license" replace />;
+  }
+
+  // If licensed, redirect to dashboard
   return <Navigate to="/brand-logo-uploader" replace />;
 };
 
