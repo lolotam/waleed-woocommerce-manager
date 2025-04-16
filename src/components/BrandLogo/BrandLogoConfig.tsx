@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,10 +10,11 @@ import { toast } from "sonner";
 import { BrandLogoConfigProps } from "@/types/brandLogo";
 import { testConnection } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
-import { initiateWooCommerceOAuth, checkOAuthTimeout } from "@/utils/api/woocommerceAuth";
-import { Save, RefreshCw, CheckCircle, Key, Lock, User, ExternalLink } from "lucide-react";
+import { initiateWooCommerceOAuth, checkOAuthTimeout, detectCommonOAuthIssues } from "@/utils/api/woocommerceAuth";
+import { Save, RefreshCw, CheckCircle, Key, Lock, User, ExternalLink, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useLocation } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [woocommerceUrl, setWoocommerceUrl] = useState('');
@@ -23,6 +25,7 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
   const [isTesting, setIsTesting] = useState(false);
   const [authMethod, setAuthMethod] = useState<'consumer_keys' | 'app_password' | 'oauth'>('app_password');
   const [oauthConnecting, setOauthConnecting] = useState(false);
+  const [oauthIssues, setOauthIssues] = useState<string[]>([]);
   const location = useLocation();
 
   useEffect(() => {
@@ -41,6 +44,21 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
       // Check if OAuth timed out
       if (checkOAuthTimeout()) {
         toast.error('WooCommerce authentication timed out. Please try again.');
+      }
+      
+      // Check for auth_in_progress
+      const authInProgress = localStorage.getItem('wc_auth_in_progress');
+      if (authInProgress) {
+        toast.info('Authentication in progress', {
+          description: 'Complete the authorization in the popup window',
+          duration: 8000
+        });
+      }
+      
+      // Detect potential OAuth issues with environment
+      const issues = detectCommonOAuthIssues();
+      if (issues.length > 0) {
+        setOauthIssues(issues);
       }
     }
     
@@ -107,6 +125,9 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
       toast.success("Connection successful!");
     } catch (error) {
       console.error("Connection test failed:", error);
+      toast.error("Connection test failed", {
+        description: error.message || "Could not connect to your WooCommerce store"
+      });
     } finally {
       setIsTesting(false);
     }
@@ -155,6 +176,20 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     <div className="space-y-6">
       <div className="space-y-4">
         <h3 className="text-lg font-medium">WooCommerce Connection</h3>
+        
+        {oauthIssues.length > 0 && (
+          <Alert variant="warning" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Potential Authentication Issues Detected</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-5 text-sm mt-1">
+                {oauthIssues.map((issue, index) => (
+                  <li key={index}>{issue}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="grid gap-4">
           <div className="space-y-2">
@@ -300,6 +335,15 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
                             <ExternalLink className="ml-1 h-3 w-3" />
                           </a>
                         </li>
+                      </ul>
+                    </div>
+                    <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-900 rounded-md text-xs">
+                      <p className="font-semibold">Access Denied Issues:</p>
+                      <ul className="list-disc pl-5 mt-1 space-y-1 text-muted-foreground">
+                        <li>If you see "Sorry, you cannot list resources" or "Access Denied" errors, your store may have API restrictions enabled</li>
+                        <li>Check WooCommerce → Settings → Advanced → REST API → Enable the API</li>
+                        <li>Also check WooCommerce → Settings → Advanced → Legacy API → Check "Enable Legacy REST API"</li>
+                        <li>Some security plugins may be blocking the authentication process</li>
                       </ul>
                     </div>
                   </div>

@@ -121,13 +121,29 @@ export const initiateWooCommerceOAuth = (storeUrl: string) => {
     });
     
     // Force redirect to the authorization URL in a new tab
-    const newWindow = window.open(authUrl, '_blank');
+    const newWindow = window.open(authUrl, '_blank', 'noopener,noreferrer');
     
     // Check if popup was blocked
     if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
       toast.error('Popup blocked', {
-        description: 'Please allow popups for this site and try again',
-        duration: 5000
+        description: 'Please allow popups for this site and try again. You may need to click "Allow" in your browser.',
+        duration: 8000
+      });
+      
+      // Add fallback option with direct link
+      toast('Alternative method available', {
+        description: 'You can also click the authorization link directly',
+        action: {
+          label: 'Open Auth URL',
+          onClick: () => window.open(authUrl, '_blank')
+        },
+        duration: 10000
+      });
+    } else {
+      // Add instructions toast for better UX
+      toast.info('Complete authentication in new tab', {
+        description: 'Login to your WordPress admin if prompted, then click "Approve"',
+        duration: 8000
       });
     }
   } catch (error) {
@@ -144,8 +160,26 @@ export const saveOAuthCredentials = (credentials: {
   key_permissions: string;
 }) => {
   try {
+    // Validate credentials
+    if (!credentials.consumer_key || !credentials.consumer_secret) {
+      console.error('Invalid OAuth credentials received:', credentials);
+      toast.error('Invalid OAuth credentials received', {
+        description: 'The API keys received from WooCommerce are not valid'
+      });
+      return false;
+    }
+    
+    const storeUrl = localStorage.getItem('wc_temp_store_url') || '';
+    if (!storeUrl) {
+      console.error('No store URL found in local storage');
+      toast.error('Authentication error', {
+        description: 'Store URL not found. Please try the authentication process again.'
+      });
+      return false;
+    }
+    
     const config = {
-      url: localStorage.getItem('wc_temp_store_url') || '',
+      url: storeUrl,
       consumerKey: credentials.consumer_key,
       consumerSecret: credentials.consumer_secret,
       authMethod: 'consumer_keys'
@@ -155,7 +189,9 @@ export const saveOAuthCredentials = (credentials: {
     localStorage.removeItem('wc_temp_store_url');
     localStorage.removeItem('wc_auth_in_progress');
     
-    toast.success('WooCommerce authentication successful!');
+    toast.success('WooCommerce authentication successful!', {
+      description: 'Your store has been connected successfully'
+    });
     return true;
   } catch (error) {
     console.error('Error saving OAuth credentials:', error);
@@ -184,4 +220,42 @@ export const checkOAuthTimeout = () => {
     }
   }
   return false;
+};
+
+// Add a new function to detect common authentication problems
+export const detectCommonOAuthIssues = () => {
+  // Check if the browser might be blocking third-party cookies
+  const checkThirdPartyCookies = () => {
+    try {
+      // This is a naive check - real detection is complex
+      const hasLocalStorage = !!window.localStorage;
+      const hasSessionStorage = !!window.sessionStorage;
+      
+      if (!hasLocalStorage || !hasSessionStorage) {
+        return true; // Potential cookie/storage issues
+      }
+    } catch (e) {
+      return true; // Access to storage is restricted
+    }
+    return false;
+  };
+  
+  const issues = [];
+  
+  // Check for HTTPS - OAuth usually requires secure connections
+  if (window.location.protocol !== 'https:') {
+    issues.push('Your app is not running on HTTPS, which may cause OAuth issues with some stores');
+  }
+  
+  // Check for potential cookie blocking
+  if (checkThirdPartyCookies()) {
+    issues.push('Your browser may be blocking third-party cookies, which can prevent authentication');
+  }
+  
+  // Check if we're in an iframe
+  if (window !== window.top) {
+    issues.push('The app is running in an iframe, which may affect authentication due to browser security policies');
+  }
+  
+  return issues;
 };
