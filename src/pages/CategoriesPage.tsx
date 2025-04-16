@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi, extractData } from '@/utils/api';
@@ -25,6 +24,7 @@ const CategoriesPage = () => {
   });
   
   const categories: Category[] = Array.isArray(categoriesResponse) ? categoriesResponse : [];
+  const totalCategories = categories.length;
 
   const handleCloseForm = () => {
     setIsAddingCategory(false);
@@ -45,7 +45,12 @@ const CategoriesPage = () => {
     <div className="container p-6 mx-auto">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Categories Manager</h1>
+          <h1 className="text-3xl font-bold">
+            Categories Manager 
+            <span className="ml-2 text-sm font-normal text-muted-foreground bg-muted px-2 py-1 rounded-md">
+              {isLoading ? 'Loading...' : `${totalCategories} categories`}
+            </span>
+          </h1>
           <p className="text-muted-foreground mt-1">Manage your WooCommerce product categories</p>
         </div>
         <div className="flex gap-2">

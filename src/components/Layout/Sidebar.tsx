@@ -1,7 +1,9 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { cn } from "@/lib/utils";
+import { useQuery } from '@tanstack/react-query';
+import { brandsApi, categoriesApi, extractData } from '@/utils/api';
 import { 
   LayoutDashboard, 
   Package, 
@@ -21,6 +23,29 @@ import {
 
 const Sidebar = () => {
   const [expanded, setExpanded] = useState(true);
+  
+  // Fetch categories count
+  const { data: categoriesData } = useQuery({
+    queryKey: ['categories-count'],
+    queryFn: async () => {
+      const response = await categoriesApi.getAll({ per_page: "1" });
+      return response.headers?.['x-wp-total'] ? parseInt(response.headers['x-wp-total']) : 0;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Fetch brands count
+  const { data: brandsData } = useQuery({
+    queryKey: ['brands-count'],
+    queryFn: async () => {
+      const response = await brandsApi.getAll({ per_page: "1" });
+      return response.headers?.['x-wp-total'] ? parseInt(response.headers['x-wp-total']) : 0;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const categoriesCount = categoriesData || 0;
+  const brandsCount = brandsData || 0;
 
   const navItems = [
     { 
@@ -38,13 +63,13 @@ const Sidebar = () => {
     },
     { 
       icon: Tag, 
-      label: 'Categories', 
+      label: `Categories ${categoriesCount ? `(${categoriesCount})` : ''}`, 
       path: '/categories',
       subItems: [
         { label: 'Logo Uploader', path: '/brand-logo-uploader' }
       ]
     },
-    { icon: Tags, label: 'Brands', path: '/brands' },
+    { icon: Tags, label: `Brands ${brandsCount ? `(${brandsCount})` : ''}`, path: '/brands' },
     { icon: FileSpreadsheet, label: 'Import/Export', path: '/import-export' },
     { icon: MessageSquare, label: 'Prompts', path: '/prompts' },
     { 
