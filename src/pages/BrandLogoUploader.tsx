@@ -9,6 +9,7 @@ import { AlertCircle, Settings } from "lucide-react";
 import BrandLogoUpload from "@/components/BrandLogo/BrandLogoUpload";
 import BrandLogoMapping from "@/components/BrandLogo/BrandLogoMapping";
 import BrandLogoProcessing from "@/components/BrandLogo/BrandLogoProcessing";
+import BrandLogoConfig from "@/components/BrandLogo/BrandLogoConfig";
 import { BrandLogoConfigType, ProcessedItem } from "@/types/brandLogo";
 import { mediaApi } from "@/utils/api";
 import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
