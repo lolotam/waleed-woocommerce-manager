@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,22 +22,19 @@ const LicenseGenerator = () => {
   const [adminPassword, setAdminPassword] = useState('');
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
-  // The expected admin password - in a real app, this would be stored securely
-  const ADMIN_PASSWORD = "admin123"; // This is just for demo purposes
+  const ADMIN_PASSWORD = "@Ww55683677wW@";
   
-  // Check if user is licensed
   useState(() => {
     const checkLicense = async () => {
       const valid = await isLicenseValid();
       if (!valid) {
-        // If not licensed, redirect to license activation
         navigate('/license');
       }
     };
     
     checkLicense();
   });
-  
+
   const authenticateAdmin = () => {
     if (adminPassword === ADMIN_PASSWORD) {
       setIsAuthenticated(true);
