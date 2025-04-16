@@ -204,7 +204,7 @@ const BrandLogoUploader = () => {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Brand Logo Uploader</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Logo Uploader</h1>
         <p className="text-muted-foreground">
           Upload logo images and assign them to matching brands or categories
         </p>

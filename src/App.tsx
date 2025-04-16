@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,15 +64,15 @@ const App = () => {
                 <Route path="/brands" element={<BrandsManager />} />
                 <Route path="/categories" element={<CategoriesPage />} />
                 <Route path="/products" element={<ProductsPage />} />
+                <Route path="/bulk-product-seo" element={<BulkProductSeoPage />} />
+                <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
                 <Route path="/settings" element={<Settings />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/import-export" element={<ImportExportPage />} />
                 <Route path="/prompts" element={<PromptsPage />} />
                 <Route path="/logs" element={<LogsPage />} />
                 <Route path="/scraper" element={<ScraperImporterPage />} />
-                <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
                 <Route path="/web-performance" element={<WebPerformancePage />} />
-                <Route path="/bulk-product-seo" element={<BulkProductSeoPage />} />
               </Route>
             ) : (
               <Route path="*" element={<Navigate to="/license" replace />} />

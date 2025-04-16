@@ -22,14 +22,30 @@ const Sidebar = () => {
   const [expanded, setExpanded] = useState(true);
 
   const navItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
-    { icon: Package, label: 'Products', path: '/products' },
-    { icon: Tag, label: 'Categories', path: '/categories' },
+    { 
+      icon: LayoutDashboard, 
+      label: 'Dashboard', 
+      path: '/' 
+    },
+    { 
+      icon: Package, 
+      label: 'Products', 
+      path: '/products',
+      subItems: [
+        { label: 'Bulk Product SEO', path: '/bulk-product-seo' }
+      ]
+    },
+    { 
+      icon: Tag, 
+      label: 'Categories', 
+      path: '/categories',
+      subItems: [
+        { label: 'Logo Uploader', path: '/brand-logo-uploader' }
+      ]
+    },
     { icon: Tags, label: 'Brands', path: '/brands' },
     { icon: FileSpreadsheet, label: 'Import/Export', path: '/import-export' },
-    { icon: Upload, label: 'Brand Logo Uploader', path: '/brand-logo-uploader' },
     { icon: MessageSquare, label: 'Prompts', path: '/prompts' },
-    { icon: FileText, label: 'Bulk Product SEO', path: '/bulk-product-seo' },
     { icon: Bot, label: 'Web Scraper', path: '/scraper' },
     { icon: BarChart, label: 'Web Performance', path: '/web-performance' },
     { icon: FileText, label: 'Logs', path: '/logs' },
@@ -45,22 +61,44 @@ const Sidebar = () => {
       <div className="flex flex-col p-4 flex-grow overflow-y-auto">
         <nav className="space-y-1">
           {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => cn(
-                "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
-                expanded ? "justify-start" : "justify-center",
-                isActive 
-                  ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" 
-                  : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+            <div key={item.path} className="flex flex-col">
+              <NavLink
+                to={item.path}
+                className={({ isActive }) => cn(
+                  "flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors",
+                  expanded ? "justify-start" : "justify-center",
+                  isActive && !item.subItems 
+                    ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" 
+                    : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                )}
+                end={!!item.subItems}
+              >
+                <item.icon className={cn("flex-shrink-0", 
+                  expanded ? "mr-3 h-5 w-5" : "h-6 w-6"
+                )} />
+                {expanded && <span>{item.label}</span>}
+              </NavLink>
+              
+              {/* Render sub-items if they exist and the sidebar is expanded */}
+              {expanded && item.subItems && (
+                <div className="ml-9 mt-1 space-y-1">
+                  {item.subItems.map((subItem) => (
+                    <NavLink
+                      key={subItem.path}
+                      to={subItem.path}
+                      className={({ isActive }) => cn(
+                        "flex items-center px-3 py-2 text-xs font-medium rounded-md transition-colors",
+                        isActive 
+                          ? "bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400" 
+                          : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
+                      )}
+                    >
+                      <span>{subItem.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
               )}
-            >
-              <item.icon className={cn("flex-shrink-0", 
-                expanded ? "mr-3 h-5 w-5" : "h-6 w-6"
-              )} />
-              {expanded && <span>{item.label}</span>}
-            </NavLink>
+            </div>
           ))}
         </nav>
       </div>
