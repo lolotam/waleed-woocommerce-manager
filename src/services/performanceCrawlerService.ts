@@ -1,27 +1,24 @@
 
 import { CrawlerResult, PerformanceTestConfig } from "@/types/performance";
 
+// Cache for domains to prevent repeated calculations
+const domainCache = new Map<string, string[]>();
+
 // This would normally call an actual backend API
 // For now we'll simulate the crawler with mock data
 export async function runPerformanceTest(config: PerformanceTestConfig): Promise<CrawlerResult> {
   console.log("Running performance test with config:", config);
   
-  // Validate URL format
-  try {
-    // Make sure URL is properly formatted
-    const urlObj = new URL(config.url);
-    // Use the normalized URL
-    config.url = urlObj.toString();
-  } catch (err) {
-    console.error("Invalid URL format:", config.url);
-    throw new Error("Invalid URL: Please enter a valid website address");
+  // URL is already validated in usePerformanceTest, but double-check here
+  if (!config.url.startsWith('http')) {
+    throw new Error("Invalid URL: URL must start with http:// or https://");
   }
   
   // Mock implementation - would be replaced with actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(generateMockCrawlerResult(config));
-    }, 3000); // Simulate network delay
+    }, 1500); // Reduced delay for better responsiveness
   });
 }
 
@@ -31,8 +28,11 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
   const requests: any[] = [];
   const responses: any[] = [];
   
+  // Generate a smaller number of mock requests for better performance
+  const requestCount = 20; // Reduced from 30
+  
   // Generate mock request/response data
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < requestCount; i++) {
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
     let url;
     
@@ -50,8 +50,8 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
       url = `https://example.com/${resourceType}/${i}${getFileExtension(resourceType)}`;
     }
     
-    const size = Math.floor(Math.random() * 500000) + 1000; // 1KB to 500KB
-    const time = i === 0 ? 0 : Math.floor(Math.random() * 1000) + 200; // 200ms to 1200ms
+    const size = Math.floor(Math.random() * 300000) + 1000; // 1KB to 300KB (reduced)
+    const time = i === 0 ? 0 : Math.floor(Math.random() * 500) + 200; // 200ms to 700ms (reduced)
     
     requests.push({
       url,
@@ -62,10 +62,10 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
     
     responses.push({
       url,
-      status: Math.random() > 0.9 ? 404 : 200, // Occasionally add 404s
+      status: Math.random() > 0.95 ? 404 : 200, // Occasionally add 404s
       contentType: getContentType(resourceType),
       size,
-      time: time + Math.floor(Math.random() * 300) // Response time is request time + processing time
+      time: time + Math.floor(Math.random() * 200) // Response time is request time + processing time (reduced)
     });
   }
   
@@ -81,11 +81,11 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
     deviceType: config.device,
     timestamp: new Date().toISOString(),
     metrics: {
-      loadTime: Math.floor(2000 * performanceMultiplier),
+      loadTime: Math.floor(1500 * performanceMultiplier), // Reduced time
       resourceCount: requests.length,
       totalSize: responses.reduce((sum, res) => sum + res.size, 0),
-      ttfb: Math.floor(200 * performanceMultiplier),
-      domComplete: Math.floor(1500 * performanceMultiplier)
+      ttfb: Math.floor(150 * performanceMultiplier), // Reduced time
+      domComplete: Math.floor(1200 * performanceMultiplier) // Reduced time
     },
     lighthouse: {
       performance: Math.min(100, Math.floor(100 / performanceMultiplier)),
@@ -101,13 +101,22 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
 // Helper functions for mock data generation
 function getRandomDomain(baseUrl: string): string {
   let hostname = "example.com";
+  
   try {
     hostname = new URL(baseUrl).hostname;
   } catch (e) {
     // Default hostname if URL is invalid
     console.warn("Invalid URL when getting domain, using default");
+    return "https://example.com";
   }
   
+  // Check if we have cached domains for this hostname
+  if (domainCache.has(hostname)) {
+    const domains = domainCache.get(hostname)!;
+    return domains[Math.floor(Math.random() * domains.length)];
+  }
+  
+  // Create and cache domains for this hostname
   const domains = [
     baseUrl,
     `https://cdn.${hostname}`,
@@ -117,6 +126,8 @@ function getRandomDomain(baseUrl: string): string {
     "https://ajax.googleapis.com",
     "https://www.google-analytics.com"
   ];
+  
+  domainCache.set(hostname, domains);
   return domains[Math.floor(Math.random() * domains.length)];
 }
 
@@ -148,11 +159,11 @@ function getContentType(resourceType: string): string {
 
 function getPerformanceMultiplier(connection: string): number {
   switch (connection) {
-    case "fast": return 0.8;
-    case "average": return 1;
-    case "slow": return 1.5;
-    case "3g": return 2;
-    case "4g": return 1.2;
-    default: return 1;
+    case "fast": return 0.7; // made slightly faster
+    case "average": return 0.9; // made slightly faster
+    case "slow": return 1.3; // made slightly faster
+    case "3g": return 1.8; // made slightly faster
+    case "4g": return 1.0; // made slightly faster
+    default: return 0.9; // made slightly faster
   }
 }

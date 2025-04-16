@@ -17,37 +17,40 @@ export function usePerformanceTest() {
   const [crawlerResult, setCrawlerResult] = useState<CrawlerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Helper function to normalize URL
+  const normalizeUrl = (url: string): string | null => {
+    if (!url || url.trim() === '') return null;
+    
+    let normalizedUrl = url.trim();
+    
+    // Add protocol if missing
+    if (!normalizedUrl.startsWith('http://') && !normalizedUrl.startsWith('https://')) {
+      normalizedUrl = 'https://' + normalizedUrl;
+    }
+    
+    // Validate URL format
+    try {
+      return new URL(normalizedUrl).toString();
+    } catch (err) {
+      return null;
+    }
+  };
+
   const runTest = async (config: PerformanceTestConfig) => {
     setIsLoading(true);
     setError(null);
     
-    // Basic URL validation
-    if (!config.url || config.url.trim() === '') {
+    // Normalize and validate URL
+    const normalizedUrl = normalizeUrl(config.url);
+    if (!normalizedUrl) {
       toast.error("Please enter a valid URL");
-      setIsLoading(false);
-      return null;
-    }
-    
-    // Try to fix common URL issues
-    try {
-      let urlToTest = config.url.trim();
-      
-      // Ensure URL has a protocol
-      if (!urlToTest.startsWith('http://') && !urlToTest.startsWith('https://')) {
-        urlToTest = 'https://' + urlToTest;
-      }
-      
-      // Validate URL format
-      new URL(urlToTest);
-      
-      // Update the config with the fixed URL
-      config.url = urlToTest;
-    } catch (err) {
-      toast.error("Invalid URL format. Please enter a valid website address.");
       setIsLoading(false);
       setError("Invalid URL format");
       return null;
     }
+    
+    // Update config with normalized URL
+    config.url = normalizedUrl;
     
     try {
       // Call the crawler service

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,8 @@ const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
   const { runTest, isLoading, testResult } = usePerformanceTest();
 
-  const handleRunTest = async (formData: any) => {
+  // Use useCallback to prevent recreating function on each render
+  const handleRunTest = useCallback(async (formData: any) => {
     if (!formData.url) {
       toast.error("Please enter a URL to test");
       return;
@@ -25,12 +26,13 @@ const WebPerformancePage = () => {
       // Explicitly switch to the results tab after successful test
       setActiveTab("results");
     }
-  };
+  }, [runTest]);
 
-  const handleTestAgain = () => {
+  const handleTestAgain = useCallback(() => {
     setActiveTab("test");
-  };
+  }, []);
 
+  // Generate history data only if we have a test result
   const historyData = testResult 
     ? [
         {
