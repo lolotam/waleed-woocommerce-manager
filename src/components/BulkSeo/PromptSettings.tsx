@@ -140,7 +140,7 @@ const PromptSettings = ({
           className="min-h-[300px] font-mono text-sm"
         />
         <p className="text-sm text-muted-foreground">
-          Use placeholders like {'{{'}}id{{'}}'}}, {'{{'}}title{{'}}'}}, and {'{{'}}url{{'}}'}} which will be replaced with actual product data.
+          Use placeholders like &#123;&#123;id&#125;&#125;, &#123;&#123;title&#125;&#125;, and &#123;&#123;url&#125;&#125; which will be replaced with actual product data.
         </p>
       </div>
       
