@@ -25,6 +25,12 @@ const PROMPT_CATEGORIES = [
   { id: 'product_image_caption', name: 'Product Image Caption' },
   { id: 'product_image_description', name: 'Product Image Description' },
   { id: 'product_fragrance_description', name: 'Product Fragrance Description' },
+  { id: 'product_features', name: 'Product Features' },
+  { id: 'product_benefits', name: 'Product Benefits' },
+  { id: 'product_usage_instructions', name: 'Product Usage Instructions' },
+  { id: 'product_ingredients', name: 'Product Ingredients' },
+  { id: 'product_specifications', name: 'Product Specifications' },
+  { id: 'product_faq', name: 'Product FAQ' },
   
   // Brand categories
   { id: 'brand_description', name: 'Brand Description' },
@@ -33,6 +39,16 @@ const PROMPT_CATEGORIES = [
   { id: 'brand_story', name: 'Brand Story' },
   { id: 'brand_values', name: 'Brand Values' },
   { id: 'brand_unique_selling_points', name: 'Brand Unique Selling Points' },
+  { id: 'brand_mission', name: 'Brand Mission Statement' },
+  { id: 'brand_vision', name: 'Brand Vision Statement' },
+  { id: 'brand_history', name: 'Brand History' },
+  { id: 'brand_tagline', name: 'Brand Tagline' },
+  { id: 'brand_founder_story', name: 'Brand Founder Story' },
+  { id: 'brand_certifications', name: 'Brand Certifications' },
+  { id: 'brand_partnerships', name: 'Brand Partnerships' },
+  { id: 'brand_social_impact', name: 'Brand Social Impact' },
+  { id: 'brand_sustainability', name: 'Brand Sustainability Practices' },
+  { id: 'brand_faq', name: 'Brand FAQ' },
   
   // Category categories
   { id: 'category_description', name: 'Category Description' },
@@ -40,6 +56,15 @@ const PROMPT_CATEGORIES = [
   { id: 'category_seo_description', name: 'Category SEO Description' },
   { id: 'category_buying_guide', name: 'Category Buying Guide' },
   { id: 'category_faq', name: 'Category FAQ' },
+  { id: 'category_best_sellers', name: 'Category Best Sellers Introduction' },
+  { id: 'category_trends', name: 'Category Trends Overview' },
+  { id: 'category_comparison', name: 'Category Product Comparison' },
+  { id: 'category_benefits', name: 'Category Benefits' },
+  { id: 'category_history', name: 'Category History/Background' },
+  { id: 'category_usage_tips', name: 'Category Usage Tips' },
+  { id: 'category_care_instructions', name: 'Category Care Instructions' },
+  { id: 'category_seasonal_guide', name: 'Category Seasonal Guide' },
+  { id: 'category_expert_advice', name: 'Category Expert Advice' },
 ];
 
 // Example default prompts
