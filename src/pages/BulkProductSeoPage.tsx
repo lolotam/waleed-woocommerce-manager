@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ExcelUploader from "@/components/BulkSeo/ExcelUploader";
 import PromptSettings from "@/components/BulkSeo/PromptSettings";
 import ProductProcessing from "@/components/BulkSeo/ProductProcessing";
 import CompletionProgress from "@/components/BulkSeo/CompletionProgress";
+import { getAiConfig } from "@/utils/ai/config";
 
 const BulkProductSeoPage = () => {
   const [activeTab, setActiveTab] = useState("upload");
@@ -16,6 +17,27 @@ const BulkProductSeoPage = () => {
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState<any[]>([]);
   const [failed, setFailed] = useState<any[]>([]);
+
+  // Load configs from settings
+  useEffect(() => {
+    const config = getAiConfig();
+    // Set default provider based on which API key is available
+    if (config.openaiApiKey) {
+      setSelectedProvider("openai");
+      setSelectedModel(config.defaultModel);
+    } else if (config.claudeApiKey) {
+      setSelectedProvider("anthropic");
+      setSelectedModel("claude35_sonnet");
+    } else if (config.geminiApiKey) {
+      setSelectedProvider("google");
+      setSelectedModel("gemini_pro");
+    }
+
+    // Set default model from config
+    if (config.defaultModel) {
+      setSelectedModel(config.defaultModel);
+    }
+  }, []);
 
   const handleProductsUploaded = (products: any[]) => {
     setUploadedProducts(products);

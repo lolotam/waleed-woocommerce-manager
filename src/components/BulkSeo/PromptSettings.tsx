@@ -5,8 +5,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AIModel, getAvailableModels } from "@/utils/aiService";
-import { Wand, Play } from "lucide-react";
+import { Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { getAiConfig } from "@/utils/ai/config";
 
 interface PromptSettingsProps {
   provider: string;
@@ -58,10 +60,22 @@ const PromptSettings = ({
   productsCount
 }: PromptSettingsProps) => {
   const [availableModels, setAvailableModels] = useState<any[]>([]);
+  const [hasApiKeys, setHasApiKeys] = useState<{[key: string]: boolean}>({
+    openai: false,
+    anthropic: false,
+    google: false
+  });
   
   useEffect(() => {
-    // Get available models based on selected provider
+    // Get available models and check API keys
     const models = getAvailableModels();
+    const config = getAiConfig();
+    
+    setHasApiKeys({
+      openai: !!config.openaiApiKey,
+      anthropic: !!config.claudeApiKey,
+      google: !!config.geminiApiKey
+    });
     
     // Filter models by provider
     let filteredModels;
@@ -103,9 +117,9 @@ const PromptSettings = ({
               <SelectValue placeholder="Select AI Provider" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="openai">OpenAI</SelectItem>
-              <SelectItem value="anthropic">Claude (Anthropic)</SelectItem>
-              <SelectItem value="google">Gemini (Google)</SelectItem>
+              <SelectItem value="openai" disabled={!hasApiKeys.openai}>OpenAI {!hasApiKeys.openai && "(API key required)"}</SelectItem>
+              <SelectItem value="anthropic" disabled={!hasApiKeys.anthropic}>Claude (Anthropic) {!hasApiKeys.anthropic && "(API key required)"}</SelectItem>
+              <SelectItem value="google" disabled={!hasApiKeys.google}>Gemini (Google) {!hasApiKeys.google && "(API key required)"}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -125,10 +139,31 @@ const PromptSettings = ({
                   {model.description}
                 </SelectItem>
               ))}
+              {availableModels.length === 0 && (
+                <SelectItem value="none" disabled>No models available</SelectItem>
+              )}
             </SelectContent>
           </Select>
         </div>
       </div>
+      
+      {(!hasApiKeys.openai && !hasApiKeys.anthropic && !hasApiKeys.google) && (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="pt-6">
+            <div className="flex flex-col space-y-2">
+              <p className="text-amber-800">
+                You need to configure at least one AI provider in the settings to use this feature.
+              </p>
+              <Link 
+                to="/settings" 
+                className="text-blue-600 hover:underline flex items-center"
+              >
+                Go to Settings to configure AI providers
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="space-y-2">
         <Label htmlFor="prompt">Prompt Template</Label>
@@ -155,7 +190,12 @@ const PromptSettings = ({
             </div>
             <Button 
               onClick={onStartProcessing}
-              disabled={!prompt || prompt.trim() === "" || productsCount === 0}
+              disabled={
+                !prompt || 
+                prompt.trim() === "" || 
+                productsCount === 0 || 
+                (!hasApiKeys.openai && !hasApiKeys.anthropic && !hasApiKeys.google)
+              }
               className="gap-2"
             >
               <Play className="h-4 w-4" />

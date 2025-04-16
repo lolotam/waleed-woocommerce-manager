@@ -1,134 +1,143 @@
 
-/**
- * WooCommerce Products API
- */
-import { woocommerceApi, WooCommerceResponse } from "./woocommerceCore";
-import { Product } from "@/types/product";
-import { ProductTag } from "@/types/product";
+import { fetchWooApi } from './woocommerceCore';
 
-const productsApi = {
-  getAll: (params = {}) => woocommerceApi<Product[]>(`products?${new URLSearchParams(params).toString()}`),
-  get: (id: number) => woocommerceApi<Product>(`products/${id}`),
-  create: (data: any) => woocommerceApi<Product>('products', 'POST', data),
-  update: (id: number, data: any) => woocommerceApi<Product>(`products/${id}`, 'PUT', data),
-  delete: (id: number) => woocommerceApi<Product>(`products/${id}`, 'DELETE'),
-  getTags: (params = {}) => woocommerceApi<ProductTag[]>(`products/tags?${new URLSearchParams(params).toString()}`)
+// Get all products
+export const getProducts = async () => {
+  return fetchWooApi('products');
 };
 
-// Extract data helper function with proper typing
-export const extractData = <T>(response: WooCommerceResponse<T>): T => {
-  return response.data;
+// Get a specific product
+export const getProduct = async (id: number) => {
+  return fetchWooApi(`products/${id}`);
 };
 
-export const extractDataWithPagination = <T>(
-  response: WooCommerceResponse<T>
-): { data: T; totalItems: number; totalPages: number } => {
-  return {
-    data: response.data,
-    totalItems: response.totalItems || 0,
-    totalPages: response.totalPages || 0,
+// Create a new product
+export const createProduct = async (data: any) => {
+  return fetchWooApi('products', {
+    method: 'POST',
+    data
+  });
+};
+
+// Update a product
+export const updateProduct = async (id: number, data: any) => {
+  return fetchWooApi(`products/${id}`, {
+    method: 'PUT',
+    data
+  });
+};
+
+// Delete a product
+export const deleteProduct = async (id: number) => {
+  return fetchWooApi(`products/${id}`, {
+    method: 'DELETE'
+  });
+};
+
+// Update product SEO data
+export const updateProductSeo = async (id: number | string, seoData: any) => {
+  const data = {
+    meta_data: []
   };
-};
-
-// New function to update product SEO fields using AI-generated content
-export const updateProductSeo = async (productId: number | string, seoData: any) => {
-  try {
-    // Convert string ID to number if needed
-    const id = typeof productId === 'string' ? parseInt(productId, 10) : productId;
-    
-    if (isNaN(id)) {
-      throw new Error(`Invalid product ID: ${productId}`);
-    }
-    
-    // Prepare update payload
-    const updateData: any = {
-      description: seoData.long_description || "",
-      short_description: seoData.short_description || "",
-      status: "publish" // Publish the product
-    };
-    
-    // Add meta data for SEO
-    updateData.meta_data = [
-      {
-        key: "rankmath_title",
-        value: seoData.meta_title || ""
-      },
-      {
-        key: "rankmath_description",
-        value: seoData.meta_description || ""
-      },
-      {
-        key: "rankmath_focus_keyword",
-        value: seoData.keywords || ""
-      }
-    ];
-    
-    // Add tags if provided
-    if (seoData.tags && Array.isArray(seoData.tags) && seoData.tags.length > 0) {
-      // First fetch existing tags to see if we need to create new ones
-      const existingTagsResponse = await productsApi.getTags({ per_page: 100 });
-      const existingTags = extractData(existingTagsResponse);
-      
-      const tagIds = [];
-      
-      // Process each tag
-      for (const tagName of seoData.tags) {
-        // Check if tag already exists
-        const existingTag = existingTags.find(t => 
-          t.name.toLowerCase() === tagName.toLowerCase()
-        );
+  
+  // Add meta description if available
+  if (seoData.meta_description) {
+    data.meta_data.push({
+      key: '_yoast_wpseo_metadesc',
+      value: seoData.meta_description
+    });
+  }
+  
+  // Add meta title if available
+  if (seoData.meta_title) {
+    data.meta_data.push({
+      key: '_yoast_wpseo_title',
+      value: seoData.meta_title
+    });
+  }
+  
+  // Add focus keyword if available
+  if (seoData.keywords) {
+    data.meta_data.push({
+      key: '_yoast_wpseo_focuskw',
+      value: seoData.keywords.split(',')[0].trim()
+    });
+  }
+  
+  // Add short description if available
+  if (seoData.short_description) {
+    data.short_description = seoData.short_description;
+  }
+  
+  // Add long description if available
+  if (seoData.long_description) {
+    data.description = seoData.long_description;
+  }
+  
+  // Add tags if available
+  if (seoData.tags && Array.isArray(seoData.tags) && seoData.tags.length > 0) {
+    // First get existing tags or create new ones
+    const tagPromises = seoData.tags.map(async (tagName: string) => {
+      try {
+        // Check if tag exists
+        const existingTags = await fetchWooApi('products/tags', {
+          method: 'GET',
+          params: { search: tagName }
+        });
         
-        if (existingTag) {
-          tagIds.push(existingTag.id);
+        if (existingTags.length > 0) {
+          return existingTags[0].id;
         } else {
           // Create new tag
-          try {
-            const createTagResponse = await woocommerceApi('products/tags', 'POST', {
-              name: tagName
-            });
-            const newTag = extractData(createTagResponse);
-            tagIds.push(newTag.id);
-          } catch (error) {
-            console.error(`Failed to create tag "${tagName}":`, error);
-            // Continue with other tags
-          }
+          const newTag = await fetchWooApi('products/tags', {
+            method: 'POST',
+            data: { name: tagName }
+          });
+          return newTag.id;
         }
+      } catch (error) {
+        console.error(`Failed to process tag ${tagName}:`, error);
+        return null;
       }
-      
-      // Add tags to update data
-      if (tagIds.length > 0) {
-        updateData.tags = tagIds;
-      }
-    }
+    });
     
-    // Update image SEO if product has images and image SEO data is provided
-    if (seoData.image_seo) {
-      // First get the product to check for images
-      const productResponse = await productsApi.get(id);
-      const product = extractData(productResponse);
-      
-      if (product.images && product.images.length > 0) {
-        // Get the first image (main product image)
-        const mainImage = product.images[0];
-        const updatedImage = {
-          id: mainImage.id,
-          alt: seoData.image_seo.alt_text || "",
-          name: seoData.image_seo.title || "",
-          caption: seoData.image_seo.caption || "",
-          description: seoData.image_seo.description || ""
-        };
-        
-        updateData.images = [updatedImage];
-      }
-    }
-    
-    // Update the product
-    const response = await productsApi.update(id, updateData);
-    return extractData(response);
-  } catch (error) {
-    console.error("Error updating product SEO:", error);
-    throw error;
+    // Wait for all tag operations to complete
+    const tagIds = await Promise.all(tagPromises);
+    data.tags = tagIds.filter(id => id !== null);
   }
+  
+  // Add image SEO data if available
+  if (seoData.image_seo) {
+    // Get product data to check for featured image
+    const product = await fetchWooApi(`products/${id}`);
+    
+    if (product.images && product.images.length > 0) {
+      const imageId = product.images[0].id;
+      
+      // Update image with SEO data
+      await fetchWooApi(`products/${id}/images/${imageId}`, {
+        method: 'PUT',
+        data: {
+          alt: seoData.image_seo.alt_text || '',
+          title: seoData.image_seo.title || '',
+          caption: seoData.image_seo.caption || '',
+          description: seoData.image_seo.description || ''
+        }
+      });
+    }
+  }
+  
+  // Update the product with the processed data
+  return fetchWooApi(`products/${id}`, {
+    method: 'PUT',
+    data
+  });
 };
 
-export default productsApi;
+// Batch update products
+export const batchUpdateProducts = async (data: any) => {
+  return fetchWooApi('products/batch', {
+    method: 'POST',
+    data
+  });
+};
