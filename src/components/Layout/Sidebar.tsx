@@ -15,7 +15,8 @@ import {
   Upload,
   BarChart,
   Bot,
-  Tags
+  Tags,
+  Globe
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -46,8 +47,15 @@ const Sidebar = () => {
     { icon: Tags, label: 'Brands', path: '/brands' },
     { icon: FileSpreadsheet, label: 'Import/Export', path: '/import-export' },
     { icon: MessageSquare, label: 'Prompts', path: '/prompts' },
-    { icon: Bot, label: 'Web Scraper', path: '/scraper' },
-    { icon: BarChart, label: 'Web Performance', path: '/web-performance' },
+    { 
+      icon: Globe, 
+      label: 'Web Tools', 
+      path: '/web-tools',
+      subItems: [
+        { label: 'Web Scraper', path: '/scraper' },
+        { label: 'Web Performance', path: '/web-performance' }
+      ]
+    },
     { icon: FileText, label: 'Logs', path: '/logs' },
     { icon: Settings, label: 'Settings', path: '/settings' },
     { icon: Info, label: 'About', path: '/about' },

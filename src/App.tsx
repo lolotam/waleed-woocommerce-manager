@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +21,7 @@ import BrandLogoUploader from "./pages/BrandLogoUploader";
 import WooCommerceCallback from "./pages/WooCommerceCallback";
 import WebPerformancePage from "./pages/WebPerformancePage";
 import BulkProductSeoPage from "./pages/BulkProductSeoPage";
+import WebToolsPage from "./pages/WebToolsPage";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 
@@ -71,6 +73,7 @@ const App = () => {
                 <Route path="/import-export" element={<ImportExportPage />} />
                 <Route path="/prompts" element={<PromptsPage />} />
                 <Route path="/logs" element={<LogsPage />} />
+                <Route path="/web-tools" element={<WebToolsPage />} />
                 <Route path="/scraper" element={<ScraperImporterPage />} />
                 <Route path="/web-performance" element={<WebPerformancePage />} />
               </Route>
