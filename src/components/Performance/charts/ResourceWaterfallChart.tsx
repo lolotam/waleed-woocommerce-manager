@@ -156,7 +156,7 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
             dataKey="duration" 
             stackId="a" 
             name="Download Time" 
-            fill={(data) => getResourceTypeColor(data.initiatorType)}
+            fill={({ initiatorType }) => getResourceTypeColor(initiatorType)}
           />
         </BarChart>
       </ResponsiveContainer>

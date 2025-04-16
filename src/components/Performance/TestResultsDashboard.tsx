@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Download, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult } from "@/types/performance";
 import ResourceWaterfallChart from "./charts/ResourceWaterfallChart";
-import RecommendationsList from "./RecommendationsList";
+import RecommendationsPanel from "./RecommendationsPanel";
 import PerformanceScoreDashboard from "./charts/PerformanceScoreDashboard";
 
 interface TestResultsDashboardProps {
@@ -181,7 +182,25 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
         </TabsContent>
         
         <TabsContent value="recommendations">
-          <RecommendationsList recommendations={recommendations} />
+          <RecommendationsPanel 
+            recommendations={recommendations} 
+            testResult={testResult || {
+              id: "mock-test",
+              url: "https://example.com",
+              testDate: new Date().toISOString(),
+              metrics,
+              scores,
+              resources: [],
+              recommendations,
+              config: {
+                url: "https://example.com",
+                device: "desktop",
+                connection: "fast",
+                location: "us-east",
+                browser: "chrome"
+              }
+            }}
+          />
         </TabsContent>
       </Tabs>
     </div>

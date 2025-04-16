@@ -1,4 +1,3 @@
-
 export interface PerformanceMetrics {
   pageLoadTime: number;
   totalPageSize: number;
@@ -53,6 +52,7 @@ export interface PerformanceTestResult {
   resources: ResourceTiming[];
   config: PerformanceTestConfig;
   recommendations: PerformanceRecommendation[];
+  passedChecks?: PassedCheck[];
 }
 
 export interface PerformanceRecommendation {
@@ -61,6 +61,14 @@ export interface PerformanceRecommendation {
   description: string;
   impact: 'high' | 'medium' | 'low';
   category: 'speed' | 'optimization' | 'accessibility' | 'best-practices';
+  resources?: ResourceTiming[];
+  remediation?: string;
+}
+
+export interface PassedCheck {
+  id: string;
+  title: string;
+  description: string;
 }
 
 export interface TestHistoryItem {
@@ -70,7 +78,6 @@ export interface TestHistoryItem {
   overallScore: number;
 }
 
-// Crawler types
 export interface CrawlerRequest {
   url: string;
   resourceType: string;
@@ -111,7 +118,6 @@ export interface CrawlerResult {
   responses: CrawlerResponse[];
 }
 
-// Extended metrics for Core Web Vitals
 export interface CoreWebVitals {
   lcp: number;  // Largest Contentful Paint (ms)
   fid: number;  // First Input Delay (ms)
@@ -120,7 +126,6 @@ export interface CoreWebVitals {
   tbt: number;  // Total Blocking Time (ms)
 }
 
-// Queue system types
 export type TestStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
 export interface QueuedTestResponse {
@@ -139,7 +144,6 @@ export interface QueueStatusResponse {
   activeTests: number;
 }
 
-// Chart configuration types
 export interface ChartConfig {
   colors?: string[];
   customHeight?: number; // To avoid conflict with Progress component height prop
