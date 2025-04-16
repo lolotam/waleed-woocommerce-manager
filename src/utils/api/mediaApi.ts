@@ -192,7 +192,7 @@ export const mediaApi = {
       }
 
       return await response.json();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Media upload error:', error);
       
       // Enhanced permission error detection and guidance
@@ -444,7 +444,7 @@ export const mediaApi = {
           targetId: targetId,
           message: `Logo successfully assigned to ${matchedName}${matchedName !== targetName ? ` (matched from "${targetName}")` : ''}`
         };
-      } catch (error) {
+      } catch (error: any) {
         if (error.message?.includes('permission denied') || 
             error.message?.includes('not allowed to create') ||
             error.message?.includes('rest_cannot_create')) {
@@ -456,6 +456,45 @@ export const mediaApi = {
     } catch (error) {
       console.error('Logo assignment error:', error);
       throw error;
+    }
+  },
+  
+  testRestApiEndpoint: async (endpoint = 'wp/v2/media') => {
+    const config = getWooCommerceConfig();
+    
+    if (!config.url) {
+      toast.error('WooCommerce store URL not configured. Please check settings.');
+      throw new Error('WooCommerce API not configured');
+    }
+
+    const url = new URL(`${config.url}/wp-json/${endpoint}`);
+    
+    try {
+      console.log(`Testing REST API endpoint: ${url.toString()}`);
+      
+      // Try a simple GET request without authentication first
+      const response = await fetch(url.toString());
+      
+      // Log the result
+      console.log('API test response status:', response.status);
+      
+      // Return detailed information about the result
+      return {
+        accessible: response.ok,
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        isJsonResponse: response.headers.get('content-type')?.includes('application/json') || false
+      };
+    } catch (error: any) {
+      console.error('REST API test error:', error);
+      return {
+        accessible: false,
+        status: 0,
+        statusText: 'Network Error',
+        error: error.message || 'Unknown error',
+        networkError: true
+      };
     }
   }
 };

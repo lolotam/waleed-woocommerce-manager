@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { 
   AlertOctagon, 
@@ -14,12 +13,54 @@ import {
   Settings,
   Globe,
   FileJson,
-  Database
+  Database,
+  RefreshCw,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { mediaApi } from "@/utils/api";
+import { toast } from "sonner";
+import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
 
 const TroubleshootingGuide = () => {
+  const [isTestingApi, setIsTestingApi] = useState(false);
+  const [apiTestResult, setApiTestResult] = useState<any>(null);
+  const wcConfig = getWooCommerceConfig();
+  
+  const testRestApi = async () => {
+    setIsTestingApi(true);
+    try {
+      // Test media endpoint
+      const result = await mediaApi.testRestApiEndpoint('wp/v2/media');
+      setApiTestResult(result);
+      
+      if (result.accessible) {
+        toast.success('WordPress REST API is accessible!');
+      } else if (result.status === 404) {
+        toast.error('WordPress REST API endpoint not found!', {
+          description: 'The REST API might be disabled on your WordPress site.'
+        });
+      } else {
+        toast.error(`REST API test failed with status ${result.status}`, {
+          description: result.statusText || 'Unknown error'
+        });
+      }
+    } catch (error: any) {
+      setApiTestResult({
+        accessible: false,
+        error: error.message || 'Unknown error'
+      });
+      toast.error('Error testing REST API', {
+        description: error.message || 'Unknown error occurred while testing the REST API'
+      });
+    } finally {
+      setIsTestingApi(false);
+    }
+  };
+  
   return (
     <div className="border rounded-md p-4 space-y-4">
       <h4 className="font-medium text-lg">WooCommerce Permission Troubleshooting</h4>
@@ -32,6 +73,121 @@ const TroubleshootingGuide = () => {
           permissions to upload files to the WordPress media library, which is required for brand logos.
         </AlertDescription>
       </Alert>
+      
+      <Card className="p-4 border-amber-500 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/50">
+        <div className="flex items-start gap-3">
+          <Globe className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-1 flex-shrink-0" />
+          <div className="space-y-2 flex-1">
+            <h5 className="font-medium">WordPress REST API Status</h5>
+            <p className="text-sm text-muted-foreground">
+              Some WordPress sites have the REST API disabled, which prevents any API operations including media uploads.
+              Test if your WordPress REST API is accessible:
+            </p>
+            
+            <div className="flex items-center gap-2 mt-2">
+              <Button 
+                variant="secondary" 
+                size="sm" 
+                className="gap-2"
+                onClick={testRestApi}
+                disabled={isTestingApi || !wcConfig?.url}
+              >
+                {isTestingApi ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Globe className="h-4 w-4" />
+                )}
+                Test WordPress REST API
+              </Button>
+              
+              {!wcConfig?.url && (
+                <span className="text-xs text-red-500">Please configure your WooCommerce URL first</span>
+              )}
+              
+              {wcConfig?.url && (
+                <span className="text-xs text-muted-foreground">
+                  Testing: {wcConfig.url}/wp-json/wp/v2/media
+                </span>
+              )}
+            </div>
+            
+            {apiTestResult && (
+              <div className="mt-2 p-3 border rounded-md bg-background">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-medium">Test Results:</span>
+                  {apiTestResult.accessible ? (
+                    <span className="flex items-center gap-1 text-green-600">
+                      <CheckCircle className="h-4 w-4" />
+                      REST API Accessible
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-red-600">
+                      <XCircle className="h-4 w-4" />
+                      REST API Not Accessible
+                    </span>
+                  )}
+                </div>
+                
+                <div className="text-xs space-y-1">
+                  <div><strong>Status:</strong> {apiTestResult.status} {apiTestResult.statusText}</div>
+                  {apiTestResult.networkError && (
+                    <div className="text-red-600">
+                      Network error: Could not connect to the server. Check URL and network connection.
+                    </div>
+                  )}
+                  {apiTestResult.status === 404 && (
+                    <div className="text-amber-600">
+                      The REST API endpoint was not found. The WordPress REST API might be disabled.
+                    </div>
+                  )}
+                  
+                  {apiTestResult.accessible ? (
+                    <div className="flex items-center mt-2 gap-1 text-green-600">
+                      <CheckCircle className="h-3 w-3" />
+                      <span>Your WordPress REST API is working! If you're still having issues, check authentication permissions.</span>
+                    </div>
+                  ) : (
+                    <div className="mt-2 space-y-2">
+                      <div className="text-red-600 font-medium">How to fix REST API issues:</div>
+                      <ol className="list-decimal list-inside space-y-1 text-sm">
+                        <li>Make sure your WordPress version is 4.7 or higher</li>
+                        <li>Check that the REST API is not disabled by a security plugin</li>
+                        <li>
+                          Ensure your permalink settings are not set to "Plain" 
+                          (Go to Settings → Permalinks in WordPress)
+                        </li>
+                        <li>Check if your .htaccess file blocks REST API access</li>
+                        <li>Temporarily disable security plugins to test if they're blocking the API</li>
+                        <li>
+                          Try accessing <code>{wcConfig?.url}/wp-json/</code> directly in your browser to check if it returns JSON
+                        </li>
+                      </ol>
+                      
+                      <div className="pt-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs"
+                          onClick={() => window.open(`${wcConfig?.url}/wp-json/`, '_blank')}
+                        >
+                          Try Opening REST API Root
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center mt-3 gap-1 text-xs text-amber-700 dark:text-amber-400">
+              <Info className="h-3 w-3" />
+              <span>
+                Most WordPress sites have the REST API enabled by default, but some security plugins or server configurations can disable it.
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
       
       <div>
         <h5 className="font-medium mb-3 flex items-center">

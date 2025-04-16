@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -66,6 +67,7 @@ const BrandLogoProcessing = ({
     }
   };
   
+  // Get WooCommerce configuration from the utility function
   const wcConfig = getWooCommerceConfig();
   
   return (

@@ -1,3 +1,4 @@
+
 export interface BrandLogoConfigType {
   targetType: "brands" | "categories";
   addToDescription: boolean;
