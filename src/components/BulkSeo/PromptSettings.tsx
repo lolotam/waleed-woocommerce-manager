@@ -1,32 +1,19 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AIModel, getAvailableModels } from "@/utils/aiService";
-import { Play, Wand2, BookOpen, Upload, X, Plus, Link } from "lucide-react";
+import { Play, Wand2, BookOpen, Upload, X, Plus, Link, Save, FileEdit } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Link as RouterLink } from "react-router-dom";
 import { getAiConfig } from "@/utils/ai/config";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-
-interface PromptSettingsProps {
-  provider: string;
-  onProviderChange: (provider: string) => void;
-  model: string;
-  onModelChange: (model: string) => void;
-  prompt: string;
-  onPromptChange: (prompt: string) => void;
-  onStartProcessing: () => void;
-  productsCount: number;
-  productType: string;
-  onProductTypeChange: (type: string) => void;
-  aiRole: string;
-  onAiRoleChange: (role: string) => void;
-}
+import { SavedPrompt } from "@/hooks/usePrompts";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { v4 as uuidv4 } from "uuid";
 
 const defaultPrompt = `Generate SEO content for this product:
 - Create a compelling product description of at least 300 words
@@ -154,7 +141,7 @@ Format the response in JSON using this exact structure:
   "keywords": "keyword1, keyword2, keyword3, keyword4, keyword5",
   "meta_title": "SEO-Optimized Title Here",
   "meta_description": "Compelling meta description that encourages clicks...",
-  "tags": ["tag1", "tag2", "tag3", "tag4"],
+  "tags": ["tag1", "tag2", "tag3, tag4"],
   "image_seo": {
     "alt_text": "Descriptive alt text for product image",
     "title": "Image title for SEO",
@@ -206,6 +193,30 @@ Format the response in JSON using this exact structure:
   }
 }`;
 
+interface PromptSettingsProps {
+  provider: string;
+  onProviderChange: (provider: string) => void;
+  model: string;
+  onModelChange: (model: string) => void;
+  prompt: string;
+  onPromptChange: (prompt: string) => void;
+  onStartProcessing: () => void;
+  productsCount: number;
+  productType: string;
+  onProductTypeChange: (type: string) => void;
+  aiRole: string;
+  onAiRoleChange: (role: string) => void;
+}
+
+// Example placeholder values for preview
+const placeholderExamples = {
+  id: "1234",
+  title: "Example Product",
+  url: "https://example.com/product/1234",
+  competitor_websites: "- https://competitor1.com\n- https://competitor2.com\n- https://competitor3.com",
+  hyperlinks: "  -https://yourstore.com/category/featured\n  -https://yourstore.com/category/bestsellers\n  -https://yourstore.com/blog/product-care"
+};
+
 const PromptSettings = ({
   provider,
   onProviderChange,
@@ -227,6 +238,19 @@ const PromptSettings = ({
     google: false
   });
   const [activeTab, setActiveTab] = useState<string>("template");
+  
+  // New states for saving prompts
+  const [savePromptDialogOpen, setSavePromptDialogOpen] = useState(false);
+  const [promptTitle, setPromptTitle] = useState("");
+  const [promptDescription, setPromptDescription] = useState("");
+  const [previewMode, setPreviewMode] = useState(false);
+  const [availablePlaceholders, setAvailablePlaceholders] = useState([
+    { name: "{{id}}", description: "Product ID" },
+    { name: "{{title}}", description: "Product Title" },
+    { name: "{{url}}", description: "Product URL" },
+    { name: "{{competitor_websites}}", description: "List of competitor websites" },
+    { name: "{{hyperlinks}}", description: "List of hyperlinks to include" }
+  ]);
   
   // New states for competitor websites
   const [competitorWebsites, setCompetitorWebsites] = useState<string[]>([
@@ -405,6 +429,85 @@ const PromptSettings = ({
     // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  // Function to toggle preview mode
+  const togglePreviewMode = () => {
+    setPreviewMode(!previewMode);
+  };
+
+  // Function to get preview text with placeholders replaced
+  const getPreviewText = () => {
+    if (!previewMode) return prompt;
+    
+    let previewText = prompt;
+    Object.entries(placeholderExamples).forEach(([key, value]) => {
+      const regex = new RegExp(`{{${key}}}`, 'g');
+      previewText = previewText.replace(regex, value);
+    });
+    
+    return previewText;
+  };
+
+  // Function to add a placeholder at cursor position
+  const addPlaceholderAtCursor = (placeholder: string) => {
+    const textArea = document.getElementById('prompt-editor') as HTMLTextAreaElement;
+    if (!textArea) return;
+    
+    const startPos = textArea.selectionStart;
+    const endPos = textArea.selectionEnd;
+    
+    const textBefore = prompt.substring(0, startPos);
+    const textAfter = prompt.substring(endPos);
+    
+    const newPrompt = textBefore + placeholder + textAfter;
+    onPromptChange(newPrompt);
+    
+    // Set cursor position after the inserted placeholder
+    setTimeout(() => {
+      textArea.focus();
+      textArea.setSelectionRange(startPos + placeholder.length, startPos + placeholder.length);
+    }, 0);
+  };
+
+  // Function to save the current prompt
+  const saveCurrentPrompt = () => {
+    if (!promptTitle.trim()) {
+      toast.error("Please enter a title for your prompt");
+      return;
+    }
+
+    try {
+      // Create new prompt object
+      const newPrompt: SavedPrompt = {
+        id: uuidv4(),
+        title: promptTitle,
+        description: promptDescription,
+        promptText: prompt,
+        productType: productType,
+        aiRole: aiRole,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Get existing prompts from localStorage
+      const existingPrompts = localStorage.getItem('saved_prompts');
+      const prompts = existingPrompts ? JSON.parse(existingPrompts) : [];
+
+      // Add new prompt and save back to localStorage
+      prompts.push(newPrompt);
+      localStorage.setItem('saved_prompts', JSON.stringify(prompts));
+
+      // Reset form and close dialog
+      setPromptTitle("");
+      setPromptDescription("");
+      setSavePromptDialogOpen(false);
+
+      toast.success("Prompt saved successfully! You can access it from the Prompt Manager or the Load Saved Prompt button.");
+    } catch (error) {
+      console.error("Error saving prompt:", error);
+      toast.error("Failed to save prompt. Please try again.");
     }
   };
 
@@ -628,68 +731,139 @@ const PromptSettings = ({
           </div>
         </TabsContent>
         
-        <TabsContent value="advanced" className="space-y-2">
-          <Label htmlFor="prompt">Prompt Template</Label>
+        <TabsContent value="advanced" className="space-y-4">
+          <div className="flex justify-between items-center">
+            <Label htmlFor="prompt-editor">Prompt Template Editor</Label>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={togglePreviewMode} 
+                className="h-8 gap-1"
+              >
+                {previewMode ? "Show Template" : "Preview Placeholders"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setSavePromptDialogOpen(true)} 
+                className="h-8 gap-1"
+              >
+                <Save className="h-4 w-4" />
+                <span>Save Prompt</span>
+              </Button>
+            </div>
+          </div>
+          
           <Textarea
-            id="prompt"
-            value={prompt}
-            onChange={(e) => onPromptChange(e.target.value)}
+            id="prompt-editor"
+            value={getPreviewText()}
+            onChange={(e) => !previewMode && onPromptChange(e.target.value)}
             placeholder="Enter your prompt here..."
             className="min-h-[400px] font-mono text-sm"
+            readOnly={previewMode}
           />
-          <p className="text-sm text-muted-foreground">
-            Use placeholders like &#123;&#123;id&#125;&#125;, &#123;&#123;title&#125;&#125;, 
-            &#123;&#123;url&#125;&#125;, &#123;&#123;competitor_websites&#125;&#125;, and 
-            &#123;&#123;hyperlinks&#125;&#125; which will be replaced with actual data.
-          </p>
+          
+          {/* Placeholder insert buttons */}
+          <div className="space-y-2">
+            <Label>Insert Placeholders:</Label>
+            <div className="flex flex-wrap gap-2">
+              {availablePlaceholders.map((placeholder, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addPlaceholderAtCursor(placeholder.name)}
+                  title={placeholder.description}
+                  className="text-xs"
+                  disabled={previewMode}
+                >
+                  {placeholder.name}
+                </Button>
+              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const customPlaceholder = prompt(`Enter custom placeholder name (without {{ }})`);
+                  if (customPlaceholder) {
+                    addPlaceholderAtCursor(`{{${customPlaceholder}}}`);
+                  }
+                }}
+                className="text-xs"
+                disabled={previewMode}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Custom
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Placeholders will be automatically replaced with product data during processing.
+            </p>
+          </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Save Prompt Dialog */}
+      <Dialog open={savePromptDialogOpen} onOpenChange={setSavePromptDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Prompt Template</DialogTitle>
+            <DialogDescription>
+              Save this prompt to use it again later in Bulk SEO or other tools.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="prompt-title">Prompt Title *</Label>
+              <Input
+                id="prompt-title"
+                value={promptTitle}
+                onChange={(e) => setPromptTitle(e.target.value)}
+                placeholder="E.g., Perfume Product Description Generator"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="prompt-description">Description (optional)</Label>
+              <Textarea
+                id="prompt-description"
+                value={promptDescription}
+                onChange={(e) => setPromptDescription(e.target.value)}
+                placeholder="What this prompt does, when to use it, etc."
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Categories</Label>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-xs">
+                  <span>{productType}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-muted px-2 py-1 rounded-md text-xs">
+                  <span>{aiRole}</span>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                These categories are based on your current template settings.
+              </p>
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSavePromptDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={saveCurrentPrompt}>
+              <Save className="h-4 w-4 mr-2" />
+              Save Prompt
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {(!hasApiKeys.openai && !hasApiKeys.anthropic && !hasApiKeys.google) && (
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="pt-6">
-            <div className="flex flex-col space-y-2">
-              <p className="text-amber-800">
-                You need to configure at least one AI provider in the settings to use this feature.
-              </p>
-              <RouterLink 
-                to="/settings" 
-                className="text-blue-600 hover:underline flex items-center"
-              >
-                Go to Settings to configure AI providers
-              </RouterLink>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      <Card className="bg-muted/40">
-        <CardContent className="pt-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Ready to process {productsCount} products</h3>
-              <p className="text-sm text-muted-foreground">
-                This will generate SEO content for all products using {provider} {model}.
-              </p>
-            </div>
-            <Button 
-              onClick={onStartProcessing}
-              disabled={
-                !prompt || 
-                prompt.trim() === "" || 
-                productsCount === 0 || 
-                (!hasApiKeys.openai && !hasApiKeys.anthropic && !hasApiKeys.google)
-              }
-              className="gap-2"
-            >
-              <Play className="h-4 w-4" />
-              Start Processing
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-};
-
-export default PromptSettings;
+            <div className
