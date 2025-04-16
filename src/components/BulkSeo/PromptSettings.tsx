@@ -1,3 +1,4 @@
+
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -866,4 +867,33 @@ const PromptSettings = ({
       {(!hasApiKeys.openai && !hasApiKeys.anthropic && !hasApiKeys.google) && (
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="pt-6">
-            <div className
+            <div className="flex gap-2 items-start">
+              <div className="text-amber-600 shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg>
+              </div>
+              <div>
+                <h4 className="font-medium text-amber-800">No AI Provider API Keys</h4>
+                <p className="text-sm text-amber-700 mt-1">
+                  Please add at least one API key in Settings before using the Bulk SEO generator. 
+                  The app will generate SEO content using the OpenAI, Claude, or Gemini APIs.
+                </p>
+                <Button 
+                  className="mt-2" 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    window.location.href = '/settings';
+                  }}
+                >
+                  Go to Settings
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default PromptSettings;
