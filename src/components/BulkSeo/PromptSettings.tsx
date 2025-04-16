@@ -422,8 +422,20 @@ const PromptSettings = ({
                 <SelectContent>
                   <SelectItem value="general">General Products</SelectItem>
                   <SelectItem value="fragrance">Fragrances & Perfumes</SelectItem>
-                  <SelectItem value="electronics">Electronics & Gadgets</SelectItem>
+                  <SelectItem value="makeup">Makeup</SelectItem>
+                  <SelectItem value="skincare">Skincare</SelectItem>
+                  <SelectItem value="haircare">Haircare</SelectItem>
+                  <SelectItem value="bodycare">Body Care</SelectItem>
                   <SelectItem value="clothing">Clothing & Fashion</SelectItem>
+                  <SelectItem value="footwear">Footwear</SelectItem>
+                  <SelectItem value="fashion_accessories">Fashion Accessories</SelectItem>
+                  <SelectItem value="luxury_goods">Luxury Goods</SelectItem>
+                  <SelectItem value="gift_sets">Gift Sets & Seasonal</SelectItem>
+                  <SelectItem value="home_lifestyle">Home & Lifestyle</SelectItem>
+                  <SelectItem value="mens_grooming">Men's Grooming</SelectItem>
+                  <SelectItem value="baby_kids">Baby & Kids</SelectItem>
+                  <SelectItem value="health_wellness">Health & Wellness</SelectItem>
+                  <SelectItem value="electronics">Electronics & Beauty Tools</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
