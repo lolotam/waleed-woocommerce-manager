@@ -135,11 +135,11 @@ const ResourceWaterfallChart = () => {
             <Tooltip content={<CustomTooltip />} />
             <Bar
               dataKey="duration"
-              fill="#8884d8"
               background={{ fill: '#eee' }}
               radius={[0, 4, 4, 0]}
-              // Custom styling for each bar based on resource type
-              fill={(entry) => getResourceTypeColor(entry.type)}
+              fill="#8884d8"
+              // We'll use the style prop to conditionally style each bar
+              style={{ fill: (entry: any) => getResourceTypeColor(entry.type) }}
             />
           </BarChart>
         </ChartContainer>

@@ -69,7 +69,7 @@ const PerformanceMetricsChart: React.FC<PerformanceMetricsChartProps> = ({ metri
         <Bar 
           dataKey="value" 
           name="Value" 
-          fill={(entry) => entry.color}
+          fill="#8884d8"
           radius={[4, 4, 0, 0]}
         />
       </BarChart>
