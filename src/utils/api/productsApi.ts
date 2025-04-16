@@ -131,7 +131,7 @@ export const batchUpdateProducts = async (data: any) => {
   return woocommerceApi('products/batch', 'POST', data);
 };
 
-// Helper functions for pagination and data extraction
+// Helper functions for pagination and data extraction - updated to remove generic type parameters
 export const extractData = (response: any) => {
   return response.data;
 };

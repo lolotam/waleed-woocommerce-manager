@@ -36,7 +36,7 @@ const ProductsPage = () => {
     queryFn: async () => {
       try {
         const response = await productsApi.getTags({ per_page: "100" });
-        return extractData<ProductTag[]>(response);
+        return extractData(response);
       } catch (error) {
         console.error('Error fetching product tags:', error);
         return [];
@@ -56,7 +56,7 @@ const ProductsPage = () => {
         };
         
         const response = await productsApi.getAll(params);
-        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination<Product[]>(response);
+        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination(response);
         
         const products = Array.isArray(data) ? data : [];
         const total = totalItems || products.length;

@@ -20,7 +20,7 @@ const CategoriesPage = () => {
     queryKey: ['categories'],
     queryFn: async () => {
       const response = await categoriesApi.getAll({ per_page: "100" });
-      return extractData<Category[]>(response);
+      return extractData(response);
     },
   });
   
