@@ -40,14 +40,22 @@ const PROMPT_CATEGORIES = [
 ];
 
 const PRODUCT_TYPES = [
-  { id: 'simple', name: 'Simple Product' },
-  { id: 'variable', name: 'Variable Product' },
-  { id: 'grouped', name: 'Grouped Product' },
-  { id: 'external', name: 'External/Affiliate Product' },
-  { id: 'subscription', name: 'Subscription' },
-  { id: 'digital', name: 'Digital Product' },
-  { id: 'physical', name: 'Physical Product' },
-  { id: 'service', name: 'Service' },
+  { id: 'general', name: 'General Products' },
+  { id: 'fragrance', name: 'Fragrances & Perfumes' },
+  { id: 'makeup', name: 'Makeup' },
+  { id: 'skincare', name: 'Skincare' },
+  { id: 'haircare', name: 'Haircare' },
+  { id: 'bodycare', name: 'Body Care' },
+  { id: 'clothing', name: 'Clothing & Fashion' },
+  { id: 'footwear', name: 'Footwear' },
+  { id: 'fashion_accessories', name: 'Fashion Accessories' },
+  { id: 'luxury_goods', name: 'Luxury Goods' },
+  { id: 'gift_sets', name: 'Gift Sets & Seasonal' },
+  { id: 'home_lifestyle', name: 'Home & Lifestyle' },
+  { id: 'mens_grooming', name: 'Men\'s Grooming' },
+  { id: 'baby_kids', name: 'Baby & Kids' },
+  { id: 'health_wellness', name: 'Health & Wellness' },
+  { id: 'electronics', name: 'Electronics & Beauty Tools' }
 ];
 
 const AI_ROLES = [
