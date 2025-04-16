@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,10 +28,8 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
   useEffect(() => {
     if (!testResult || !svgRef.current) return;
 
-    // Clear previous chart
     d3.select(svgRef.current).selectAll("*").remove();
 
-    // Create new chart based on selected type
     switch (activeChart) {
       case "resource-types":
         renderResourceTypeChart();
@@ -41,11 +38,9 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         renderFileSizeChart();
         break;
       case "load-time":
-        // This would be implemented in a real application
         renderPlaceholderChart("Load Timeline");
         break;
       case "request-timeline":
-        // This would be implemented in a real application
         renderPlaceholderChart("Request Timeline");
         break;
       default:
@@ -59,7 +54,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
     const height = fullscreen ? window.innerHeight - 200 : 400;
     const margin = { top: 40, right: 30, bottom: 60, left: 60 };
 
-    // Mock data for resource types
     const resourceTypes: Record<string, number> = {
       document: 1,
       stylesheet: 3,
@@ -70,17 +64,14 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
       other: 2
     };
 
-    // Convert to array
     const data = Object.entries(resourceTypes).map(([type, count]) => ({
       type,
       count
     }));
 
-    // Sort by count
     data.sort((a, b) => b.count - a.count);
 
     if (chartType === "bar") {
-      // Create scales
       const x = d3.scaleBand()
         .domain(data.map(d => d.type))
         .range([margin.left, width - margin.right])
@@ -91,12 +82,10 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .nice()
         .range([height - margin.bottom, margin.top]);
 
-      // Color scale
       const color = d3.scaleOrdinal<string>()
         .domain(data.map(d => d.type))
         .range(d3.schemeCategory10);
 
-      // Add bars
       svg.selectAll(".bar")
         .data(data)
         .enter()
@@ -124,7 +113,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
           svg.selectAll(".tooltip-text").remove();
         });
 
-      // Add axes
       svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x))
@@ -138,7 +126,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y));
 
-      // Add title
       svg.append("text")
         .attr("x", width / 2)
         .attr("y", margin.top / 2)
@@ -147,15 +134,12 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .style("font-weight", "bold")
         .text("Resource Types");
     } else if (chartType === "pie") {
-      // Create pie chart
       const radius = Math.min(width, height) / 2 - margin.top;
 
-      // Color scale
       const color = d3.scaleOrdinal<string>()
         .domain(data.map(d => d.type))
         .range(d3.schemeCategory10);
 
-      // Create pie layout
       const pie = d3.pie<any>()
         .value(d => d.count)
         .sort(null);
@@ -171,7 +155,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
       const g = svg.append("g")
         .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-      // Add pie slices
       const arcs = g.selectAll(".arc")
         .data(pie(data))
         .enter()
@@ -186,7 +169,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .on("mouseover", function(event, d) {
           d3.select(this).attr("opacity", 0.8);
 
-          // Add tooltip
           g.append("text")
             .attr("class", "tooltip-text")
             .attr("text-anchor", "middle")
@@ -201,7 +183,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
           g.selectAll(".tooltip-text").remove();
         });
 
-      // Add labels
       arcs.append("text")
         .attr("transform", d => `translate(${labelArc.centroid(d)})`)
         .attr("dy", "0.35em")
@@ -211,13 +192,11 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .style("fill", "#fff")
         .style("font-weight", "bold")
         .each(function(d) {
-          // Hide labels for small slices
           if (d.data.count / data.reduce((sum, item) => sum + item.count, 0) < 0.05) {
             d3.select(this).style("display", "none");
           }
         });
 
-      // Add title
       svg.append("text")
         .attr("x", width / 2)
         .attr("y", 20)
@@ -234,7 +213,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
     const height = fullscreen ? window.innerHeight - 200 : 400;
     const margin = { top: 40, right: 120, bottom: 60, left: 80 };
 
-    // Mock data for resource sizes
     const resourceSizes: Record<string, number> = {
       document: 25,
       stylesheet: 120,
@@ -245,17 +223,14 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
       other: 30
     };
 
-    // Convert to array
     const data = Object.entries(resourceSizes).map(([type, size]) => ({
       type,
       size
     }));
 
-    // Sort by size
     data.sort((a, b) => b.size - a.size);
 
     if (chartType === "bar") {
-      // Create scales
       const x = d3.scaleBand()
         .domain(data.map(d => d.type))
         .range([margin.left, width - margin.right])
@@ -266,12 +241,10 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .nice()
         .range([height - margin.bottom, margin.top]);
 
-      // Color scale
       const color = d3.scaleOrdinal<string>()
         .domain(data.map(d => d.type))
         .range(d3.schemeCategory10);
 
-      // Add bars
       svg.selectAll(".bar")
         .data(data)
         .enter()
@@ -299,7 +272,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
           svg.selectAll(".tooltip-text").remove();
         });
 
-      // Add axes
       svg.append("g")
         .attr("transform", `translate(0,${height - margin.bottom})`)
         .call(d3.axisBottom(x))
@@ -313,7 +285,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .attr("transform", `translate(${margin.left},0)`)
         .call(d3.axisLeft(y).ticks(5).tickFormat(d => `${d} KB`));
 
-      // Add y-axis label
       svg.append("text")
         .attr("transform", "rotate(-90)")
         .attr("y", margin.left / 3)
@@ -321,7 +292,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .attr("text-anchor", "middle")
         .text("Size (KB)");
 
-      // Add title
       svg.append("text")
         .attr("x", width / 2)
         .attr("y", margin.top / 2)
@@ -330,18 +300,14 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .style("font-weight", "bold")
         .text("Resource Sizes by Type");
     } else if (chartType === "pie") {
-      // Create pie chart for file sizes
       const radius = Math.min(width, height) / 2 - margin.top;
 
-      // Total size for percentage calculations
       const totalSize = data.reduce((sum, d) => sum + d.size, 0);
 
-      // Color scale
       const color = d3.scaleOrdinal<string>()
         .domain(data.map(d => d.type))
         .range(d3.schemeCategory10);
 
-      // Create pie layout
       const pie = d3.pie<any>()
         .value(d => d.size)
         .sort(null);
@@ -357,7 +323,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
       const g = svg.append("g")
         .attr("transform", `translate(${width / 2}, ${height / 2})`);
 
-      // Add pie slices
       const arcs = g.selectAll(".arc")
         .data(pie(data))
         .enter()
@@ -372,7 +337,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .on("mouseover", function(event, d) {
           d3.select(this).attr("opacity", 0.8);
 
-          // Add tooltip
           g.append("text")
             .attr("class", "tooltip-text")
             .attr("text-anchor", "middle")
@@ -387,7 +351,6 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
           g.selectAll(".tooltip-text").remove();
         });
 
-      // Add labels
       arcs.append("text")
         .attr("transform", d => `translate(${labelArc.centroid(d)})`)
         .attr("dy", "0.35em")
@@ -397,13 +360,11 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
         .style("fill", "#fff")
         .style("font-weight", "bold")
         .each(function(d) {
-          // Hide labels for small slices
           if (d.data.size / totalSize < 0.05) {
             d3.select(this).style("display", "none");
           }
         });
 
-      // Add title
       svg.append("text")
         .attr("x", width / 2)
         .attr("y", 20)
@@ -419,10 +380,8 @@ const PerformanceVisualization: React.FC<PerformanceVisualizationProps> = ({ tes
     const width = fullscreen ? window.innerWidth - 100 : 600;
     const height = fullscreen ? window.innerHeight - 200 : 400;
 
-    // Clear svg
     svg.selectAll("*").remove();
 
-    // Add placeholder text
     svg.append("text")
       .attr("x", width / 2)
       .attr("y", height / 2)
