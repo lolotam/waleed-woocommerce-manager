@@ -1,4 +1,3 @@
-
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -209,7 +208,6 @@ interface PromptSettingsProps {
   onAiRoleChange: (role: string) => void;
 }
 
-// Example placeholder values for preview
 const placeholderExamples = {
   id: "1234",
   title: "Example Product",
@@ -240,7 +238,6 @@ const PromptSettings = ({
   });
   const [activeTab, setActiveTab] = useState<string>("template");
   
-  // New states for saving prompts
   const [savePromptDialogOpen, setSavePromptDialogOpen] = useState(false);
   const [promptTitle, setPromptTitle] = useState("");
   const [promptDescription, setPromptDescription] = useState("");
@@ -253,7 +250,6 @@ const PromptSettings = ({
     { name: "{{hyperlinks}}", description: "List of hyperlinks to include" }
   ]);
   
-  // New states for competitor websites
   const [competitorWebsites, setCompetitorWebsites] = useState<string[]>([
     "https://www.fragrantica.com",
     "https://klinq.com",
@@ -261,18 +257,15 @@ const PromptSettings = ({
   ]);
   const [newWebsite, setNewWebsite] = useState("");
   
-  // New state for hyperlinks from file
   const [hyperlinks, setHyperlinks] = useState<string[]>([
     "https://xsellpoint.com/product-category/new-arrival/",
-    "https://xsellpoint.com/product-category/best-sellers/",
+    "https://xsellpoint.com/product-category/bestsellers/",
     "https://xsellpoint.com/product-category/shop-by-brand/brand-international/cartier/"
   ]);
   
-  // File input ref
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
-    // Get available models and check API keys
     const models = getAvailableModels();
     const config = getAiConfig();
     
@@ -282,7 +275,6 @@ const PromptSettings = ({
       google: !!config.geminiApiKey
     });
     
-    // Filter models by provider
     let filteredModels;
     if (provider === 'openai') {
       filteredModels = models.filter(m => m.provider === 'openai');
@@ -296,53 +288,43 @@ const PromptSettings = ({
     
     setAvailableModels(filteredModels);
     
-    // Set default model for provider if current model doesn't match provider
     if (filteredModels.length > 0 && !filteredModels.some(m => m.id === model)) {
       onModelChange(filteredModels[0].id);
     }
   }, [provider, model, onModelChange]);
   
-  // Set default prompt if empty
   useEffect(() => {
     if (!prompt) {
       onPromptChange(defaultPrompt);
     }
   }, [prompt, onPromptChange]);
 
-  // Handle product type change
   const handleProductTypeChange = (type: string) => {
     onProductTypeChange(type);
     
-    // Update prompt based on product type if the prompt is one of the defaults
-    if (prompt === defaultPrompt || prompt === fragrancePrompt || prompt === electronics || prompt === clothing) {
-      let updatedPrompt = "";
-      if (type === "fragrance") {
-        updatedPrompt = fragrancePrompt;
-      } else if (type === "electronics") {
-        updatedPrompt = electronics;
-      } else if (type === "clothing") {
-        updatedPrompt = clothing;
-      } else {
-        updatedPrompt = defaultPrompt;
-      }
-      
-      // Add competitor websites and hyperlinks placeholders to the prompt
-      updatedPrompt = updatedPrompt
-        .replace("{{competitor_websites}}", competitorWebsites.map(w => `- ${w}`).join("\n"))
-        .replace("{{hyperlinks}}", hyperlinks.map(link => `  -${link}`).join("\n"));
-      
-      onPromptChange(updatedPrompt);
+    let updatedPrompt = "";
+    if (type === "fragrance") {
+      updatedPrompt = fragrancePrompt;
+    } else if (type === "electronics") {
+      updatedPrompt = electronics;
+    } else if (type === "clothing") {
+      updatedPrompt = clothing;
+    } else {
+      updatedPrompt = defaultPrompt;
     }
+    
+    updatedPrompt = updatedPrompt
+      .replace("{{competitor_websites}}", competitorWebsites.map(w => `- ${w}`).join("\n"))
+      .replace("{{hyperlinks}}", hyperlinks.map(link => `  -${link}`).join("\n"));
+    
+    onPromptChange(updatedPrompt);
   };
 
-  // Handle AI role change
   const handleAiRoleChange = (role: string) => {
     onAiRoleChange(role);
     
-    // Create a modified prompt based on the selected role
     let currentPrompt = prompt;
     
-    // Replace or add the role at the beginning of the prompt
     const roleIntros: {[key: string]: string} = {
       seo_expert: "You are an expert eCommerce SEO content writer. ",
       marketer: "You are a professional digital marketer specializing in eCommerce conversion optimization. ",
@@ -351,12 +333,10 @@ const PromptSettings = ({
       brand_specialist: "You are a luxury brand specialist who understands premium product positioning and storytelling. "
     };
     
-    // Remove any existing role intro
     Object.values(roleIntros).forEach(intro => {
       currentPrompt = currentPrompt.replace(intro, "");
     });
     
-    // Add the new role intro at the beginning
     if (roleIntros[role]) {
       currentPrompt = roleIntros[role] + currentPrompt;
     }
@@ -364,14 +344,12 @@ const PromptSettings = ({
     onPromptChange(currentPrompt);
   };
   
-  // Handle competitor website input
   const handleAddCompetitorWebsite = () => {
     if (newWebsite.trim() && !competitorWebsites.includes(newWebsite.trim())) {
       const updatedWebsites = [...competitorWebsites, newWebsite.trim()];
       setCompetitorWebsites(updatedWebsites);
       setNewWebsite("");
       
-      // Update the prompt with new competitor websites
       let updatedPrompt = prompt.replace(
         /{{competitor_websites}}/g, 
         updatedWebsites.map(w => `- ${w}`).join("\n")
@@ -381,12 +359,10 @@ const PromptSettings = ({
     }
   };
   
-  // Handle competitor website removal
   const handleRemoveCompetitorWebsite = (websiteToRemove: string) => {
     const updatedWebsites = competitorWebsites.filter(website => website !== websiteToRemove);
     setCompetitorWebsites(updatedWebsites);
     
-    // Update the prompt with updated competitor websites
     let updatedPrompt = prompt.replace(
       /{{competitor_websites}}/g, 
       updatedWebsites.map(w => `- ${w}`).join("\n")
@@ -395,7 +371,6 @@ const PromptSettings = ({
     onPromptChange(updatedPrompt);
   };
   
-  // Handle hyperlinks file upload
   const handleHyperlinksFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -404,7 +379,6 @@ const PromptSettings = ({
     reader.onload = (e) => {
       const content = e.target?.result as string;
       if (content) {
-        // Process file content (assuming each line is a hyperlink)
         const links = content.split('\n')
           .map(line => line.trim())
           .filter(line => line && (line.startsWith('http://') || line.startsWith('https://')));
@@ -412,7 +386,6 @@ const PromptSettings = ({
         if (links.length > 0) {
           setHyperlinks(links);
           
-          // Update the prompt with new hyperlinks
           let updatedPrompt = prompt.replace(
             /{{hyperlinks}}/g, 
             links.map(link => `  -${link}`).join("\n")
@@ -427,18 +400,15 @@ const PromptSettings = ({
     };
     reader.readAsText(file);
     
-    // Reset the file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
   };
 
-  // Function to toggle preview mode
   const togglePreviewMode = () => {
     setPreviewMode(!previewMode);
   };
 
-  // Function to get preview text with placeholders replaced
   const getPreviewText = () => {
     if (!previewMode) return prompt;
     
@@ -451,7 +421,6 @@ const PromptSettings = ({
     return previewText;
   };
 
-  // Function to add a placeholder at cursor position
   const addPlaceholderAtCursor = (placeholder: string) => {
     const textArea = document.getElementById('prompt-editor') as HTMLTextAreaElement;
     if (!textArea) return;
@@ -465,14 +434,19 @@ const PromptSettings = ({
     const newPrompt = textBefore + placeholder + textAfter;
     onPromptChange(newPrompt);
     
-    // Set cursor position after the inserted placeholder
     setTimeout(() => {
       textArea.focus();
       textArea.setSelectionRange(startPos + placeholder.length, startPos + placeholder.length);
     }, 0);
   };
 
-  // Function to save the current prompt
+  const handleAddCustomPlaceholder = () => {
+    const customPlaceholder = window.prompt("Enter custom placeholder name (without {{ }})");
+    if (customPlaceholder) {
+      addPlaceholderAtCursor(`{{${customPlaceholder}}}`);
+    }
+  };
+
   const saveCurrentPrompt = () => {
     if (!promptTitle.trim()) {
       toast.error("Please enter a title for your prompt");
@@ -480,7 +454,6 @@ const PromptSettings = ({
     }
 
     try {
-      // Create new prompt object
       const newPrompt: SavedPrompt = {
         id: uuidv4(),
         title: promptTitle,
@@ -492,15 +465,12 @@ const PromptSettings = ({
         updatedAt: new Date().toISOString()
       };
 
-      // Get existing prompts from localStorage
       const existingPrompts = localStorage.getItem('saved_prompts');
       const prompts = existingPrompts ? JSON.parse(existingPrompts) : [];
 
-      // Add new prompt and save back to localStorage
       prompts.push(newPrompt);
       localStorage.setItem('saved_prompts', JSON.stringify(prompts));
 
-      // Reset form and close dialog
       setPromptTitle("");
       setPromptDescription("");
       setSavePromptDialogOpen(false);
@@ -578,7 +548,6 @@ const PromptSettings = ({
             </div>
           </div>
           
-          {/* Competitor Websites Section */}
           <div className="space-y-4 border p-4 rounded-md">
             <h3 className="font-medium">Competitor Websites for Research</h3>
             <p className="text-sm text-muted-foreground">
@@ -619,7 +588,6 @@ const PromptSettings = ({
             </div>
           </div>
           
-          {/* Hyperlinks File Upload */}
           <div className="space-y-4 border p-4 rounded-md">
             <h3 className="font-medium">Hyperlinks for Product Descriptions</h3>
             <p className="text-sm text-muted-foreground">
@@ -765,7 +733,6 @@ const PromptSettings = ({
             readOnly={previewMode}
           />
           
-          {/* Placeholder insert buttons */}
           <div className="space-y-2">
             <Label>Insert Placeholders:</Label>
             <div className="flex flex-wrap gap-2">
@@ -785,12 +752,7 @@ const PromptSettings = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => {
-                  const customPlaceholder = prompt(`Enter custom placeholder name (without {{ }})`);
-                  if (customPlaceholder) {
-                    addPlaceholderAtCursor(`{{${customPlaceholder}}}`);
-                  }
-                }}
+                onClick={handleAddCustomPlaceholder}
                 className="text-xs"
                 disabled={previewMode}
               >
@@ -805,7 +767,6 @@ const PromptSettings = ({
         </TabsContent>
       </Tabs>
       
-      {/* Save Prompt Dialog */}
       <Dialog open={savePromptDialogOpen} onOpenChange={setSavePromptDialogOpen}>
         <DialogContent>
           <DialogHeader>
