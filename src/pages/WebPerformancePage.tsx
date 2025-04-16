@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PerformanceTestConfig, PerformanceTestResult } from "@/types/performance";
+import { PerformanceTestConfig, PerformanceTestResult, TestHistoryItem } from "@/types/performance";
 import { toast } from "@/components/ui/use-toast";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestHistory from "@/components/Performance/TestHistory";
@@ -17,6 +17,8 @@ import useTestQueue from "@/hooks/useTestQueue";
 const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
   const [url, setUrl] = useState("");
+  const [historyData, setHistoryData] = useState<TestHistoryItem[]>([]);
+  
   const { 
     runTest, 
     isLoading: testRunning, 
@@ -35,6 +37,46 @@ const WebPerformancePage = () => {
   
   const [activeTest, setActiveTest] = useState(null);
   const [selectedTestResult, setSelectedTestResult] = useState<PerformanceTestResult | null>(null);
+  
+  // Load test history
+  useEffect(() => {
+    // In a real app, we would fetch this from the API
+    // This is mock data for demonstration
+    const mockHistoryData: TestHistoryItem[] = [
+      {
+        id: "test-1",
+        url: "https://example.com",
+        testDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+        overallScore: 65
+      },
+      {
+        id: "test-2",
+        url: "https://example.com",
+        testDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+        overallScore: 70
+      },
+      {
+        id: "test-3",
+        url: "https://example.com",
+        testDate: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days ago
+        overallScore: 68
+      },
+      {
+        id: "test-4",
+        url: "https://example.com",
+        testDate: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(), // 1 day ago
+        overallScore: 75
+      },
+      {
+        id: "mock-test", // This matches our current test ID in the mock data
+        url: "https://example.com",
+        testDate: new Date().toISOString(), // Today
+        overallScore: 72
+      }
+    ];
+    
+    setHistoryData(mockHistoryData);
+  }, []);
   
   // Fetch active test data periodically
   useEffect(() => {
@@ -216,7 +258,8 @@ const WebPerformancePage = () => {
           <TestResultsDashboard 
             testResult={selectedTestResult || testResult} 
             onTestAgain={handleTestAgain} 
-            isLoading={testRunning || queueLoading} 
+            isLoading={testRunning || queueLoading}
+            historyData={historyData}
           />
         </TabsContent>
         

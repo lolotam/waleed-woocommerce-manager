@@ -4,21 +4,24 @@ import { Download, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult } from "@/types/performance";
+import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult, TestHistoryItem } from "@/types/performance";
 import ResourceWaterfallChart from "./charts/ResourceWaterfallChart";
 import RecommendationsPanel from "./RecommendationsPanel";
 import PerformanceScoreDashboard from "./charts/PerformanceScoreDashboard";
+import HistoricalComparisonChart from "./charts/HistoricalComparisonChart";
 
 interface TestResultsDashboardProps {
   testResult?: PerformanceTestResult | null;
   onTestAgain?: () => void;
   isLoading?: boolean;
+  historyData?: TestHistoryItem[];
 }
 
 const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({ 
   testResult, 
   onTestAgain, 
-  isLoading = false 
+  isLoading = false,
+  historyData = []
 }) => {
   // If no test result is provided, use mock data
   const [scores, setScores] = useState<PerformanceScore>({
@@ -144,6 +147,9 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
           <TabsTrigger value="recommendations">
             Recommendations
           </TabsTrigger>
+          <TabsTrigger value="history">
+            History
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="dashboard">
@@ -200,6 +206,14 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
                 browser: "chrome"
               }
             }}
+          />
+        </TabsContent>
+        
+        <TabsContent value="history">
+          <HistoricalComparisonChart 
+            historyData={historyData} 
+            currentTestId={testResult?.id}
+            isLoading={isLoading}
           />
         </TabsContent>
       </Tabs>
