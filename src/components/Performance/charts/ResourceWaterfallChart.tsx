@@ -1,7 +1,7 @@
 
 import React, { useState } from "react";
 import { ChartContainer } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
@@ -66,12 +66,6 @@ const ResourceWaterfallChart = () => {
     item.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // Pre-process the data to include color information
-  const coloredData = filteredData.map(item => ({
-    ...item,
-    color: getResourceTypeColor(item.type)
-  }));
-  
   const config = {
     html: { color: "#4299e1" },
     css: { color: "#48bb78" },
@@ -124,7 +118,7 @@ const ResourceWaterfallChart = () => {
         <ChartContainer config={config} className="w-full h-[1500px]">
           <BarChart
             layout="vertical"
-            data={coloredData}
+            data={filteredData}
             margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -145,20 +139,12 @@ const ResourceWaterfallChart = () => {
               radius={[0, 4, 4, 0]}
               fillOpacity={0.8}
               stroke="none"
-              fill="#8884d8"
-              // Use fillOpacity attribute to make fill work with colors from data
-              getBar={(props) => {
-                const { fill, x, y, width, height, background, radius, index, ...others } = props;
-                const item = coloredData[index];
-                return (
-                  <path
-                    {...others}
-                    fill={item.color}
-                    d={`M${x},${y + height}h${width}a${radius[0]},${radius[0]},0,0,1,${radius[0]},${-radius[0]}v${height - radius[0] - radius[1]}a${radius[1]},${radius[1]},0,0,1,${radius[1]},${-radius[1]}h${-width}Z`}
-                  />
-                );
-              }}
-            />
+              fill="#8884d8" // Default fill that will be overridden by Cell
+            >
+              {filteredData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={getResourceTypeColor(entry.type)} />
+              ))}
+            </Bar>
           </BarChart>
         </ChartContainer>
       </div>
