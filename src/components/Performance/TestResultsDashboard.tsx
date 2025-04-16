@@ -1,15 +1,12 @@
-
 import { useState, useEffect } from "react";
-import { BarChart as BarChartIcon, Download, Share2, RefreshCw } from "lucide-react";
+import { Download, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult } from "@/types/performance";
-import PerformanceScoreCard from "./charts/PerformanceScoreCard";
-import PerformanceMetricsChart from "./charts/PerformanceMetricsChart";
 import ResourceWaterfallChart from "./charts/ResourceWaterfallChart";
 import RecommendationsList from "./RecommendationsList";
+import PerformanceScoreDashboard from "./charts/PerformanceScoreDashboard";
 
 interface TestResultsDashboardProps {
   testResult?: PerformanceTestResult | null;
@@ -135,98 +132,36 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <PerformanceScoreCard title="Overall Score" score={scores.overall} />
-        <PerformanceScoreCard title="Speed" score={scores.speed} />
-        <PerformanceScoreCard title="Optimization" score={scores.optimization} />
-        <PerformanceScoreCard title="Accessibility" score={scores.accessibility} />
-      </div>
-
-      <Tabs defaultValue="metrics" className="space-y-4">
+      <Tabs defaultValue="dashboard" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="metrics">
-            <BarChartIcon className="h-4 w-4 mr-2" />
-            Performance Metrics
+          <TabsTrigger value="dashboard">
+            Dashboard
           </TabsTrigger>
           <TabsTrigger value="waterfall">
-            Timeline
+            Resource Timeline
           </TabsTrigger>
           <TabsTrigger value="recommendations">
             Recommendations
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="metrics">
-          <Card>
-            <CardHeader>
-              <CardTitle>Core Web Vitals & Metrics</CardTitle>
-              <CardDescription>
-                Key performance indicators that affect user experience
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px]">
-                <PerformanceMetricsChart metrics={metrics} />
-              </div>
-              
-              <Accordion type="single" collapsible className="mt-6">
-                <AccordionItem value="metrics-details">
-                  <AccordionTrigger>Metrics Details</AccordionTrigger>
-                  <AccordionContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Page Load Time</h4>
-                        <p className="text-2xl font-bold">{metrics.pageLoadTime.toFixed(1)}s</p>
-                        <p className="text-sm text-muted-foreground">
-                          Total time to fully load the page
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Total Page Size</h4>
-                        <p className="text-2xl font-bold">{metrics.totalPageSize.toFixed(1)} MB</p>
-                        <p className="text-sm text-muted-foreground">
-                          Total size of all resources
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Number of Requests</h4>
-                        <p className="text-2xl font-bold">{metrics.numberOfRequests}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Total HTTP requests made
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-medium">First Contentful Paint</h4>
-                        <p className="text-2xl font-bold">{metrics.firstContentfulPaint.toFixed(1)}s</p>
-                        <p className="text-sm text-muted-foreground">
-                          Time until first content is painted
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Largest Contentful Paint</h4>
-                        <p className="text-2xl font-bold">{metrics.largestContentfulPaint.toFixed(1)}s</p>
-                        <p className="text-sm text-muted-foreground">
-                          Time until largest content element is visible
-                        </p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-medium">Time to Interactive</h4>
-                        <p className="text-2xl font-bold">{metrics.timeToInteractive.toFixed(1)}s</p>
-                        <p className="text-sm text-muted-foreground">
-                          Time until the page becomes fully interactive
-                        </p>
-                      </div>
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
+        <TabsContent value="dashboard">
+          <PerformanceScoreDashboard testResult={testResult || {
+            id: "mock-test",
+            url: "https://example.com",
+            testDate: new Date().toISOString(),
+            metrics,
+            scores,
+            resources: [],
+            recommendations,
+            config: {
+              url: "https://example.com",
+              device: "desktop",
+              connection: "fast",
+              location: "us-east",
+              browser: "chrome"
+            }
+          }} />
         </TabsContent>
         
         <TabsContent value="waterfall">

@@ -221,6 +221,12 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
     return sortDirection === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
   };
 
+  // Define chart config for the ChartContainer
+  const chartConfig = {
+    height: Math.max(500, 30 * processedData.length),
+    colors: Object.values(resourceTypeColors).map(c => c.color)
+  };
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex flex-col gap-4 mb-4">
@@ -307,6 +313,7 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
         <ChartContainer 
           className="w-full"
           style={{ height: Math.max(500, 30 * processedData.length) }}
+          config={chartConfig}
         >
           <BarChart
             layout="vertical"

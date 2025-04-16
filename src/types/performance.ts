@@ -1,3 +1,4 @@
+
 export interface PerformanceMetrics {
   pageLoadTime: number;
   totalPageSize: number;
