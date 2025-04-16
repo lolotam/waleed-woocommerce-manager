@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -178,17 +177,17 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
         <h3 className="text-lg font-medium">WooCommerce Connection</h3>
         
         {oauthIssues.length > 0 && (
-          <Alert variant="warning" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertTitle>Potential Authentication Issues Detected</AlertTitle>
-            <AlertDescription>
-              <ul className="list-disc pl-5 text-sm mt-1">
-                {oauthIssues.map((issue, index) => (
-                  <li key={index}>{issue}</li>
-                ))}
-              </ul>
-            </AlertDescription>
-          </Alert>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Potential Authentication Issues Detected</AlertTitle>
+          <AlertDescription>
+            <ul className="list-disc pl-5 text-sm mt-1">
+              {oauthIssues.map((issue, index) => (
+                <li key={index}>{issue}</li>
+              ))}
+            </ul>
+          </AlertDescription>
+        </Alert>
         )}
         
         <div className="grid gap-4">
