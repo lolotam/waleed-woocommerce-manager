@@ -1,12 +1,13 @@
 
-import { useState, useEffect } from "react";
-import { BarChart, Clock, Globe, RefreshCw } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { BarChart, Clock, Globe, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformanceTestConfig } from "@/types/performance";
 import { toast } from "@/components/ui/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestHistory from "@/components/Performance/TestHistory";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
@@ -46,7 +47,7 @@ const WebPerformancePage = () => {
     }
   }, [error]);
 
-  const handleQuickTest = async () => {
+  const handleQuickTest = useCallback(async () => {
     if (!isValidUrl(url)) {
       toast({
         title: "Invalid URL",
@@ -74,9 +75,9 @@ const WebPerformancePage = () => {
     if (result) {
       setActiveTab("results");
     }
-  };
+  }, [url, runTest]);
 
-  const handleAdvancedTest = async (config: PerformanceTestConfig) => {
+  const handleAdvancedTest = useCallback(async (config: PerformanceTestConfig) => {
     // Normalize the URL
     config.url = normalizeUrl(config.url);
     
@@ -84,11 +85,11 @@ const WebPerformancePage = () => {
     if (result) {
       setActiveTab("results");
     }
-  };
+  }, [runTest]);
 
-  const handleTestAgain = () => {
+  const handleTestAgain = useCallback(() => {
     setActiveTab("test");
-  };
+  }, []);
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -112,14 +113,21 @@ const WebPerformancePage = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
-          <div className="flex gap-2">
-            <Input
-              placeholder="example.com (https:// will be added automatically)"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              className="flex-1"
-            />
-            <Button onClick={handleQuickTest} disabled={isLoading || !url}>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div className="relative flex-1">
+              <Input
+                placeholder="example.com or https://example.com"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                className="w-full pr-24"
+              />
+              {!url && (
+                <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-muted-foreground/70 text-sm">
+                  https://
+                </div>
+              )}
+            </div>
+            <Button onClick={handleQuickTest} disabled={isLoading || !url} className="sm:w-auto w-full">
               {isLoading ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
@@ -130,6 +138,14 @@ const WebPerformancePage = () => {
               )}
             </Button>
           </div>
+          
+          <Alert className="mt-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Important</AlertTitle>
+            <AlertDescription>
+              This tool simulates performance testing. In a production environment, it would connect to a backend API that performs real crawling.
+            </AlertDescription>
+          </Alert>
         </CardContent>
       </Card>
 

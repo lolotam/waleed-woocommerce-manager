@@ -1,4 +1,3 @@
-
 export interface PerformanceMetrics {
   pageLoadTime: number;
   totalPageSize: number;
@@ -98,4 +97,5 @@ export interface CrawlerResult {
   lighthouse: LighthouseMetrics;
   requests: CrawlerRequest[];
   responses: CrawlerResponse[];
+  error?: string; // Optional error message if crawling fails
 }

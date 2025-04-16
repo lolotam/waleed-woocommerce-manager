@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useCallback } from "react";
 import { 
   PerformanceTestConfig, 
   CrawlerResult, 
@@ -15,18 +16,32 @@ export function usePerformanceTest() {
   const [crawlerResult, setCrawlerResult] = useState<CrawlerResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const runTest = async (config: PerformanceTestConfig) => {
+  const runTest = useCallback(async (config: PerformanceTestConfig) => {
     setIsLoading(true);
     setError(null);
     
     try {
+      // Validate URL format
+      if (!config.url || config.url.trim() === '') {
+        throw new Error("Please enter a valid URL");
+      }
+      
       // Call the crawler service
       const result = await runPerformanceTest(config);
       setCrawlerResult(result);
       
+      // Check if there was an error reported by the crawler
+      if (result.error) {
+        setError(result.error);
+        return null;
+      }
+      
       // Transform crawler result to our app's test result format
       const transformedResult = transformCrawlerResult(result, config);
       setTestResult(transformedResult);
+      
+      // Save to test history (would typically be done via an API or localStorage)
+      // saveTestToHistory(transformedResult);
       
       return transformedResult;
     } catch (err) {
@@ -36,7 +51,7 @@ export function usePerformanceTest() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   return {
     runTest,

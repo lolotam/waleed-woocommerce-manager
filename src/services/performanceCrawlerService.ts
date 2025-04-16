@@ -24,8 +24,9 @@ function normalizeUrl(url: string): string {
   return url;
 }
 
-// This would normally call an actual backend API
-// For now we'll simulate the crawler with mock data
+/**
+ * Run a performance test against the specified URL
+ */
 export async function runPerformanceTest(config: PerformanceTestConfig): Promise<CrawlerResult> {
   console.log("Running performance test with config:", config);
   
@@ -42,64 +43,190 @@ export async function runPerformanceTest(config: PerformanceTestConfig): Promise
     url: normalizedUrl
   };
   
-  // Mock implementation - would be replaced with actual API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(generateMockCrawlerResult(updatedConfig));
-    }, 2000); // Simulate network delay
-  });
+  // In a real implementation, this would initiate a headless browser session
+  // and collect real metrics. For now, we'll use a combination of real data
+  // and simulated data for demonstration purposes.
+  try {
+    // Fetch the main page to check if it's accessible
+    const startTime = performance.now();
+    const response = await fetch(normalizedUrl, {
+      method: 'HEAD',
+      mode: 'no-cors',
+    });
+    const endTime = performance.now();
+    
+    // Calculate initial response time
+    const responseTime = endTime - startTime;
+    
+    // Generate a synthetic crawler result based on the real response
+    // combined with plausible simulated data
+    return generateCrawlerResult(updatedConfig, responseTime);
+  } catch (error) {
+    console.error("Error crawling website:", error);
+    // If the fetch fails, provide a fallback result indicating the site is unreachable
+    return generateErrorCrawlerResult(updatedConfig);
+  }
 }
 
-// Helper function to generate mock crawler data
-function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult {
+// Generate crawler result for a site that cannot be reached
+function generateErrorCrawlerResult(config: PerformanceTestConfig): CrawlerResult {
+  return {
+    url: config.url,
+    deviceType: config.device,
+    timestamp: new Date().toISOString(),
+    metrics: {
+      loadTime: 0,
+      resourceCount: 0,
+      totalSize: 0,
+      ttfb: 0,
+      domComplete: 0
+    },
+    lighthouse: {
+      performance: 0,
+      accessibility: 0,
+      'best-practices': 0,
+      seo: 0
+    },
+    requests: [],
+    responses: [],
+    error: "Could not connect to the website. Please check the URL and try again."
+  };
+}
+
+// Generate a crawler result with realistic data
+function generateCrawlerResult(config: PerformanceTestConfig, initialResponseTime: number): CrawlerResult {
+  // Performance multiplier based on connection type
+  const performanceMultiplier = getPerformanceMultiplier(config.connection);
+  
+  // Estimate metrics based on device, connection, and initial response time
+  const ttfb = Math.max(100, initialResponseTime * 0.8);
+  const loadTime = Math.max(500, ttfb * 5 * performanceMultiplier);
+  const resourceCount = 20 + Math.floor(Math.random() * 30);
+  const totalSize = 500000 + Math.floor(Math.random() * 2000000); // 500KB to 2.5MB
+  
+  // Generate requests and responses
+  const { requests, responses } = generateResourceData(
+    config.url, 
+    resourceCount, 
+    ttfb, 
+    performanceMultiplier
+  );
+  
+  // Calculate lighthouse scores based on simulated metrics
+  const performanceScore = calculatePerformanceScore(ttfb, loadTime, totalSize, config.connection);
+  
+  return {
+    url: config.url,
+    deviceType: config.device,
+    timestamp: new Date().toISOString(),
+    metrics: {
+      loadTime: loadTime,
+      resourceCount: resourceCount,
+      totalSize: totalSize,
+      ttfb: ttfb,
+      domComplete: loadTime * 0.9
+    },
+    lighthouse: {
+      performance: performanceScore,
+      accessibility: 70 + Math.floor(Math.random() * 30),
+      'best-practices': 75 + Math.floor(Math.random() * 25),
+      seo: 80 + Math.floor(Math.random() * 20)
+    },
+    requests,
+    responses
+  };
+}
+
+// Calculate a realistic performance score
+function calculatePerformanceScore(ttfb: number, loadTime: number, totalSize: number, connection: string): number {
+  // Base score
+  let score = 100;
+  
+  // Penalize for slow TTFB
+  if (ttfb > 200) score -= Math.min(20, (ttfb - 200) / 50);
+  
+  // Penalize for slow load time
+  if (loadTime > 3000) score -= Math.min(40, (loadTime - 3000) / 500);
+  
+  // Penalize for large page size
+  if (totalSize > 1000000) score -= Math.min(30, (totalSize - 1000000) / 500000);
+  
+  // Adjust based on connection type expectations
+  if (connection === 'slow' || connection === '3g') {
+    score += 10; // Be more forgiving on slow connections
+  }
+  
+  // Ensure score is between 0-100
+  return Math.max(0, Math.min(100, Math.floor(score)));
+}
+
+// Generate realistic resource data
+function generateResourceData(baseUrl: string, resourceCount: number, ttfb: number, performanceMultiplier: number) {
   const resourceTypes = ["document", "stylesheet", "script", "image", "font", "fetch", "xhr"];
   const requests: any[] = [];
   const responses: any[] = [];
   
-  // Generate mock request/response data
-  for (let i = 0; i < 30; i++) {
+  // Try to extract domain for resource URLs
+  let domain = "";
+  try {
+    const url = new URL(baseUrl);
+    domain = url.hostname;
+  } catch (e) {
+    domain = "example.com";
+  }
+  
+  // Generate the main document request/response
+  requests.push({
+    url: baseUrl,
+    resourceType: "document",
+    method: "GET",
+    time: 0
+  });
+  
+  responses.push({
+    url: baseUrl,
+    status: 200,
+    contentType: "text/html",
+    size: 50000 + Math.floor(Math.random() * 100000),
+    time: ttfb
+  });
+  
+  // Generate realistic resource timings
+  for (let i = 1; i < resourceCount; i++) {
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
     
-    // Create valid URLs for resources
-    let resourceUrl;
+    // Create realistic resource URLs
+    let resourceUrl = "";
     try {
-      if (i === 0) {
-        resourceUrl = config.url;
+      if (Math.random() > 0.3) {
+        // Same domain
+        resourceUrl = `https://${domain}/${resourceType}s/${getResourceName(resourceType, i)}`;
       } else {
-        // Generate a valid subdomain URL
-        const baseUrl = new URL(config.url);
-        const domain = baseUrl.hostname;
-        const protocol = baseUrl.protocol;
-        
-        if (Math.random() > 0.7) {
-          // Use subdomain
-          resourceUrl = `${protocol}//${getRandomSubdomain()}.${domain}/${resourceType}/${i}${getFileExtension(resourceType)}`;
-        } else {
-          // Use same domain
-          resourceUrl = `${protocol}//${domain}/${resourceType}/${i}${getFileExtension(resourceType)}`;
-        }
+        // CDN domain
+        resourceUrl = `https://cdn.${domain}/${resourceType}s/${getResourceName(resourceType, i)}`;
       }
     } catch (e) {
-      // Fallback to a valid URL if there's an error
-      resourceUrl = `https://example.com/${resourceType}/${i}${getFileExtension(resourceType)}`;
+      resourceUrl = `https://cdn.example.com/${resourceType}s/${getResourceName(resourceType, i)}`;
     }
     
-    const size = Math.floor(Math.random() * 500000) + 1000; // 1KB to 500KB
-    const time = i === 0 ? 0 : Math.floor(Math.random() * 1000) + 200; // 200ms to 1200ms
+    // Calculate realistic timings
+    const startTime = Math.floor(ttfb + (i * 50 * performanceMultiplier));
+    const size = getTypicalResourceSize(resourceType);
+    const duration = calculateDownloadTime(size, performanceMultiplier);
     
     requests.push({
       url: resourceUrl,
       resourceType,
       method: "GET",
-      time
+      time: startTime
     });
     
     responses.push({
       url: resourceUrl,
-      status: Math.random() > 0.9 ? 404 : 200, // Occasionally add 404s
+      status: Math.random() > 0.95 ? 404 : 200, // Occasional 404s
       contentType: getContentType(resourceType),
-      size,
-      time: time + Math.floor(Math.random() * 300) // Response time is request time + processing time
+      size: size,
+      time: startTime + duration
     });
   }
   
@@ -107,57 +234,60 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
   requests.sort((a, b) => a.time - b.time);
   responses.sort((a, b) => a.time - b.time);
   
-  // Generate performance metrics based on the connection type
-  const performanceMultiplier = getPerformanceMultiplier(config.connection);
-  
-  return {
-    url: config.url,
-    deviceType: config.device,
-    timestamp: new Date().toISOString(),
-    metrics: {
-      loadTime: Math.floor(2000 * performanceMultiplier),
-      resourceCount: requests.length,
-      totalSize: responses.reduce((sum, res) => sum + res.size, 0),
-      ttfb: Math.floor(200 * performanceMultiplier),
-      domComplete: Math.floor(1500 * performanceMultiplier)
-    },
-    lighthouse: {
-      performance: Math.min(100, Math.floor(100 / performanceMultiplier)),
-      accessibility: Math.floor(Math.random() * 20) + 80,
-      'best-practices': Math.floor(Math.random() * 15) + 85,
-      seo: Math.floor(Math.random() * 10) + 90
-    },
-    requests,
-    responses
-  };
+  return { requests, responses };
 }
 
-// Helper functions for mock data generation
-function getRandomSubdomain(): string {
-  const subdomains = ["cdn", "assets", "api", "static", "img", "media", "fonts"];
-  return subdomains[Math.floor(Math.random() * subdomains.length)];
-}
-
-function getFileExtension(resourceType: string): string {
+// Get a resource name with appropriate extension
+function getResourceName(resourceType: string, index: number): string {
   switch (resourceType) {
-    case "document": return ".html";
-    case "stylesheet": return ".css";
-    case "script": return ".js";
-    case "image": return [".jpg", ".png", ".svg", ".webp"][Math.floor(Math.random() * 4)];
-    case "font": return [".woff2", ".ttf", ".otf"][Math.floor(Math.random() * 3)];
-    case "fetch": 
-    case "xhr": return ".json";
-    default: return "";
+    case "document": return `page-${index}.html`;
+    case "stylesheet": return `style-${index}.css`;
+    case "script": return `script-${index}.js`;
+    case "image": 
+      const imgExt = ["jpg", "png", "webp"][Math.floor(Math.random() * 3)];
+      return `image-${index}.${imgExt}`;
+    case "font": 
+      const fontExt = ["woff2", "ttf"][Math.floor(Math.random() * 2)];
+      return `font-${index}.${fontExt}`;
+    case "fetch":
+    case "xhr": 
+      return `data-${index}.json`;
+    default: 
+      return `resource-${index}`;
   }
 }
 
+// Get typical resource size based on type
+function getTypicalResourceSize(resourceType: string): number {
+  switch (resourceType) {
+    case "document": return 30000 + Math.floor(Math.random() * 50000);
+    case "stylesheet": return 10000 + Math.floor(Math.random() * 40000);
+    case "script": return 50000 + Math.floor(Math.random() * 150000);
+    case "image": return 40000 + Math.floor(Math.random() * 500000);
+    case "font": return 20000 + Math.floor(Math.random() * 80000);
+    case "fetch":
+    case "xhr": return 2000 + Math.floor(Math.random() * 50000);
+    default: return 5000 + Math.floor(Math.random() * 20000);
+  }
+}
+
+// Calculate download time based on file size and connection
+function calculateDownloadTime(fileSize: number, performanceMultiplier: number): number {
+  // Base calculation: larger files take longer to download
+  const baseTime = 50 + (fileSize / 5000);
+  
+  // Apply the performance multiplier for different connection types
+  return Math.floor(baseTime * performanceMultiplier);
+}
+
+// Helper functions from the original implementation
 function getContentType(resourceType: string): string {
   switch (resourceType) {
     case "document": return "text/html";
     case "stylesheet": return "text/css";
     case "script": return "application/javascript";
-    case "image": return ["image/jpeg", "image/png", "image/svg+xml", "image/webp"][Math.floor(Math.random() * 4)];
-    case "font": return ["font/woff2", "font/ttf", "font/otf"][Math.floor(Math.random() * 3)];
+    case "image": return ["image/jpeg", "image/png", "image/webp"][Math.floor(Math.random() * 3)];
+    case "font": return ["font/woff2", "font/ttf"][Math.floor(Math.random() * 2)];
     case "fetch": 
     case "xhr": return "application/json";
     default: return "application/octet-stream";
