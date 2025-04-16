@@ -1,11 +1,11 @@
+
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button"
+import { Button } from "@/components/ui/button";
 import { AlertCircle, Settings } from "lucide-react";
-import BrandLogoConfig from "@/components/BrandLogo/BrandLogoConfig";
 import BrandLogoUpload from "@/components/BrandLogo/BrandLogoUpload";
 import BrandLogoMapping from "@/components/BrandLogo/BrandLogoMapping";
 import BrandLogoProcessing from "@/components/BrandLogo/BrandLogoProcessing";
@@ -34,12 +34,13 @@ const BrandLogoUploader = () => {
     allowFolderUpload: true
   });
   
-  const [activeTab, setActiveTab] = useState<string>("config");
+  const [activeTab, setActiveTab] = useState<string>("upload");
   const [isConfigured, setIsConfigured] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   
   useEffect(() => {
+    // Get WooCommerce config from main settings
     const wcConfig = getWooCommerceConfig();
     const isConfigValid = Boolean(
       (wcConfig.authMethod === 'app_password' && wcConfig.wpUsername && wcConfig.wpAppPassword) ||
@@ -51,17 +52,28 @@ const BrandLogoUploader = () => {
     
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ['config', 'upload', 'mapping', 'processing'].includes(tabParam)) {
+    if (tabParam && ['upload', 'mapping', 'processing'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (!isConfigValid) {
-      setActiveTab('config');
+      // If not configured, stay on upload tab but show warning
+      setActiveTab('upload');
     }
     
+    // Load brand logo specific settings (not WooCommerce connection settings)
     const savedConfig = localStorage.getItem('brand_logo_config');
     if (savedConfig) {
       try {
         const parsedConfig = JSON.parse(savedConfig);
-        setConfig(prev => ({...prev, ...parsedConfig}));
+        // Only take the logo-specific settings, not the WooCommerce connection settings
+        const { targetType, addToDescription, fuzzyMatching, saveConfigurations, allowFolderUpload } = parsedConfig;
+        setConfig(prev => ({
+          ...prev, 
+          targetType: targetType || prev.targetType,
+          addToDescription: addToDescription !== undefined ? addToDescription : prev.addToDescription,
+          fuzzyMatching: fuzzyMatching !== undefined ? fuzzyMatching : prev.fuzzyMatching,
+          saveConfigurations: saveConfigurations !== undefined ? saveConfigurations : prev.saveConfigurations,
+          allowFolderUpload: allowFolderUpload !== undefined ? allowFolderUpload : prev.allowFolderUpload
+        }));
       } catch (error) {
         console.error("Error loading saved configuration:", error);
       }
@@ -114,10 +126,22 @@ const BrandLogoUploader = () => {
   
   const handleUpdateConfig = (newConfig: Partial<BrandLogoConfigType>) => {
     setConfig(prev => ({...prev, ...newConfig}));
-  };
-  
-  const addLogEntry = (message: string) => {
-    setProcessLog(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+    
+    // Save only logo-specific settings to localStorage
+    if (config.saveConfigurations) {
+      const { targetType, addToDescription, fuzzyMatching, saveConfigurations, allowFolderUpload } = {
+        ...config,
+        ...newConfig
+      };
+      
+      localStorage.setItem('brand_logo_config', JSON.stringify({
+        targetType,
+        addToDescription,
+        fuzzyMatching,
+        saveConfigurations,
+        allowFolderUpload
+      }));
+    }
   };
   
   const handleStartProcessing = async () => {
@@ -130,7 +154,14 @@ const BrandLogoUploader = () => {
     setProcessTracking({success: 0, failed: 0, total: uploadedFiles.length});
     
     if (config.saveConfigurations) {
-      localStorage.setItem('brand_logo_config', JSON.stringify(config));
+      const { targetType, addToDescription, fuzzyMatching, saveConfigurations, allowFolderUpload } = config;
+      localStorage.setItem('brand_logo_config', JSON.stringify({
+        targetType,
+        addToDescription,
+        fuzzyMatching,
+        saveConfigurations,
+        allowFolderUpload
+      }));
     }
     
     try {
@@ -210,16 +241,16 @@ const BrandLogoUploader = () => {
         </p>
       </div>
       
-      {!isConfigured && activeTab !== 'config' && (
+      {!isConfigured && (
         <Alert variant="destructive" className="mb-4">
           <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Required</AlertTitle>
+          <AlertTitle>WooCommerce Configuration Required</AlertTitle>
           <AlertDescription className="flex justify-between items-center">
             <span>WooCommerce connection not configured properly</span>
             <Button 
               variant="outline" 
               size="sm" 
-              onClick={() => handleTabChange('config')}
+              onClick={() => navigate('/settings')}
               className="ml-2"
             >
               <Settings className="mr-2 h-4 w-4" />
@@ -229,30 +260,25 @@ const BrandLogoUploader = () => {
         </Alert>
       )}
       
+      <Card className="mb-6">
+        <CardHeader className="pb-3">
+          <CardTitle>Upload Settings</CardTitle>
+          <CardDescription>Configure how logos are processed and uploaded</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <BrandLogoConfig 
+            config={config} 
+            onUpdateConfig={handleUpdateConfig} 
+          />
+        </CardContent>
+      </Card>
+      
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="config">Configuration</TabsTrigger>
-          <TabsTrigger value="upload" disabled={!isConfigured}>Upload Logos</TabsTrigger>
-          <TabsTrigger value="mapping" disabled={!isConfigured || uploadedFiles.length === 0}>Brand Mapping</TabsTrigger>
-          <TabsTrigger value="processing" disabled={!isConfigured || uploadedFiles.length === 0}>Processing</TabsTrigger>
+          <TabsTrigger value="upload">Upload Logos</TabsTrigger>
+          <TabsTrigger value="mapping" disabled={uploadedFiles.length === 0}>Brand Mapping</TabsTrigger>
+          <TabsTrigger value="processing" disabled={uploadedFiles.length === 0}>Processing</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="config">
-          <Card>
-            <CardHeader>
-              <CardTitle>API Configuration</CardTitle>
-              <CardDescription>
-                Configure connection settings for your WooCommerce store
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <BrandLogoConfig 
-                config={config} 
-                onUpdateConfig={handleUpdateConfig} 
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
         
         <TabsContent value="upload">
           <Card>
