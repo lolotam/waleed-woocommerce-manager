@@ -8,17 +8,22 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { testConnection } from "@/utils/api";
 import { toast } from "sonner";
-import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap, ExternalLink } from "lucide-react";
+import { Info, CheckCircle2, AlertCircle, EyeIcon, EyeOffIcon, PlugZap, ExternalLink, Key } from "lucide-react";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { testOpenAIConnection, testClaudeConnection, testGeminiConnection } from "@/utils/aiService";
+import { initiateWooCommerceOAuth } from "@/utils/api/woocommerceAuth";
 
 const Settings = () => {
   // WooCommerce settings
   const [woocommerceUrl, setWoocommerceUrl] = useState('');
   const [consumerKey, setConsumerKey] = useState('');
   const [consumerSecret, setConsumerSecret] = useState('');
+  const [wpUsername, setWpUsername] = useState('');
+  const [wpAppPassword, setWpAppPassword] = useState('');
+  const [authMethod, setAuthMethod] = useState<string>('app_password');
   const [isConnecting, setIsConnecting] = useState(false);
   const [showConsumerKey, setShowConsumerKey] = useState(false);
+  const [showAppPassword, setShowAppPassword] = useState(false);
   
   // AI settings
   const [openaiApiKey, setOpenaiApiKey] = useState('');
@@ -46,6 +51,9 @@ const Settings = () => {
         setWoocommerceUrl(parsed.url || '');
         setConsumerKey(parsed.consumerKey || '');
         setConsumerSecret(parsed.consumerSecret || '');
+        setWpUsername(parsed.wpUsername || '');
+        setWpAppPassword(parsed.wpAppPassword || '');
+        setAuthMethod(parsed.authMethod || 'app_password');
       }
     };
     
@@ -58,11 +66,9 @@ const Settings = () => {
         setGeminiApiKey(parsed.geminiApiKey || '');
         setDefaultAiModel(parsed.defaultModel || 'gpt4o');
         
-        // Load CORS proxy if it exists in localStorage
         const savedProxy = localStorage.getItem('cors_proxy');
         if (savedProxy) {
           setCorsProxyUrl(savedProxy);
-          // Also set it to window object for immediate use
           window.CORS_PROXY = savedProxy;
         }
       }
@@ -82,8 +88,8 @@ const Settings = () => {
   }, []);
   
   const saveWooCommerceSettings = async () => {
-    if (!woocommerceUrl || !consumerKey || !consumerSecret) {
-      toast.error('All fields are required');
+    if (!woocommerceUrl) {
+      toast.error('Store URL is required');
       return;
     }
     
@@ -100,10 +106,22 @@ const Settings = () => {
       return;
     }
     
+    // Validate based on selected auth method
+    if (authMethod === 'consumer_keys' && (!consumerKey || !consumerSecret)) {
+      toast.error('Consumer Key and Consumer Secret are required for API key authentication');
+      return;
+    } else if (authMethod === 'app_password' && (!wpUsername || !wpAppPassword)) {
+      toast.error('WordPress Username and Application Password are required');
+      return;
+    }
+    
     const config = {
       url: cleanUrl,
       consumerKey,
-      consumerSecret
+      consumerSecret,
+      wpUsername,
+      wpAppPassword,
+      authMethod
     };
     
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
@@ -118,6 +136,15 @@ const Settings = () => {
     } finally {
       setIsConnecting(false);
     }
+  };
+  
+  const handleOAuthLogin = () => {
+    if (!woocommerceUrl) {
+      toast.error('Store URL is required to initiate OAuth');
+      return;
+    }
+    
+    initiateWooCommerceOAuth(woocommerceUrl);
   };
   
   const saveAiSettings = () => {
@@ -136,13 +163,11 @@ const Settings = () => {
     
     localStorage.setItem('ai_config', JSON.stringify(config));
     
-    // Save CORS proxy if provided
     if (corsProxyUrl.trim()) {
       localStorage.setItem('cors_proxy', corsProxyUrl.trim());
       window.CORS_PROXY = corsProxyUrl.trim();
       toast.success('CORS proxy configuration saved and activated');
     } else if (localStorage.getItem('cors_proxy')) {
-      // Clear CORS proxy if field is empty but was previously set
       localStorage.removeItem('cors_proxy');
       window.CORS_PROXY = '';
       toast.success('CORS proxy configuration cleared');
@@ -157,7 +182,7 @@ const Settings = () => {
     toast.success('Application settings saved');
   };
   
-  const toggleKeyVisibility = (keyType: 'openai' | 'claude' | 'gemini' | 'consumer') => {
+  const toggleKeyVisibility = (keyType: 'openai' | 'claude' | 'gemini' | 'consumer' | 'app_password') => {
     switch (keyType) {
       case 'openai':
         setShowOpenAIKey(!showOpenAIKey);
@@ -170,6 +195,9 @@ const Settings = () => {
         break;
       case 'consumer':
         setShowConsumerKey(!showConsumerKey);
+        break;
+      case 'app_password':
+        setShowAppPassword(!showAppPassword);
         break;
     }
   };
@@ -213,7 +241,6 @@ const Settings = () => {
 
     setTestingClaude(true);
     try {
-      // If CORS proxy is newly entered but not saved, use it for this test
       if (corsProxyUrl.trim() && corsProxyUrl !== window.CORS_PROXY) {
         window.CORS_PROXY = corsProxyUrl.trim();
         toast("Using new CORS proxy for this test", { 
@@ -325,50 +352,168 @@ const Settings = () => {
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="consumer-key">Consumer Key</Label>
-                <div className="relative">
-                  <Input
-                    id="consumer-key"
-                    placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                    value={maskValue(consumerKey, showConsumerKey)}
-                    onChange={(e) => setConsumerKey(e.target.value)}
-                    type="text"
-                    className="pr-10"
-                  />
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="absolute right-0 top-0 h-full px-3"
-                    onClick={() => toggleKeyVisibility('consumer')}
-                  >
-                    {showConsumerKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
-                  </Button>
+              <div className="space-y-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                <Label className="text-base font-medium">Authentication Method</Label>
+                <div className="flex flex-col space-y-2">
+                  <Select value={authMethod} onValueChange={setAuthMethod}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select authentication method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consumer_keys">Consumer Keys (API Keys)</SelectItem>
+                      <SelectItem value="app_password">WordPress Application Password</SelectItem>
+                      <SelectItem value="oauth">OAuth (Authorize via WooCommerce)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    {authMethod === 'consumer_keys' && 'Use your WooCommerce REST API keys for authentication'}
+                    {authMethod === 'app_password' && 'Use WordPress Application Password for more complete access to WordPress features'}
+                    {authMethod === 'oauth' && 'Authenticate via OAuth for secure authorization flow'}
+                  </p>
                 </div>
               </div>
               
-              <div className="space-y-2">
-                <Label htmlFor="consumer-secret">Consumer Secret</Label>
-                <Input
-                  id="consumer-secret"
-                  type="password"
-                  placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={consumerSecret}
-                  onChange={(e) => setConsumerSecret(e.target.value)}
-                />
-              </div>
+              {authMethod === 'consumer_keys' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="consumer-key">Consumer Key</Label>
+                    <div className="relative">
+                      <Input
+                        id="consumer-key"
+                        placeholder="ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                        value={maskValue(consumerKey, showConsumerKey)}
+                        onChange={(e) => setConsumerKey(e.target.value)}
+                        type="text"
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleKeyVisibility('consumer')}
+                      >
+                        {showConsumerKey ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="consumer-secret">Consumer Secret</Label>
+                    <Input
+                      id="consumer-secret"
+                      type="password"
+                      placeholder="cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                      value={consumerSecret}
+                      onChange={(e) => setConsumerSecret(e.target.value)}
+                    />
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-2 flex items-center">
+                    <Info className="h-4 w-4 mr-1" />
+                    Generate API keys in WooCommerce dashboard under Settings → Advanced → REST API.
+                  </p>
+                </>
+              )}
+              
+              {authMethod === 'app_password' && (
+                <>
+                  <div className="space-y-2">
+                    <Label htmlFor="wp-username">WordPress Username</Label>
+                    <Input
+                      id="wp-username"
+                      placeholder="admin"
+                      value={wpUsername}
+                      onChange={(e) => setWpUsername(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="wp-app-password">Application Password</Label>
+                    <div className="relative">
+                      <Input
+                        id="wp-app-password"
+                        placeholder="xxxx xxxx xxxx xxxx xxxx xxxx"
+                        value={maskValue(wpAppPassword, showAppPassword)}
+                        onChange={(e) => setWpAppPassword(e.target.value)}
+                        type={showAppPassword ? "text" : "password"}
+                        className="pr-10"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute right-0 top-0 h-full px-3"
+                        onClick={() => toggleKeyVisibility('app_password')}
+                      >
+                        {showAppPassword ? <EyeOffIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <p className="text-sm text-muted-foreground mt-2 flex items-center">
+                    <Info className="h-4 w-4 mr-1" />
+                    Create an Application Password in WordPress under Users → Profile → Application Passwords.
+                    <Button 
+                      variant="link" 
+                      size="sm" 
+                      className="ml-1 h-auto p-0 text-blue-500"
+                      onClick={() => window.open('https://make.wordpress.org/core/2020/11/05/application-passwords-integration-guide/', '_blank')}
+                    >
+                      Learn more
+                    </Button>
+                  </p>
+                </>
+              )}
+              
+              {authMethod === 'oauth' && (
+                <>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-md space-y-3">
+                    <div className="flex items-start">
+                      <Info className="h-5 w-5 text-blue-500 mr-2 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-blue-700 dark:text-blue-300">OAuth Authentication</h4>
+                        <p className="text-sm text-blue-600 dark:text-blue-400">
+                          Securely connect to your WooCommerce store without manually entering API keys.
+                          This will redirect you to your store to authorize the connection.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <Button 
+                      variant="outline" 
+                      className="bg-white dark:bg-blue-900 border border-blue-200 dark:border-blue-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800 w-full justify-center"
+                      onClick={handleOAuthLogin}
+                    >
+                      <Key className="mr-2 h-4 w-4" />
+                      Authorize with WooCommerce
+                    </Button>
+                    
+                    <p className="text-xs text-blue-600 dark:text-blue-400">
+                      Note: Your site must be accessible from the internet for OAuth to work properly.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground mt-2 flex items-start">
+                      <Info className="h-4 w-4 mr-1 mt-1" />
+                      After authorization, your access credentials will be automatically saved and you'll be redirected back.
+                      The OAuth process is more secure as it doesn't require you to copy and paste sensitive API keys.
+                    </p>
+                  </div>
+                </>
+              )}
               
               <div className="pt-4 space-y-2">
                 <Button 
                   onClick={saveWooCommerceSettings}
-                  disabled={isConnecting}
+                  disabled={isConnecting || (authMethod === 'oauth')}
                 >
                   {isConnecting ? 'Connecting...' : 'Save & Test Connection'}
                 </Button>
-                <p className="text-sm text-muted-foreground mt-2 flex items-center">
-                  <Info className="h-4 w-4 mr-1" />
-                  You can generate API keys in your WooCommerce dashboard under Settings → Advanced → REST API.
-                </p>
+                {authMethod === 'oauth' && (
+                  <p className="text-xs text-orange-500 mt-1">
+                    For OAuth, use the Authorize button above instead of Save.
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
