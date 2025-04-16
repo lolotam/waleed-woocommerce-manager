@@ -1,4 +1,3 @@
-
 /**
  * WordPress Media API
  */
@@ -6,6 +5,13 @@ import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
 import brandsApi from "./brandsApi";
 import categoriesApi from "./categoriesApi";
+
+// Define proper error response type
+interface WPErrorResponse {
+  code?: string;
+  message?: string;
+  data?: any;
+}
 
 // Simple fuzzy matching utility function
 const fuzzyMatch = (name1: string, name2: string, threshold = 0.7): boolean => {
@@ -127,10 +133,10 @@ export const mediaApi = {
 
       if (!response.ok) {
         const errorText = await response.text();
-        let errorData = {};
+        let errorData: WPErrorResponse = {};
         
         try {
-          errorData = JSON.parse(errorText);
+          errorData = JSON.parse(errorText) as WPErrorResponse;
           console.error('Media upload error response:', errorData);
         } catch (e) {
           console.error('Media upload error response (raw):', errorText);

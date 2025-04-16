@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -12,6 +11,7 @@ import ProcessingLog from "./ProcessingTabs/ProcessingLog";
 import ProcessedItems from "./ProcessingTabs/ProcessedItems";
 import TroubleshootingGuide from "./ProcessingTabs/TroubleshootingGuide";
 import ProcessingSummary from "./ProcessingTabs/ProcessingSummary";
+import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
 
 const BrandLogoProcessing = ({
   files,
@@ -26,13 +26,10 @@ const BrandLogoProcessing = ({
   const [hasPermissionError, setHasPermissionError] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("log");
   
-  // Check the processed items for permission errors
   useEffect(() => {
     if (processed.failed > 0) {
-      // Set permission error flag to show the alert
       setHasPermissionError(true);
       
-      // Automatically switch to troubleshooting tab if there are permission errors
       if (processed.failed > 0 && processed.failed === processed.total) {
         setActiveTab("troubleshooting");
       }
@@ -51,7 +48,6 @@ const BrandLogoProcessing = ({
     
     setProcessLog(prev => [...prev, `[${timestamp}] ${message}`]);
 
-    // Enhanced permission error detection
     if (
       message.includes("not allowed to create posts") || 
       message.includes("permission denied") ||
@@ -70,6 +66,8 @@ const BrandLogoProcessing = ({
     }
   };
   
+  const wcConfig = getWooCommerceConfig();
+  
   return (
     <div className="space-y-6">
       <ProcessingControls 
@@ -78,8 +76,8 @@ const BrandLogoProcessing = ({
         hasLogs={processLog.length > 0}
         onStartProcessing={() => {
           addLogEntry("Starting processing...");
-          addLogEntry(`Authentication method: ${config.authMethod}`);
-          addLogEntry(`Store URL: ${config.url}`);
+          addLogEntry(`Authentication method: ${wcConfig.authMethod || 'not set'}`);
+          addLogEntry(`Store URL: ${wcConfig.url || 'not set'}`);
           addLogEntry(`Using target: ${config.targetType}`);
           addLogEntry(`Files to process: ${files.length}`);
           onStartProcessing();

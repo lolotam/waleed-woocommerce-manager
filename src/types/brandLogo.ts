@@ -1,10 +1,11 @@
-
 export interface BrandLogoConfigType {
   targetType: "brands" | "categories";
   addToDescription: boolean;
   fuzzyMatching: boolean;
   saveConfigurations: boolean;
   allowFolderUpload: boolean;
+  url?: string;
+  authMethod?: 'consumer_keys' | 'app_password' | 'oauth';
 }
 
 export interface BrandLogoConfigProps {
