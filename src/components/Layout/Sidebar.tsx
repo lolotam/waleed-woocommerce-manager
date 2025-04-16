@@ -11,7 +11,11 @@ import {
   MessageSquare, 
   Settings, 
   Info, 
-  FileText
+  FileText,
+  Upload,
+  BarChart,
+  Bot,
+  Tags
 } from "lucide-react";
 
 const Sidebar = () => {
@@ -21,9 +25,13 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
     { icon: Package, label: 'Products', path: '/products' },
     { icon: Tag, label: 'Categories', path: '/categories' },
-    { icon: ShoppingBag, label: 'Brands', path: '/brands' },
+    { icon: Tags, label: 'Brands', path: '/brands' },
     { icon: FileSpreadsheet, label: 'Import/Export', path: '/import-export' },
+    { icon: Upload, label: 'Brand Logo Uploader', path: '/brand-logo-uploader' },
     { icon: MessageSquare, label: 'Prompts', path: '/prompts' },
+    { icon: FileText, label: 'Bulk Product SEO', path: '/bulk-product-seo' },
+    { icon: Bot, label: 'Web Scraper', path: '/scraper' },
+    { icon: BarChart, label: 'Web Performance', path: '/web-performance' },
     { icon: FileText, label: 'Logs', path: '/logs' },
     { icon: Settings, label: 'Settings', path: '/settings' },
     { icon: Info, label: 'About', path: '/about' },

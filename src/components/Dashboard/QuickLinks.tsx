@@ -8,8 +8,10 @@ import {
   ListFilter, 
   MessageSquareText,
   FileSpreadsheet,
-  Upload as UploadIcon,
-  BarChart
+  UploadIcon,
+  BarChart,
+  Bot,
+  FileText
 } from "lucide-react";
 
 const links = [
@@ -40,7 +42,7 @@ const links = [
   {
     title: "Web Scraper",
     description: "Scrape products from websites",
-    icon: <Upload className="h-8 w-8" />,
+    icon: <Bot className="h-8 w-8" />,
     href: "/scraper",
   },
   {
@@ -54,6 +56,12 @@ const links = [
     description: "Analyze website performance",
     icon: <BarChart className="h-8 w-8" />,
     href: "/web-performance",
+  },
+  {
+    title: "Bulk Product SEO",
+    description: "Generate SEO content with AI",
+    icon: <FileText className="h-8 w-8" />,
+    href: "/bulk-product-seo",
   },
   {
     title: "Prompt Maker",

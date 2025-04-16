@@ -47,6 +47,22 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <div>
+        <h2 className="text-xl font-semibold mb-4">Recent Features</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Bulk Product SEO</CardTitle>
+            <CardDescription>Generate SEO content for multiple products using AI</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">Automatically generate meta descriptions, titles, and SEO-friendly content for your products in bulk.</p>
+            <a href="/bulk-product-seo" className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+              Try Bulk SEO
+            </a>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
