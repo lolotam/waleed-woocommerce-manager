@@ -11,17 +11,35 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Trash, Pencil, Plus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 
-// Example prompt categories
+// Expanded prompt categories to include all AI-generated fields
 const PROMPT_CATEGORIES = [
+  // Product categories
   { id: 'product_description', name: 'Product Description' },
+  { id: 'product_short_description', name: 'Product Short Description' },
   { id: 'product_seo_title', name: 'Product SEO Title' },
   { id: 'product_seo_description', name: 'Product SEO Description' },
+  { id: 'product_tags', name: 'Product Tags' },
+  { id: 'product_focus_keyword', name: 'Product Focus Keyword' },
+  { id: 'product_alt_text', name: 'Product Image Alt Text' },
+  { id: 'product_image_title', name: 'Product Image Title' },
+  { id: 'product_image_caption', name: 'Product Image Caption' },
+  { id: 'product_image_description', name: 'Product Image Description' },
+  { id: 'product_fragrance_description', name: 'Product Fragrance Description' },
+  
+  // Brand categories
   { id: 'brand_description', name: 'Brand Description' },
   { id: 'brand_seo_title', name: 'Brand SEO Title' },
   { id: 'brand_seo_description', name: 'Brand SEO Description' },
+  { id: 'brand_story', name: 'Brand Story' },
+  { id: 'brand_values', name: 'Brand Values' },
+  { id: 'brand_unique_selling_points', name: 'Brand Unique Selling Points' },
+  
+  // Category categories
   { id: 'category_description', name: 'Category Description' },
   { id: 'category_seo_title', name: 'Category SEO Title' },
   { id: 'category_seo_description', name: 'Category SEO Description' },
+  { id: 'category_buying_guide', name: 'Category Buying Guide' },
+  { id: 'category_faq', name: 'Category FAQ' },
 ];
 
 // Example default prompts
@@ -42,7 +60,7 @@ interface Prompt {
   name: string;
   category: string;
   prompt: string;
-  model: 'gpt4o' | 'claude3' | 'gemini';
+  model: string;
   isDefault: boolean;
 }
 
@@ -211,6 +229,13 @@ const PromptManager = () => {
                   </TableCell>
                   <TableCell>
                     {prompt.model === 'gpt4o' && 'GPT-4o'}
+                    {prompt.model === 'gpt4o_mini' && 'GPT-4o Mini'}
+                    {prompt.model === 'o1' && 'OpenAI o1'}
+                    {prompt.model === 'o1_mini' && 'OpenAI o1 Mini'}
+                    {prompt.model === 'claude35_sonnet' && 'Claude 3.5 Sonnet'}
+                    {prompt.model === 'claude37' && 'Claude 3.7'}
+                    {prompt.model === 'gemini_flash' && 'Gemini Flash'}
+                    {prompt.model === 'gemini_pro' && 'Gemini Pro'}
                     {prompt.model === 'claude3' && 'Claude 3'}
                     {prompt.model === 'gemini' && 'Gemini'}
                   </TableCell>
@@ -286,8 +311,21 @@ const PromptManager = () => {
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
-                    <SelectContent>
-                      {PROMPT_CATEGORIES.map((category) => (
+                    <SelectContent className="max-h-80">
+                      <SelectItem value="header_product">-- Product Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('product_')).map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="header_brand">-- Brand Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('brand_')).map((category) => (
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
+                      ))}
+                      <SelectItem value="header_category">-- Category Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('category_')).map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
@@ -300,15 +338,31 @@ const PromptManager = () => {
                   <Label htmlFor="model">Default AI Model</Label>
                   <Select 
                     value={selectedPrompt.model} 
-                    onValueChange={(value: 'gpt4o' | 'claude3' | 'gemini') => setSelectedPrompt({...selectedPrompt, model: value})}
+                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, model: value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select AI model" />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="header_openai">-- OpenAI Models --</SelectItem>
                       <SelectItem value="gpt4o">OpenAI GPT-4o</SelectItem>
-                      <SelectItem value="claude3">Anthropic Claude 3 Sonnet</SelectItem>
-                      <SelectItem value="gemini">Google Gemini 1.5</SelectItem>
+                      <SelectItem value="gpt4o_mini">OpenAI GPT-4o Mini</SelectItem>
+                      <SelectItem value="gpt45">OpenAI GPT-4.5</SelectItem>
+                      <SelectItem value="o1">OpenAI o1</SelectItem>
+                      <SelectItem value="o1_mini">OpenAI o1 Mini</SelectItem>
+                      <SelectItem value="o1_mini_high">OpenAI o1 Mini High</SelectItem>
+                      
+                      <SelectItem value="header_anthropic">-- Anthropic Models --</SelectItem>
+                      <SelectItem value="claude37">Anthropic Claude 3.7</SelectItem>
+                      <SelectItem value="claude35_sonnet">Anthropic Claude 3.5 Sonnet</SelectItem>
+                      <SelectItem value="claude35_haiku">Anthropic Claude 3.5 Haiku</SelectItem>
+                      <SelectItem value="claude3_opus">Anthropic Claude 3 Opus</SelectItem>
+                      
+                      <SelectItem value="header_gemini">-- Google Models --</SelectItem>
+                      <SelectItem value="gemini_flash">Google Gemini Flash</SelectItem>
+                      <SelectItem value="gemini_flash_thinking">Google Gemini Flash Thinking</SelectItem>
+                      <SelectItem value="gemini_pro">Google Gemini Pro</SelectItem>
+                      <SelectItem value="gemini_research">Google Gemini Research</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

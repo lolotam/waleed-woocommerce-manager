@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -41,7 +42,7 @@ interface SavedPrompt {
   name: string;
   category: string;
   prompt: string;
-  model: 'gpt4o' | 'claude3' | 'gemini';
+  model: string;
   isDefault: boolean;
 }
 
@@ -115,6 +116,8 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
       return prompt.category.includes('seo');
     } else if (fieldType === 'alt_text' || fieldType === 'image_title' || fieldType === 'caption' || fieldType === 'image_description') {
       return prompt.category.includes('image');
+    } else if (fieldType === 'fragrance_description') {
+      return prompt.category.includes('fragrance');
     }
     return true;
   });
