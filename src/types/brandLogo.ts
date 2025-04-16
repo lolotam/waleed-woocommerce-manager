@@ -1,4 +1,3 @@
-
 export interface BrandLogoConfigType {
   targetType: "brands" | "categories";
   addToDescription: boolean;
@@ -7,6 +6,10 @@ export interface BrandLogoConfigType {
   allowFolderUpload: boolean;
   url?: string;
   authMethod?: 'consumer_keys' | 'app_password' | 'oauth';
+  wpUsername?: string;
+  wpAppPassword?: string;
+  consumerKey?: string;
+  consumerSecret?: string;
 }
 
 export interface BrandLogoConfigProps {
@@ -80,4 +83,25 @@ export interface ProcessingSummaryProps {
 export interface PermissionErrorAlertProps {
   hasError: boolean;
   onTabChange: (tab: string) => void;
+}
+
+// Types for processing state
+export interface ProcessingState {
+  isProcessing: boolean;
+  processed: {
+    success: number;
+    failed: number;
+    total: number;
+  };
+}
+
+// Types for the REST API test results
+export interface RestApiTestResult {
+  accessible: boolean;
+  status: number;
+  statusText: string;
+  headers?: Record<string, string>;
+  isJsonResponse?: boolean;
+  error?: string;
+  networkError?: boolean;
 }

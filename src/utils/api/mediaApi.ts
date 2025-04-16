@@ -5,6 +5,8 @@ import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
 import brandsApi from "./brandsApi";
 import categoriesApi from "./categoriesApi";
+import { fuzzyMatch } from "@/utils/brandMatchingUtils";
+import { detectPermissionError, formatApiError } from "@/utils/errorUtils";
 
 // Define proper error response type
 interface WPErrorResponse {
@@ -12,52 +14,6 @@ interface WPErrorResponse {
   message?: string;
   data?: any;
 }
-
-// Simple fuzzy matching utility function
-const fuzzyMatch = (name1: string, name2: string, threshold = 0.7): boolean => {
-  // Convert to lowercase for case-insensitive matching
-  const s1 = name1.toLowerCase();
-  const s2 = name2.toLowerCase();
-  
-  // Exact match
-  if (s1 === s2) return true;
-  
-  // Check if one is a substring of the other
-  if (s1.includes(s2) || s2.includes(s1)) return true;
-  
-  // Levenshtein distance implementation for fuzzy matching
-  const m = s1.length;
-  const n = s2.length;
-  
-  // If one string is empty, the distance is the length of the other
-  if (m === 0) return n === 0;
-  if (n === 0) return false;
-  
-  // Create the distance matrix
-  const d: number[][] = Array(m + 1).fill(null).map(() => Array(n + 1).fill(0));
-  
-  // Initialize the first row and column
-  for (let i = 0; i <= m; i++) d[i][0] = i;
-  for (let j = 0; j <= n; j++) d[0][j] = j;
-  
-  // Fill the distance matrix
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      const cost = s1[i - 1] === s2[j - 1] ? 0 : 1;
-      d[i][j] = Math.min(
-        d[i - 1][j] + 1,      // deletion
-        d[i][j - 1] + 1,      // insertion
-        d[i - 1][j - 1] + cost // substitution
-      );
-    }
-  }
-  
-  // Calculate similarity as 1 - (distance / max length)
-  const maxLength = Math.max(m, n);
-  const similarity = 1 - d[m][n] / maxLength;
-  
-  return similarity >= threshold;
-};
 
 export const mediaApi = {
   upload: async (file: File, metadata = {}) => {
@@ -144,9 +100,7 @@ export const mediaApi = {
         }
         
         // Enhanced error handling with more detailed messaging
-        if (errorData.code === 'rest_cannot_create' || 
-            errorData.message?.includes('not allowed to create posts')) {
-          
+        if (detectPermissionError(errorData.message || '')) {
           console.error('Permission error details:', errorData);
           
           // More specific error message based on response
@@ -196,10 +150,7 @@ export const mediaApi = {
       console.error('Media upload error:', error);
       
       // Enhanced permission error detection and guidance
-      if (error.message?.includes('permission denied') || 
-          error.message?.includes('not allowed to create posts') ||
-          error.message?.includes('rest_cannot_create') ||
-          error.message?.includes('insufficient capabilities')) {
+      if (detectPermissionError(error.message || '')) {
         toast.error('WordPress Permission Error', {
           description: 'Check the troubleshooting guide for step-by-step instructions to fix this.',
           duration: 10000,
@@ -217,7 +168,7 @@ export const mediaApi = {
           duration: 8000
         });
       } else {
-        toast.error(`Media upload error: ${error.message || 'Unknown error'}`);
+        toast.error(`Media upload error: ${formatApiError(error)}`);
       }
       
       throw error;

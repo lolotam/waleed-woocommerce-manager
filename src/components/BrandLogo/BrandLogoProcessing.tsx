@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from "react";
-import { BrandLogoProcessingProps, ProcessedItem } from "@/types/brandLogo";
+import { BrandLogoProcessingProps } from "@/types/brandLogo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Info, ShieldAlert, AlertCircle } from "lucide-react";
+import { ShieldAlert } from "lucide-react";
+import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
+import useProcessLog from "@/hooks/useProcessLog";
 
 // Import the separated components
 import ProcessingControls from "./ProcessingControls";
@@ -12,7 +14,6 @@ import ProcessingLog from "./ProcessingTabs/ProcessingLog";
 import ProcessedItems from "./ProcessingTabs/ProcessedItems";
 import TroubleshootingGuide from "./ProcessingTabs/TroubleshootingGuide";
 import ProcessingSummary from "./ProcessingTabs/ProcessingSummary";
-import { getWooCommerceConfig } from "@/utils/api/woocommerceCore";
 
 const BrandLogoProcessing = ({
   files,
@@ -22,53 +23,36 @@ const BrandLogoProcessing = ({
   onStartProcessing,
   config
 }: BrandLogoProcessingProps) => {
-  const [processLog, setProcessLog] = useState<string[]>([]);
-  const [processedItems, setProcessedItems] = useState<ProcessedItem[]>([]);
-  const [hasPermissionError, setHasPermissionError] = useState(false);
+  const { 
+    processLog, 
+    processedItems, 
+    hasPermissionError, 
+    addLogEntry, 
+    clearLog 
+  } = useProcessLog();
+  
   const [activeTab, setActiveTab] = useState<string>("log");
   
+  // Update active tab when permission errors occur
   useEffect(() => {
     if (processed.failed > 0) {
-      setHasPermissionError(true);
-      
       if (processed.failed > 0 && processed.failed === processed.total) {
         setActiveTab("troubleshooting");
       }
     }
   }, [processed.failed, processed.total]);
   
-  const clearLog = () => {
-    setProcessLog([]);
-    setProcessedItems([]);
-    setHasPermissionError(false);
-  };
-  
-  const addLogEntry = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    console.log(`[LOG ${timestamp}] ${message}`);
-    
-    setProcessLog(prev => [...prev, `[${timestamp}] ${message}`]);
-
-    if (
-      message.includes("not allowed to create posts") || 
-      message.includes("permission denied") ||
-      message.includes("insufficient capabilities") ||
-      message.includes("rest_cannot_create") ||
-      message.includes("woocommerce_rest_cannot_create") ||
-      message.includes("you don't have permission") || 
-      message.includes("Permission Error") ||
-      message.includes("Authentication Failed") ||
-      message.includes("401") ||
-      message.includes("403")
-    ) {
-      console.log("Permission error detected in log:", message);
-      setHasPermissionError(true);
-      setActiveTab("troubleshooting");
-    }
-  };
-  
   // Get WooCommerce configuration from the utility function
   const wcConfig = getWooCommerceConfig();
+  
+  const handleStartProcessing = () => {
+    addLogEntry("Starting processing...");
+    addLogEntry(`Authentication method: ${wcConfig.authMethod || 'not set'}`);
+    addLogEntry(`Store URL: ${wcConfig.url || 'not set'}`);
+    addLogEntry(`Using target: ${config.targetType}`);
+    addLogEntry(`Files to process: ${files.length}`);
+    onStartProcessing();
+  };
   
   return (
     <div className="space-y-6">
@@ -76,14 +60,7 @@ const BrandLogoProcessing = ({
         isProcessing={isProcessing}
         hasFiles={files.length > 0}
         hasLogs={processLog.length > 0}
-        onStartProcessing={() => {
-          addLogEntry("Starting processing...");
-          addLogEntry(`Authentication method: ${wcConfig.authMethod || 'not set'}`);
-          addLogEntry(`Store URL: ${wcConfig.url || 'not set'}`);
-          addLogEntry(`Using target: ${config.targetType}`);
-          addLogEntry(`Files to process: ${files.length}`);
-          onStartProcessing();
-        }}
+        onStartProcessing={handleStartProcessing}
         onClearLog={clearLog}
       />
 
