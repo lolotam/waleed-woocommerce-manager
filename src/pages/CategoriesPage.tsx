@@ -1,5 +1,6 @@
+
 import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { categoriesApi, extractData } from '@/utils/api';
 import { toast } from "sonner";
 import { Button } from '@/components/ui/button';
@@ -13,7 +14,6 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 const CategoriesPage = () => {
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-  const queryClient = useQueryClient();
 
   const { data: categoriesResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['categories'],
@@ -21,10 +21,15 @@ const CategoriesPage = () => {
       const response = await categoriesApi.getAll({ per_page: "100" });
       return extractData(response);
     },
+    meta: {
+      totalCount: true // This will help us get the total count from headers
+    }
   });
   
   const categories: Category[] = Array.isArray(categoriesResponse) ? categoriesResponse : [];
-  const totalCategories = categories.length;
+  const totalCategories = categoriesResponse?.headers?.['x-wp-total'] 
+    ? parseInt(categoriesResponse.headers['x-wp-total']) 
+    : categories.length;
 
   const handleCloseForm = () => {
     setIsAddingCategory(false);
@@ -125,3 +130,4 @@ const CategoriesPage = () => {
 };
 
 export default CategoriesPage;
+

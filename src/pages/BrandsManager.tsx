@@ -18,10 +18,15 @@ const BrandsManager = () => {
       const response = await brandsApi.getAll({ per_page: "100" });
       return extractData(response);
     },
+    meta: {
+      totalCount: true // This will help us get the total count from headers
+    }
   });
   
   const brands = Array.isArray(brandsResponse) ? brandsResponse : [];
-  const totalBrands = brands.length;
+  const totalBrands = brandsResponse?.headers?.['x-wp-total'] 
+    ? parseInt(brandsResponse.headers['x-wp-total']) 
+    : brands.length;
 
   const handleRefresh = () => {
     refetch();
@@ -91,3 +96,4 @@ const BrandsManager = () => {
 };
 
 export default BrandsManager;
+
