@@ -1,9 +1,33 @@
+import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
 
-import axios from 'axios';
+interface ApiErrorResponse {
+  error: string;
+}
+
+interface TestConfig {
+  url: string;
+  deviceType?: 'desktop' | 'mobile';
+  location?: string;
+}
+
+interface TestResult {
+  testId: string;
+  url: string;
+  status: 'queued' | 'running' | 'completed' | 'failed';
+  results?: {
+    metrics: {
+      loadTime: number;
+      resourceCount: number;
+    };
+    lighthouse: {
+      performance: number;
+    };
+  };
+}
 
 class ApiService {
   private baseUrl: string;
-  private client: any;
+  private client: AxiosInstance;
 
   constructor() {
     this.baseUrl = '/api';
@@ -14,127 +38,148 @@ class ApiService {
         'Content-Type': 'application/json'
       }
     });
-    
+
     // Add auth interceptor
-    this.client.interceptors.request.use((config: any) => {
+    this.client.interceptors.request.use((config) => {
       const token = localStorage.getItem('auth_token');
       if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
+        config.headers['Authorization'] = `Bearer ${token}`;
       }
       return config;
     });
   }
-  
-  // Test API
-  
-  async runTest(testData: any) {
+
+  private handleError(error: AxiosError): ApiErrorResponse {
+    if (error.response) {
+      // Server responded with error
+      console.error('API error:', error.response.data);
+      if (error.response.status === 401) {
+        // Handle unauthorized (logout user, redirect to login)
+        localStorage.removeItem('auth_token');
+        window.location.href = '/login';
+      }
+      return { error: error.response.data?.message || 'An error occurred' };
+    } else if (error.request) {
+      // Request made but no response
+      console.error('API no response:', error.request);
+      return { error: 'No response from server. Please try again later.' };
+    } else {
+      // Request setup error
+      console.error('API request error:', error.message);
+      return { error: error.message };
+    }
+  }
+
+  async runTest(testData: TestConfig): Promise<TestResult | null> {
     try {
-      const response = await this.client.post('/tests', testData);
+      const response: AxiosResponse<TestResult> = await this.client.post('/tests', testData);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  async getTestResult(testId: string) {
+
+  async getTestResult(testId: string): Promise<TestResult | null> {
     try {
-      const response = await this.client.get(`/tests/${testId}`);
+      const response: AxiosResponse<TestResult> = await this.client.get(`/tests/${testId}`);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  async getTestHistory(userId: string, params = {}) {
+
+  async getTestHistory(userId: string, params = {}): Promise<TestResult[]> {
     try {
-      const response = await this.client.get(`/users/${userId}/tests`, { params });
+      const response: AxiosResponse<TestResult[]> = await this.client.get(`/users/${userId}/tests`, { params });
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return [];
     }
   }
-  
-  // User API
-  
-  async getUserProfile(userId: string) {
+
+  async getUserProfile(userId: string): Promise<any | null> {
     try {
-      const response = await this.client.get(`/users/${userId}`);
+      const response: AxiosResponse<any> = await this.client.get(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  async updateUserProfile(userId: string, userData: any) {
+
+  async updateUserProfile(userId: string, userData: any): Promise<any | null> {
     try {
-      const response = await this.client.put(`/users/${userId}`, userData);
+      const response: AxiosResponse<any> = await this.client.put(`/users/${userId}`, userData);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  // Subscription API
-  
-  async getUserSubscription(userId: string) {
+
+  async getUserSubscription(userId: string): Promise<any | null> {
     try {
-      const response = await this.client.get(`/users/${userId}/subscription`);
+      const response: AxiosResponse<any> = await this.client.get(`/users/${userId}/subscription`);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  async upgradeSubscription(userId: string, planId: string) {
+
+  async upgradeSubscription(userId: string, planId: string): Promise<any | null> {
     try {
-      const response = await this.client.post(`/users/${userId}/subscription`, { planId });
+      const response: AxiosResponse<any> = await this.client.post(`/users/${userId}/subscription`, { planId });
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  // API Keys management
-  
-  async createApiKey(userId: string, keyData: any) {
+
+  async createApiKey(userId: string, keyData: any): Promise<any | null> {
     try {
-      const response = await this.client.post(`/users/${userId}/api-keys`, keyData);
+      const response: AxiosResponse<any> = await this.client.post(`/users/${userId}/api-keys`, keyData);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  async listApiKeys(userId: string) {
+
+  async listApiKeys(userId: string): Promise<any[]> {
     try {
-      const response = await this.client.get(`/users/${userId}/api-keys`);
+      const response: AxiosResponse<any[]> = await this.client.get(`/users/${userId}/api-keys`);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return [];
     }
   }
-  
-  async revokeApiKey(userId: string, keyId: string) {
+
+  async revokeApiKey(userId: string, keyId: string): Promise<any | null> {
     try {
-      const response = await this.client.delete(`/users/${userId}/api-keys/${keyId}`);
+      const response: AxiosResponse<any> = await this.client.delete(`/users/${userId}/api-keys/${keyId}`);
       return response.data;
     } catch (error) {
-      this._handleError(error);
+      const apiError = this.handleError(error as AxiosError);
+      console.error(apiError);
       return null;
     }
   }
-  
-  // API Reference documentation (to be rendered in UI)
-  
+
   getApiReference() {
     return {
       baseUrl: this.baseUrl,
@@ -172,29 +217,6 @@ class ApiService {
         }
       ]
     };
-  }
-  
-  // Error handling
-  
-  private _handleError(error: any) {
-    if (error.response) {
-      // Server responded with error
-      console.error('API error:', error.response.data);
-      if (error.response.status === 401) {
-        // Handle unauthorized (logout user, redirect to login)
-        localStorage.removeItem('auth_token');
-        window.location.href = '/login';
-      }
-      throw error.response.data;
-    } else if (error.request) {
-      // Request made but no response
-      console.error('API no response:', error.request);
-      throw { error: 'No response from server. Please try again later.' };
-    } else {
-      // Request setup error
-      console.error('API request error:', error.message);
-      throw { error: error.message };
-    }
   }
 }
 
