@@ -10,6 +10,7 @@ import BrandsManager from "./pages/BrandsManager";
 import CategoriesPage from "./pages/CategoriesPage";
 import Settings from "./pages/Settings";
 import LicenseActivation from "./pages/LicenseActivation";
+import LicenseGenerator from "./pages/LicenseGenerator";
 import NotFound from "./pages/NotFound";
 import About from "./pages/About";
 import ImportExportPage from "./pages/ImportExportPage";
@@ -58,6 +59,9 @@ const App = () => {
           <Routes>
             {/* License Activation Route (public) */}
             <Route path="/license" element={<LicenseActivation />} />
+            
+            {/* License Generator Route (admin only) */}
+            <Route path="/license-generator" element={<LicenseGenerator />} />
 
             {/* Protected Routes */}
             {isLicensed ? (

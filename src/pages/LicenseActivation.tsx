@@ -1,12 +1,12 @@
 
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LockKeyhole, RefreshCw } from "lucide-react";
+import { LockKeyhole, RefreshCw, KeyRound } from "lucide-react";
 import { activateLicense } from "@/utils/licenseManager";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 const LicenseActivation = () => {
   const navigate = useNavigate();
@@ -85,14 +85,13 @@ const LicenseActivation = () => {
                   'Activate License'
                 )}
               </Button>
-              
-              <div className="text-center mt-4">
-                <p className="text-xs text-muted-foreground">
-                  Please use the external license key generator to create your license key.
-                </p>
-              </div>
             </div>
           </CardContent>
+          <CardFooter className="flex justify-center">
+            <p className="text-xs text-muted-foreground">
+              Admin? <Link to="/license-generator" className="text-blue-600 hover:underline">Generate license keys</Link>
+            </p>
+          </CardFooter>
         </Card>
         
         <div className="text-center mt-6">
