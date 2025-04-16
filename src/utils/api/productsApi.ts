@@ -1,19 +1,19 @@
 
-import { fetchWooApi } from './woocommerceCore';
+import { woocommerceApi } from './woocommerceCore';
 
 // Get all products
 export const getProducts = async () => {
-  return fetchWooApi('products');
+  return woocommerceApi('products');
 };
 
 // Get a specific product
 export const getProduct = async (id: number) => {
-  return fetchWooApi(`products/${id}`);
+  return woocommerceApi(`products/${id}`);
 };
 
 // Create a new product
 export const createProduct = async (data: any) => {
-  return fetchWooApi('products', {
+  return woocommerceApi('products', {
     method: 'POST',
     data
   });
@@ -21,7 +21,7 @@ export const createProduct = async (data: any) => {
 
 // Update a product
 export const updateProduct = async (id: number, data: any) => {
-  return fetchWooApi(`products/${id}`, {
+  return woocommerceApi(`products/${id}`, {
     method: 'PUT',
     data
   });
@@ -29,14 +29,21 @@ export const updateProduct = async (id: number, data: any) => {
 
 // Delete a product
 export const deleteProduct = async (id: number) => {
-  return fetchWooApi(`products/${id}`, {
+  return woocommerceApi(`products/${id}`, {
     method: 'DELETE'
   });
 };
 
 // Update product SEO data
 export const updateProductSeo = async (id: number | string, seoData: any) => {
-  const data = {
+  interface ProductData {
+    meta_data: any[];
+    short_description?: string;
+    description?: string;
+    tags?: number[];
+  }
+  
+  const data: ProductData = {
     meta_data: []
   };
   
@@ -80,20 +87,20 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
     const tagPromises = seoData.tags.map(async (tagName: string) => {
       try {
         // Check if tag exists
-        const existingTags = await fetchWooApi('products/tags', {
+        const existingTags = await woocommerceApi('products/tags', {
           method: 'GET',
           params: { search: tagName }
         });
         
-        if (existingTags.length > 0) {
-          return existingTags[0].id;
+        if (existingTags.data.length > 0) {
+          return existingTags.data[0].id;
         } else {
           // Create new tag
-          const newTag = await fetchWooApi('products/tags', {
+          const newTag = await woocommerceApi('products/tags', {
             method: 'POST',
             data: { name: tagName }
           });
-          return newTag.id;
+          return newTag.data.id;
         }
       } catch (error) {
         console.error(`Failed to process tag ${tagName}:`, error);
@@ -109,13 +116,13 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
   // Add image SEO data if available
   if (seoData.image_seo) {
     // Get product data to check for featured image
-    const product = await fetchWooApi(`products/${id}`);
+    const product = await woocommerceApi(`products/${id}`);
     
-    if (product.images && product.images.length > 0) {
-      const imageId = product.images[0].id;
+    if (product.data.images && product.data.images.length > 0) {
+      const imageId = product.data.images[0].id;
       
       // Update image with SEO data
-      await fetchWooApi(`products/${id}/images/${imageId}`, {
+      await woocommerceApi(`products/${id}/images/${imageId}`, {
         method: 'PUT',
         data: {
           alt: seoData.image_seo.alt_text || '',
@@ -128,7 +135,7 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
   }
   
   // Update the product with the processed data
-  return fetchWooApi(`products/${id}`, {
+  return woocommerceApi(`products/${id}`, {
     method: 'PUT',
     data
   });
@@ -136,8 +143,34 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
 
 // Batch update products
 export const batchUpdateProducts = async (data: any) => {
-  return fetchWooApi('products/batch', {
+  return woocommerceApi('products/batch', {
     method: 'POST',
     data
   });
 };
+
+// Helper functions for pagination and data extraction
+export const extractData = (response: any) => {
+  return response.data;
+};
+
+export const extractDataWithPagination = (response: any) => {
+  return {
+    data: response.data,
+    totalItems: response.totalItems,
+    totalPages: response.totalPages
+  };
+};
+
+// Export products API functions
+const productsApi = {
+  getProducts,
+  getProduct,
+  createProduct,
+  updateProduct,
+  deleteProduct,
+  updateProductSeo,
+  batchUpdateProducts
+};
+
+export default productsApi;
