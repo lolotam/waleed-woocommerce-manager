@@ -1,6 +1,9 @@
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { CompareArrowsIcon } from "lucide-react";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
 import UserDashboard from "@/components/Performance/UserDashboard"; 
@@ -47,7 +50,16 @@ const WebPerformancePage = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-8">
-      <h1 className="text-3xl font-bold">Web Performance Testing</h1>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <h1 className="text-3xl font-bold">Web Performance Testing</h1>
+        
+        <Link to="/web-performance/compare">
+          <Button variant="outline">
+            <CompareArrowsIcon className="mr-2 h-4 w-4" />
+            Compare Tests
+          </Button>
+        </Link>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>

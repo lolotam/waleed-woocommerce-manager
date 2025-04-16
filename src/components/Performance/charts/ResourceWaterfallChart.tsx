@@ -60,10 +60,16 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
         
         // Extract just the filename from the URL
         try {
-          const url = new URL(resource.name);
-          fileName = url.pathname.split('/').pop() || url.pathname;
+          // Check if it's a valid URL
+          if (resource.name.startsWith('http://') || resource.name.startsWith('https://')) {
+            const url = new URL(resource.name);
+            fileName = url.pathname.split('/').pop() || url.pathname;
+          } else {
+            // If it's not a valid URL, just use the last part of the path
+            fileName = resource.name.split('/').pop() || resource.name;
+          }
         } catch (e) {
-          // If it's not a valid URL, just use the last part of the path
+          // If URL parsing fails, just use the last part of the path
           fileName = resource.name.split('/').pop() || resource.name;
         }
         
