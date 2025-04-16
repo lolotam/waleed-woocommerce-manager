@@ -33,7 +33,7 @@ interface AiGenerateButtonProps {
   brand?: string;
   defaultPrompt?: string;
   size?: 'sm' | 'default' | 'lg' | 'icon';
-  fieldType: 'description' | 'short_description' | 'tags' | 'focus_keyword' | 'meta_title' | 'meta_description' | 'alt_text' | 'image_title' | 'caption' | 'image_description';
+  fieldType: 'description' | 'short_description' | 'tags' | 'focus_keyword' | 'meta_title' | 'meta_description' | 'alt_text' | 'image_title' | 'caption' | 'image_description' | 'fragrance_description';
 }
 
 interface SavedPrompt {
@@ -55,7 +55,8 @@ const fieldTypePrompts = {
   alt_text: "Generate image alt text for",
   image_title: "Generate image title for",
   caption: "Generate image caption for",
-  image_description: "Generate image description for"
+  image_description: "Generate image description for",
+  fragrance_description: "Write a high-converting, SEO-optimized fragrance product description for"
 };
 
 const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({ 
@@ -154,6 +155,60 @@ const AiGenerateButton: React.FC<AiGenerateButtonProps> = ({
         break;
       case 'image_description':
         defaultFieldPrompt += ". Generate a detailed description of what might be in a product image.";
+        break;
+      case 'fragrance_description':
+        defaultFieldPrompt = `You are an expert eCommerce SEO product description writer specializing in fragrance content optimization. Your task is to write a high-converting, SEO-optimized product description for ${productName}${brand ? ' by ' + brand : ''}${category ? ' in the ' + category + ' category' : ''}.
+
+Follow these instructions precisely:
+
+1. Keyword Optimization
+- Research and identify high-search-volume keywords relevant to this fragrance.
+- Use these keywords naturally throughout the content in <strong> tags.
+
+2. Long Product Description (300+ words)
+Create a compelling, HTML-formatted product description that includes:
+- The Focus Keyword at the beginning of the content
+- The Focus Keyword used multiple times throughout
+- The Focus Keyword in H2, H3, or H4 subheadings
+- A properly formatted HTML table for Product Info (Size, Gender, Product Type, Concentration, Brand)
+- A properly formatted HTML table for Fragrance Notes (Top, Heart, Base)
+- A list of Key Features (bulleted or paragraph style)
+- A short history/background about this perfume or brand
+- One frequently searched question with a detailed answer
+- Emotional language with appropriate emojis (🌸, 💫, 🌿, 🔥, 💎, ✨)
+- Six hyperlinked words (3 external links to perfume databases, 3 internal links to related products)
+
+Format your response with these section headings:
+
+🔹 Product Description (HTML Format):
+[Your HTML-formatted product description as specified above]
+
+🔹 Short Description (Max 50 words):
+[A punchy, enticing summary that captures the fragrance's essence and highlights main notes]
+
+🔹 SEO Title (Max 60 characters):
+[Title with Focus Keyword, under 60 characters, with a power word, sentiment, and number]
+
+🔹 Meta Description (Max 155 characters):
+[Active voice description with Focus Keyword and clear call to action]
+
+🔹 Alt Text for Product Images:
+[Descriptive, keyword-rich alt text using the product title]
+
+🔹 Image Title:
+[Full product title]
+
+🔹 Image Caption:
+[Short, elegant caption fitting the tone of luxury fragrances]
+
+🔹 Image Description:
+[Brief 1-2 sentence description using product title and main keywords]
+
+🔹 SEO Tags (6 High-Search Keywords):
+[EXACTLY 6 high-volume keywords separated by commas]
+
+🔹 Focus Keywords:
+[4 high-search-volume keywords relevant to the fragrance, separated by commas]`;
         break;
     }
     
