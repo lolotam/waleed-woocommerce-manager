@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { GitCompareArrow } from "lucide-react";
+import { GitCompareArrows } from "lucide-react";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
 import UserDashboard from "@/components/Performance/UserDashboard"; 
@@ -24,7 +23,6 @@ const WebPerformancePage = () => {
     setActiveTab("test");
   };
 
-  // Mock history data for demonstration purposes
   const historyData = testResult 
     ? [
         {
@@ -55,7 +53,7 @@ const WebPerformancePage = () => {
         
         <Link to="/web-performance/compare">
           <Button variant="outline">
-            <GitCompareArrow className="mr-2 h-4 w-4" />
+            <GitCompareArrows className="mr-2 h-4 w-4" />
             Compare Tests
           </Button>
         </Link>
