@@ -177,7 +177,7 @@ const ProductProcessing = ({
                   {product.status === 'completed' && (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-green-500" />
-                      <Badge variant="success" className="bg-green-500">Completed</Badge>
+                      <Badge variant="default">Completed</Badge>
                     </>
                   )}
                   {product.status === 'failed' && (
