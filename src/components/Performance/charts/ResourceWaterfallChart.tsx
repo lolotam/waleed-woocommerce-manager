@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { ChartContainer } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
@@ -66,6 +65,11 @@ const ResourceWaterfallChart = () => {
     item.type.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
+  const coloredData = filteredData.map(item => ({
+    ...item,
+    color: getResourceTypeColor(item.type)
+  }));
+  
   const config = {
     html: { color: "#4299e1" },
     css: { color: "#48bb78" },
@@ -118,7 +122,7 @@ const ResourceWaterfallChart = () => {
         <ChartContainer config={config} className="w-full h-[1500px]">
           <BarChart
             layout="vertical"
-            data={filteredData}
+            data={coloredData}
             margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -138,8 +142,9 @@ const ResourceWaterfallChart = () => {
               background={{ fill: '#eee' }}
               radius={[0, 4, 4, 0]}
               fill="#8884d8"
-              // We'll use the style prop to conditionally style each bar
-              style={{ fill: (entry: any) => getResourceTypeColor(entry.type) }}
+              fillOpacity={0.8}
+              stroke="none"
+              fill={(entry) => entry.color}
             />
           </BarChart>
         </ChartContainer>
