@@ -13,25 +13,17 @@ export const getProduct = async (id: number) => {
 
 // Create a new product
 export const createProduct = async (data: any) => {
-  return woocommerceApi('products', {
-    method: 'POST',
-    data
-  });
+  return woocommerceApi('products', 'POST', data);
 };
 
 // Update a product
 export const updateProduct = async (id: number, data: any) => {
-  return woocommerceApi(`products/${id}`, {
-    method: 'PUT',
-    data
-  });
+  return woocommerceApi(`products/${id}`, 'PUT', data);
 };
 
 // Delete a product
 export const deleteProduct = async (id: number) => {
-  return woocommerceApi(`products/${id}`, {
-    method: 'DELETE'
-  });
+  return woocommerceApi(`products/${id}`, 'DELETE');
 };
 
 // Update product SEO data
@@ -87,19 +79,13 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
     const tagPromises = seoData.tags.map(async (tagName: string) => {
       try {
         // Check if tag exists
-        const existingTags = await woocommerceApi('products/tags', {
-          method: 'GET',
-          params: { search: tagName }
-        });
+        const existingTags = await woocommerceApi('products/tags', 'GET', null, { search: tagName });
         
         if (existingTags.data.length > 0) {
           return existingTags.data[0].id;
         } else {
           // Create new tag
-          const newTag = await woocommerceApi('products/tags', {
-            method: 'POST',
-            data: { name: tagName }
-          });
+          const newTag = await woocommerceApi('products/tags', 'POST', { name: tagName });
           return newTag.data.id;
         }
       } catch (error) {
@@ -122,31 +108,22 @@ export const updateProductSeo = async (id: number | string, seoData: any) => {
       const imageId = product.data.images[0].id;
       
       // Update image with SEO data
-      await woocommerceApi(`products/${id}/images/${imageId}`, {
-        method: 'PUT',
-        data: {
-          alt: seoData.image_seo.alt_text || '',
-          title: seoData.image_seo.title || '',
-          caption: seoData.image_seo.caption || '',
-          description: seoData.image_seo.description || ''
-        }
+      await woocommerceApi(`products/${id}/images/${imageId}`, 'PUT', {
+        alt: seoData.image_seo.alt_text || '',
+        title: seoData.image_seo.title || '',
+        caption: seoData.image_seo.caption || '',
+        description: seoData.image_seo.description || ''
       });
     }
   }
   
   // Update the product with the processed data
-  return woocommerceApi(`products/${id}`, {
-    method: 'PUT',
-    data
-  });
+  return woocommerceApi(`products/${id}`, 'PUT', data);
 };
 
 // Batch update products
 export const batchUpdateProducts = async (data: any) => {
-  return woocommerceApi('products/batch', {
-    method: 'POST',
-    data
-  });
+  return woocommerceApi('products/batch', 'POST', data);
 };
 
 // Helper functions for pagination and data extraction
@@ -162,7 +139,22 @@ export const extractDataWithPagination = (response: any) => {
   };
 };
 
-// Export products API functions
+// Re-export functions that other files might need
+export { 
+  getProducts as getAll,
+  getProduct,
+  updateProduct as update,
+  createProduct as create,
+  deleteProduct as delete,
+  getTags
+};
+
+// Function to get product tags
+export const getTags = async (params?: any) => {
+  return woocommerceApi('products/tags', 'GET', null, params);
+};
+
+// Export products API functions as default export
 const productsApi = {
   getProducts,
   getProduct,
@@ -170,7 +162,13 @@ const productsApi = {
   updateProduct,
   deleteProduct,
   updateProductSeo,
-  batchUpdateProducts
+  batchUpdateProducts,
+  getTags,
+  // Add aliases used in other files
+  getAll: getProducts,
+  update: updateProduct,
+  create: createProduct,
+  delete: deleteProduct
 };
 
 export default productsApi;

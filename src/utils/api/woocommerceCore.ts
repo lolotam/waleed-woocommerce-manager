@@ -40,7 +40,12 @@ export const getWooCommerceConfig = (): WooCommerceConfig => {
 };
 
 // Base API handler for WooCommerce requests
-export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', data = null): Promise<WooCommerceResponse<T>> => {
+export const woocommerceApi = async <T = any>(
+  endpoint: string, 
+  method: string = 'GET', 
+  data: any = null, 
+  params: Record<string, any> = {}
+): Promise<WooCommerceResponse<T>> => {
   const config = getWooCommerceConfig();
   
   if (!config.url) {
@@ -96,6 +101,15 @@ export const woocommerceApi = async <T = any>(endpoint: string, method = 'GET', 
     // Using Basic Auth with application password
     const auth = btoa(`${config.wpUsername}:${config.wpAppPassword}`);
     headers['Authorization'] = `Basic ${auth}`;
+  }
+
+  // Add any additional query parameters
+  if (params && typeof params === 'object') {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, value.toString());
+      }
+    });
   }
 
   try {
