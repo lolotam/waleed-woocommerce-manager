@@ -44,6 +44,30 @@ const PROMPT_CATEGORIES = [
   { id: 'brand_permalink', name: 'Brand Permalink (Slug)', group: 'brand' },
 ];
 
+// Define product types
+const PRODUCT_TYPES = [
+  { id: 'simple', name: 'Simple Product' },
+  { id: 'variable', name: 'Variable Product' },
+  { id: 'grouped', name: 'Grouped Product' },
+  { id: 'external', name: 'External/Affiliate Product' },
+  { id: 'subscription', name: 'Subscription' },
+  { id: 'digital', name: 'Digital Product' },
+  { id: 'physical', name: 'Physical Product' },
+  { id: 'service', name: 'Service' },
+];
+
+// Define AI roles
+const AI_ROLES = [
+  { id: 'copywriter', name: 'Copywriter' },
+  { id: 'seo_specialist', name: 'SEO Specialist' },
+  { id: 'marketing_expert', name: 'Marketing Expert' },
+  { id: 'product_specialist', name: 'Product Specialist' },
+  { id: 'technical_writer', name: 'Technical Writer' },
+  { id: 'creative_writer', name: 'Creative Writer' },
+  { id: 'conversational', name: 'Conversational' },
+  { id: 'analytical', name: 'Analytical' },
+];
+
 // Default prompts for common categories
 const DEFAULT_PROMPTS = {
   product_long_description: "Write a detailed product description for {product_name}. Include key features, benefits, and specifications. Make it engaging and SEO-friendly with a focus on the keyword {keyword}.",
@@ -59,6 +83,8 @@ interface Prompt {
   category: string;
   prompt: string;
   model: string;
+  productType?: string;
+  aiRole?: string;
   isDefault: boolean;
 }
 
@@ -100,6 +126,8 @@ const PromptManager = () => {
       category: PROMPT_CATEGORIES.find(c => c.group === activeTab)?.id || PROMPT_CATEGORIES[0].id,
       prompt: '',
       model: 'gpt4o',
+      productType: '',
+      aiRole: '',
       isDefault: false
     };
     setSelectedPrompt(newPrompt);
@@ -279,6 +307,8 @@ const PromptManager = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Field</TableHead>
                     <TableHead>Model</TableHead>
+                    <TableHead className="hidden md:table-cell">Product Type</TableHead>
+                    <TableHead className="hidden md:table-cell">AI Role</TableHead>
                     <TableHead className="hidden md:table-cell">Prompt</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -286,6 +316,8 @@ const PromptManager = () => {
                 <TableBody>
                   {filteredPrompts.map((prompt) => {
                     const category = PROMPT_CATEGORIES.find(c => c.id === prompt.category);
+                    const productType = PRODUCT_TYPES.find(t => t.id === prompt.productType);
+                    const aiRole = AI_ROLES.find(r => r.id === prompt.aiRole);
                     
                     return (
                       <TableRow key={prompt.id}>
@@ -302,6 +334,12 @@ const PromptManager = () => {
                           {prompt.model === 'claude37' && 'Claude 3.7'}
                           {prompt.model === 'gemini_flash' && 'Gemini Flash'}
                           {prompt.model === 'gemini_pro' && 'Gemini Pro'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {productType?.name || '-'}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {aiRole?.name || '-'}
                         </TableCell>
                         <TableCell className="max-w-md truncate hidden md:table-cell">
                           {prompt.prompt}
@@ -337,7 +375,7 @@ const PromptManager = () => {
                   })}
                   {filteredPrompts.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                      <TableCell colSpan={7} className="text-center py-4 text-muted-foreground">
                         No prompts found. Add your first prompt to get started.
                       </TableCell>
                     </TableRow>
@@ -401,6 +439,54 @@ const PromptManager = () => {
                   </Select>
                 </div>
                 
+                {/* New Product Type Filter */}
+                <div className="grid gap-2">
+                  <Label htmlFor="productType">Product Type</Label>
+                  <Select 
+                    value={selectedPrompt.productType || ''} 
+                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, productType: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select product type (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Any product type</SelectItem>
+                      {PRODUCT_TYPES.map((type) => (
+                        <SelectItem key={type.id} value={type.id}>
+                          {type.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Specify which type of product this prompt works best for
+                  </p>
+                </div>
+                
+                {/* New AI Role Filter */}
+                <div className="grid gap-2">
+                  <Label htmlFor="aiRole">AI Role</Label>
+                  <Select 
+                    value={selectedPrompt.aiRole || ''} 
+                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, aiRole: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI role (optional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">Default role</SelectItem>
+                      {AI_ROLES.map((role) => (
+                        <SelectItem key={role.id} value={role.id}>
+                          {role.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    Optional: Define what role the AI should take when generating content
+                  </p>
+                </div>
+                
                 <div className="grid gap-2">
                   <Label htmlFor="model">AI Model</Label>
                   <Select 
@@ -445,7 +531,7 @@ const PromptManager = () => {
                   />
                   <p className="text-xs text-muted-foreground">
                     Use placeholders like {"{product_name}"}, {"{brand_name}"}, {"{category_name}"}, 
-                    {"{keyword}"} to make your prompts dynamic.
+                    {"{keyword}"}, {"{product_type}"} to make your prompts dynamic.
                   </p>
                 </div>
               </div>
