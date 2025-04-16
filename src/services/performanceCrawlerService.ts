@@ -1,3 +1,4 @@
+
 import { CrawlerResult, PerformanceTestConfig } from "@/types/performance";
 
 // This would normally call an actual backend API
@@ -34,11 +35,16 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
   for (let i = 0; i < 30; i++) {
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
     let url;
+    
     try {
       // For the first request, use the input URL
-      url = i === 0 
-        ? config.url 
-        : `${getRandomDomain(config.url)}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+      if (i === 0) {
+        url = config.url;
+      } else {
+        // Get a random domain based on the base URL
+        const baseDomain = getRandomDomain(config.url);
+        url = `${baseDomain}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+      }
     } catch (e) {
       // Fallback URL in case of errors
       url = `https://example.com/${resourceType}/${i}${getFileExtension(resourceType)}`;
@@ -104,12 +110,12 @@ function getRandomDomain(baseUrl: string): string {
   
   const domains = [
     baseUrl,
-    `cdn.${hostname}`,
-    `assets.${hostname}`,
-    `api.${hostname}`,
-    "fonts.googleapis.com",
-    "ajax.googleapis.com",
-    "www.google-analytics.com"
+    `https://cdn.${hostname}`,
+    `https://assets.${hostname}`,
+    `https://api.${hostname}`,
+    "https://fonts.googleapis.com",
+    "https://ajax.googleapis.com",
+    "https://www.google-analytics.com"
   ];
   return domains[Math.floor(Math.random() * domains.length)];
 }

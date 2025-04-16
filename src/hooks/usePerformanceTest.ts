@@ -83,9 +83,17 @@ export function usePerformanceTest() {
     // Generate resource timings from crawler data
     const resources = crawlerResult.requests.map((req, index) => {
       const response = crawlerResult.responses[index] || { size: 0 };
+      let pathname = "";
+      
+      try {
+        pathname = new URL(req.url).pathname;
+      } catch (e) {
+        // If URL parsing fails, use the original URL or a fallback
+        pathname = req.url.split('?')[0] || '/unknown';
+      }
       
       return {
-        name: new URL(req.url).pathname,
+        name: pathname,
         initiatorType: req.resourceType,
         startTime: req.time,
         duration: ((response as CrawlerResponse).time || req.time) - req.time,
