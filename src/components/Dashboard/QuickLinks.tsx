@@ -8,7 +8,8 @@ import {
   ListFilter, 
   MessageSquareText,
   FileSpreadsheet,
-  Upload as UploadIcon
+  Upload as UploadIcon,
+  BarChart
 } from "lucide-react";
 
 const links = [
@@ -47,6 +48,12 @@ const links = [
     description: "Upload logos to brands & categories",
     icon: <UploadIcon className="h-8 w-8" />,
     href: "/brand-logo-uploader",
+  },
+  {
+    title: "Web Performance",
+    description: "Analyze website performance",
+    icon: <BarChart className="h-8 w-8" />,
+    href: "/web-performance",
   },
   {
     title: "Prompt Maker",
