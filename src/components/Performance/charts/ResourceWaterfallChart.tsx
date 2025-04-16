@@ -95,14 +95,15 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [filterType, setFilterType] = useState<string>("all");
   
+  // Define resource type colors with proper chart config format
   const resourceTypeColors = {
-    html: "#4299e1",     // Blue
-    css: "#48bb78",      // Green
-    javascript: "#ecc94b", // Yellow
-    image: "#ed8936",    // Orange
-    font: "#9f7aea",     // Purple
-    api: "#f56565",      // Red
-    other: "#a0aec0"     // Gray
+    html: { color: "#4299e1" },     // Blue
+    css: { color: "#48bb78" },      // Green
+    javascript: { color: "#ecc94b" }, // Yellow
+    image: { color: "#ed8936" },    // Orange
+    font: { color: "#9f7aea" },     // Purple
+    api: { color: "#f56565" },      // Red
+    other: { color: "#a0aec0" }     // Gray
   };
   
   // Use provided resources or fallback to mock data
@@ -195,7 +196,7 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
             <span>Type:</span> 
             <span className="font-medium">
               <Badge className="font-normal" 
-                style={{ backgroundColor: resourceTypeColors[data.type] || resourceTypeColors.other }}>
+                style={{ backgroundColor: resourceTypeColors[data.type]?.color || resourceTypeColors.other.color }}>
                 {data.type}
               </Badge>
             </span>
@@ -305,7 +306,6 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
       
       <div className="flex-1 overflow-y-auto">
         <ChartContainer 
-          config={resourceTypeColors} 
           className="w-full"
           style={{ height: Math.max(500, 30 * processedData.length) }}
         >
@@ -337,7 +337,7 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
               {processedData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
-                  fill={resourceTypeColors[entry.type] || resourceTypeColors.other} 
+                  fill={resourceTypeColors[entry.type]?.color || resourceTypeColors.other.color} 
                 />
               ))}
             </Bar>
@@ -347,11 +347,11 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
       
       <div className="mt-3 flex justify-center">
         <div className="flex gap-4 text-xs">
-          {Object.entries(resourceTypeColors).filter(([key]) => key !== 'other').map(([type, color]) => (
+          {Object.entries(resourceTypeColors).filter(([key]) => key !== 'other').map(([type, config]) => (
             <div key={type} className="flex items-center gap-1">
               <div 
                 className="w-3 h-3 rounded-sm" 
-                style={{ backgroundColor: color }}
+                style={{ backgroundColor: config.color }}
               />
               <span className="capitalize">{type}</span>
             </div>
