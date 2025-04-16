@@ -5,28 +5,81 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PerformanceTestConfig } from "@/types/performance";
+import { PerformanceTestConfig, PerformanceTestResult } from "@/types/performance";
 import { toast } from "@/components/ui/use-toast";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestHistory from "@/components/Performance/TestHistory";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
+import QueueStatus from "@/components/Performance/QueueStatus";
 import usePerformanceTest from "@/hooks/usePerformanceTest";
+import useTestQueue from "@/hooks/useTestQueue";
 
 const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
   const [url, setUrl] = useState("");
-  const { runTest, isLoading, testResult, error } = usePerformanceTest();
-
-  // Handle any errors from the test
+  const { 
+    runTest, 
+    isLoading: testRunning, 
+    testResult, 
+    error: testError 
+  } = usePerformanceTest();
+  
+  const {
+    addToQueue,
+    getTest,
+    activeTestId,
+    isLoading: queueLoading,
+    error: queueError,
+    refreshTests
+  } = useTestQueue();
+  
+  const [activeTest, setActiveTest] = useState(null);
+  const [selectedTestResult, setSelectedTestResult] = useState<PerformanceTestResult | null>(null);
+  
+  // Fetch active test data periodically
   useEffect(() => {
-    if (error) {
+    if (activeTestId) {
+      const fetchActiveTest = async () => {
+        const test = await getTest(activeTestId);
+        setActiveTest(test);
+        
+        // If test is completed, get the results
+        if (test?.status === 'completed' && test?.result) {
+          setSelectedTestResult(test.result);
+          setActiveTab("results");
+          
+          toast({
+            title: "Test Completed",
+            description: "Your performance test has finished. Viewing results now.",
+          });
+        }
+      };
+      
+      fetchActiveTest();
+      const intervalId = setInterval(fetchActiveTest, 3000);
+      
+      return () => clearInterval(intervalId);
+    }
+  }, [activeTestId]);
+  
+  // Handle any errors
+  useEffect(() => {
+    if (testError) {
       toast({
         title: "Test Failed",
-        description: error,
+        description: testError,
         variant: "destructive"
       });
     }
-  }, [error]);
+    
+    if (queueError) {
+      toast({
+        title: "Queue Error",
+        description: queueError,
+        variant: "destructive"
+      });
+    }
+  }, [testError, queueError]);
 
   const handleQuickTest = async () => {
     if (!url) {
@@ -47,22 +100,38 @@ const WebPerformancePage = () => {
       browser: "chrome"
     };
 
-    // Run the test
-    const result = await runTest(quickTestConfig);
-    if (result) {
-      setActiveTab("results");
+    // Queue the test
+    const response = await addToQueue(quickTestConfig);
+    if (response) {
+      toast({
+        title: "Test Queued",
+        description: `Your test for ${url} has been added to the queue.`,
+      });
     }
   };
 
   const handleAdvancedTest = async (config: PerformanceTestConfig) => {
-    const result = await runTest(config);
-    if (result) {
-      setActiveTab("results");
+    const response = await addToQueue(config);
+    if (response) {
+      toast({
+        title: "Test Queued",
+        description: `Your test for ${config.url} has been added to the queue.`,
+      });
     }
   };
 
   const handleTestAgain = () => {
     setActiveTab("test");
+    setSelectedTestResult(null);
+  };
+  
+  const handleViewResults = (testId: string) => {
+    getTest(testId).then(test => {
+      if (test?.result) {
+        setSelectedTestResult(test.result);
+        setActiveTab("results");
+      }
+    });
   };
 
   return (
@@ -94,11 +163,14 @@ const WebPerformancePage = () => {
               onChange={(e) => setUrl(e.target.value)}
               className="flex-1"
             />
-            <Button onClick={handleQuickTest} disabled={isLoading || !url}>
-              {isLoading ? (
+            <Button 
+              onClick={handleQuickTest} 
+              disabled={queueLoading || !url}
+            >
+              {queueLoading ? (
                 <>
                   <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                  Analyzing...
+                  Queueing...
                 </>
               ) : (
                 "Analyze"
@@ -107,6 +179,15 @@ const WebPerformancePage = () => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Show queue status if we have an active test */}
+      {activeTest && (
+        <QueueStatus 
+          activeTest={activeTest} 
+          onViewResults={handleViewResults}
+          onRefresh={refreshTests}
+        />
+      )}
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
@@ -125,19 +206,22 @@ const WebPerformancePage = () => {
         </TabsList>
         
         <TabsContent value="test" className="space-y-4">
-          <PerformanceTestForm onSubmit={handleAdvancedTest} isLoading={isLoading} />
+          <PerformanceTestForm 
+            onSubmit={handleAdvancedTest} 
+            isLoading={queueLoading} 
+          />
         </TabsContent>
         
         <TabsContent value="results" className="space-y-4">
           <TestResultsDashboard 
-            testResult={testResult} 
+            testResult={selectedTestResult || testResult} 
             onTestAgain={handleTestAgain} 
-            isLoading={isLoading} 
+            isLoading={testRunning || queueLoading} 
           />
         </TabsContent>
         
         <TabsContent value="history" className="space-y-4">
-          <TestHistory />
+          <TestHistory onViewResult={handleViewResults} />
         </TabsContent>
       </Tabs>
     </div>

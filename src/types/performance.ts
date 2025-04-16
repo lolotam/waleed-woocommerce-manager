@@ -59,7 +59,7 @@ export interface TestHistoryItem {
   overallScore: number;
 }
 
-// New types for crawler functionality
+// Crawler types
 export interface CrawlerRequest {
   url: string;
   resourceType: string;
@@ -98,4 +98,23 @@ export interface CrawlerResult {
   lighthouse: LighthouseMetrics;
   requests: CrawlerRequest[];
   responses: CrawlerResponse[];
+}
+
+// Queue system types
+export type TestStatus = 'queued' | 'processing' | 'completed' | 'failed';
+
+export interface QueuedTestResponse {
+  testId: string;
+  status: TestStatus;
+  position: number;
+  estimatedTime: number; // in seconds
+  result?: PerformanceTestResult;
+  queuedAt?: string;
+  config?: PerformanceTestConfig;
+}
+
+export interface QueueStatusResponse {
+  queueLength: number;
+  estimatedWaitTime: number; // in seconds
+  activeTests: number;
 }

@@ -1,106 +1,136 @@
 
-import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useEffect, useState } from "react";
+import { 
+  Card, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription, 
+  CardContent 
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { TestHistoryItem } from "@/types/performance";
-import { Clock, Search, ExternalLink } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { QueuedTestResponse } from "@/types/performance";
+import { Clock, BarChart, Link2 } from "lucide-react";
+import useTestQueue from "@/hooks/useTestQueue";
 
-const TestHistory = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  
-  // Mocked data - would normally be fetched from an API
-  const [historyItems, setHistoryItems] = useState<TestHistoryItem[]>([
-    {
-      id: "test-1",
-      url: "https://example.com",
-      testDate: "2025-04-15T14:30:00Z",
-      overallScore: 85
-    },
-    {
-      id: "test-2",
-      url: "https://anotherdomain.com",
-      testDate: "2025-04-14T10:15:00Z",
-      overallScore: 72
-    },
-    {
-      id: "test-3",
-      url: "https://mywebsite.org",
-      testDate: "2025-04-13T09:45:00Z",
-      overallScore: 91
-    }
-  ]);
+interface TestHistoryProps {
+  onViewResult?: (testId: string) => void;
+}
 
-  const filteredItems = historyItems.filter(item => 
-    item.url.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+const TestHistory: React.FC<TestHistoryProps> = ({ onViewResult }) => {
+  const { queuedTests, refreshTests } = useTestQueue();
+  const [tests, setTests] = useState<QueuedTestResponse[]>([]);
 
+  // Load tests when component mounts
+  useEffect(() => {
+    setTests(queuedTests);
+  }, [queuedTests]);
+
+  // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString();
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "text-green-500";
-    if (score >= 70) return "text-yellow-500";
-    return "text-red-500";
+  // Get status display elements
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge className="bg-green-500">Completed</Badge>;
+      case 'processing':
+        return <Badge className="bg-blue-500">Processing</Badge>;
+      case 'queued':
+        return <Badge className="bg-yellow-500">Queued</Badge>;
+      case 'failed':
+        return <Badge className="bg-red-500">Failed</Badge>;
+      default:
+        return <Badge className="bg-gray-500">Unknown</Badge>;
+    }
+  };
+
+  // Get score display
+  const getScoreDisplay = (test: QueuedTestResponse) => {
+    if (test.status === 'completed' && test.result) {
+      const score = test.result.scores.overall;
+      let color;
+      
+      if (score >= 90) color = 'text-green-500';
+      else if (score >= 70) color = 'text-yellow-500';
+      else color = 'text-red-500';
+      
+      return <span className={`font-bold ${color}`}>{score}</span>;
+    }
+    
+    return <span className="text-gray-400">--</span>;
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5" />
-          Test History
-        </CardTitle>
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by URL..."
-            className="pl-8"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle>Test History</CardTitle>
+            <CardDescription>Your recent performance tests</CardDescription>
+          </div>
+          <Button variant="outline" size="sm" onClick={refreshTests}>
+            Refresh
+          </Button>
         </div>
       </CardHeader>
       <CardContent>
-        {filteredItems.length === 0 ? (
+        {tests.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
-            No test history found
+            <Clock className="mx-auto h-12 w-12 opacity-50 mb-2" />
+            <p>No test history found.</p>
+            <p className="text-sm">Run your first performance test to see results here.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {filteredItems.map((item) => (
+          <div className="space-y-1">
+            {tests.map((test) => (
               <div 
-                key={item.id}
-                className="border rounded-lg p-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-2"
+                key={test.testId}
+                className="flex items-center justify-between p-3 rounded-md hover:bg-muted transition-colors"
               >
-                <div className="flex-1">
+                <div className="flex flex-col">
                   <div className="flex items-center gap-2">
-                    <ExternalLink className="h-4 w-4 text-muted-foreground" />
-                    <a 
-                      href={item.url} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="font-medium text-blue-500 hover:underline"
-                    >
-                      {item.url}
-                    </a>
+                    <Link2 className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium truncate max-w-[180px] md:max-w-[300px]">
+                      {test.config?.url || test.result?.url || "Unknown URL"}
+                    </span>
+                    {getStatusBadge(test.status)}
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {formatDate(item.testDate)}
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {test.queuedAt && formatDate(test.queuedAt)}
+                    {test.result?.testDate && formatDate(test.result.testDate)}
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium">Score:</span>
-                    <span className={`font-bold text-lg ${getScoreColor(item.overallScore)}`}>
-                      {item.overallScore}
-                    </span>
+                
+                <div className="flex items-center gap-3">
+                  <div className="text-right hidden md:block">
+                    <div className="text-sm font-medium flex items-center gap-1">
+                      <BarChart className="h-3 w-3" />
+                      Score: {getScoreDisplay(test)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {test.config?.device || test.result?.config.device}, 
+                      {test.config?.browser || test.result?.config.browser}
+                    </div>
                   </div>
-                  <Button variant="outline" size="sm">
-                    View Report
-                  </Button>
+                  
+                  {test.status === 'completed' && onViewResult && (
+                    <Button 
+                      size="sm" 
+                      onClick={() => onViewResult(test.testId)}
+                    >
+                      View
+                    </Button>
+                  )}
                 </div>
               </div>
             ))}

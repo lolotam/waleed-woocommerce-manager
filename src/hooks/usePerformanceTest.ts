@@ -4,7 +4,8 @@ import {
   PerformanceTestConfig, 
   CrawlerResult, 
   PerformanceTestResult, 
-  PerformanceRecommendation 
+  PerformanceRecommendation,
+  CrawlerResponse
 } from "@/types/performance";
 import { runPerformanceTest } from "@/services/performanceCrawlerService";
 import { v4 as uuidv4 } from "uuid";
@@ -60,7 +61,7 @@ function transformCrawlerResult(
       name: new URL(req.url).pathname,
       initiatorType: req.resourceType,
       startTime: req.time,
-      duration: (response.time || req.time) - req.time,
+      duration: ((response as CrawlerResponse).time || req.time) - req.time,
       transferSize: response.size || 0,
       decodedBodySize: response.size || 0
     };
