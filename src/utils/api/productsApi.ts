@@ -2,8 +2,8 @@
 import { woocommerceApi } from './woocommerceCore';
 
 // Get all products
-export const getProducts = async () => {
-  return woocommerceApi('products');
+export const getProducts = async (params?: any) => {
+  return woocommerceApi('products', 'GET', null, params);
 };
 
 // Get a specific product
@@ -139,7 +139,7 @@ export const extractData = (response: any) => {
 export const extractDataWithPagination = (response: any) => {
   return {
     data: response.data,
-    totalItems: response.totalPages,
+    totalItems: response.totalItems,
     totalPages: response.totalPages
   };
 };
@@ -155,7 +155,7 @@ const productsApi = {
   batchUpdateProducts,
   getTags,
   // Add aliases used in other files
-  getAll: getProducts,
+  getAll: getProducts, // Now getAll accepts params since it aliases getProducts which accepts params
   update: updateProduct,
   create: createProduct,
   delete: deleteProduct
