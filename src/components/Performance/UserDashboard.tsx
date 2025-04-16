@@ -2,16 +2,16 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  DashboardIcon,
-  HistoryIcon,
-  SettingsIcon,
-  UserIcon,
-  SearchIcon,
-  DownloadIcon,
-  LinkIcon,
-  MoreHorizontalIcon,
-  TrendingUpIcon,
-  TrendingDownIcon,
+  LayoutDashboard,
+  History,
+  Settings,
+  User,
+  Search,
+  Download,
+  Link,
+  MoreHorizontal,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -106,7 +106,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <div className="relative w-full sm:w-72">
-            <SearchIcon className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search tests..."
               className="pl-8"
@@ -154,9 +154,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
             <div className="flex items-center mt-1">
               {trends.performanceChange > 0 ? (
-                <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
               ) : (
-                <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
               )}
               <span className={
                 trends.performanceChange > 0
@@ -186,9 +186,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
             <div className="flex items-center mt-1">
               {trends.loadTimeChange < 0 ? (
-                <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
               ) : (
-                <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
               )}
               <span className={
                 trends.loadTimeChange < 0
@@ -218,9 +218,9 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
             </div>
             <div className="flex items-center mt-1">
               {trends.pageSizeChange < 0 ? (
-                <TrendingUpIcon className="h-4 w-4 text-green-500 mr-1" />
+                <TrendingUp className="h-4 w-4 text-green-500 mr-1" />
               ) : (
-                <TrendingDownIcon className="h-4 w-4 text-red-500 mr-1" />
+                <TrendingDown className="h-4 w-4 text-red-500 mr-1" />
               )}
               <span className={
                 trends.pageSizeChange < 0
@@ -285,7 +285,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                               rel="noopener noreferrer"
                               className="ml-2 text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
                             >
-                              <LinkIcon className="h-4 w-4" />
+                              <Link className="h-4 w-4" />
                             </a>
                           </div>
                         </TableCell>
@@ -301,7 +301,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">
-                                <MoreHorizontalIcon className="h-4 w-4" />
+                                <MoreHorizontal className="h-4 w-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
@@ -312,7 +312,7 @@ const UserDashboard: React.FC<UserDashboardProps> = ({
                                 Compare
                               </DropdownMenuItem>
                               <DropdownMenuItem>
-                                <DownloadIcon className="h-4 w-4 mr-2" /> Download PDF
+                                <Download className="h-4 w-4 mr-2" /> Download PDF
                               </DropdownMenuItem>
                               <Separator />
                               <DropdownMenuItem className="text-red-600">

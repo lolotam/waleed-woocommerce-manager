@@ -160,7 +160,7 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
             stackId="a" 
             name="Download Time" 
             fill="#4f46e5"
-            fillOpacity={(data) => data.initiatorType === 'script' ? 0.8 : 0.5}
+            fillOpacity={0.7}
           />
         </BarChart>
       </ResponsiveContainer>
