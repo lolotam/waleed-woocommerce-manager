@@ -20,6 +20,7 @@ import ScraperImporterPage from "./pages/ScraperImporterPage";
 import BrandLogoUploader from "./pages/BrandLogoUploader";
 import WooCommerceCallback from "./pages/WooCommerceCallback";
 import WebPerformancePage from "./pages/WebPerformancePage";
+import BulkProductSeoPage from "./pages/BulkProductSeoPage";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 
@@ -72,6 +73,7 @@ const App = () => {
                 <Route path="/scraper" element={<ScraperImporterPage />} />
                 <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
                 <Route path="/web-performance" element={<WebPerformancePage />} />
+                <Route path="/bulk-product-seo" element={<BulkProductSeoPage />} />
               </Route>
             ) : (
               <Route path="*" element={<Navigate to="/license" replace />} />
