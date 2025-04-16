@@ -10,7 +10,8 @@ import {
   Info, 
   Lock, 
   AlertCircle,
-  CheckCircle2
+  CheckCircle2,
+  Settings
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,10 @@ const TroubleshootingGuide = () => {
                   <li>Consider creating a new dedicated admin user just for API connections</li>
                   <li>Check if any security plugins are blocking API requests</li>
                 </ol>
+                <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950 rounded text-xs flex items-start">
+                  <AlertCircle className="h-3 w-3 text-amber-500 mr-1 mt-0.5 flex-shrink-0" />
+                  <span>Some WordPress security plugins may block REST API access. Check for plugins like Wordfence, iThemes Security, or others that might need configuration to allow API access.</span>
+                </div>
               </div>
             </div>
           </li>
@@ -134,7 +139,8 @@ const TroubleshootingGuide = () => {
             to="/brand-logo-uploader?tab=config" 
             className="text-blue-600 hover:underline inline-flex items-center"
           >
-            Return to Configuration <ExternalLink className="ml-1 h-4 w-4" />
+            <Settings className="h-4 w-4 mr-1" />
+            Return to Configuration
           </Link>
           
           <Button variant="outline" size="sm" onClick={() => window.open('https://woocommerce.com/document/woocommerce-rest-api/', '_blank')}>

@@ -121,9 +121,9 @@ export const mediaApi = {
             errorData.message?.includes('not allowed to create posts')) {
           const errorMessage = 'Permission denied: Your WordPress user lacks media upload permissions.';
           
-          // Show more detailed toast message with specific steps
+          // Improved detailed toast message with specific information about the error
           toast.error('WordPress Media Permission Error', {
-            description: 'Your current credentials don\'t have permission to upload files.',
+            description: 'Your credentials don\'t have permission to create posts in WordPress media library.',
             duration: 8000
           });
           
@@ -144,8 +144,15 @@ export const mediaApi = {
           error.message?.includes('rest_cannot_create') ||
           error.message?.includes('insufficient capabilities')) {
         toast.error('WordPress Permission Error', {
-          description: 'Check the Troubleshooting tab for detailed fix instructions.',
+          description: 'Check the troubleshooting guide for step-by-step instructions to fix this.',
           duration: 8000,
+          action: {
+            label: 'View Guide',
+            onClick: () => {
+              // Navigate to troubleshooting tab
+              window.location.href = '/brand-logo-uploader?tab=troubleshooting';
+            }
+          }
         });
       } else {
         toast.error(`Media upload error: ${error.message || 'Unknown error'}`);
