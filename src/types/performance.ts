@@ -1,4 +1,3 @@
-
 export interface PerformanceMetrics {
   pageLoadTime: number;
   totalPageSize: number;
@@ -28,9 +27,20 @@ export interface ResourceTiming {
 export interface PerformanceTestConfig {
   url: string;
   device: 'desktop' | 'mobile' | 'tablet';
-  connection: 'fast' | 'average' | 'slow' | '3g' | '4g';
+  connection: 'fast' | 'average' | 'slow' | '3g' | '4g' | '2g';
   location: string;
   browser: 'chrome' | 'firefox' | 'safari' | 'edge';
+  blockAds?: boolean;
+  auth?: {
+    username: string;
+    password: string;
+  };
+  api?: {
+    endpoint: string;
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    headers: string;
+    body: string;
+  };
 }
 
 export interface PerformanceTestResult {
