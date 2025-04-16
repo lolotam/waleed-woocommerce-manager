@@ -5,11 +5,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { AIModel, getAvailableModels } from "@/utils/aiService";
-import { Play, Wand2, BookOpen } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Play, Wand2, BookOpen, Upload, X, Plus, Link } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { getAiConfig } from "@/utils/ai/config";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface PromptSettingsProps {
   provider: string;
@@ -57,13 +59,7 @@ Fragrance Name: {{title}}
 Product Link: {{url}}
 Product ID: {{id}}
 Competitor Websites for Research:
-- https://www.fragrantica.com
-- https://klinq.com
-- https://www.brandatt.com
-- http://tatayab.com
-- https://fragrancekw.com
-- https://perfumeskuwait.com
-- https://en.bloomingdales.com.kw
+{{competitor_websites}}
 
 ✅ Instructions:
 
@@ -84,17 +80,8 @@ Create a compelling, HTML-formatted product description that includes:
 - Emotional language with appropriate emojis (🌸, 💫, 🌿, 🔥, 💎, ✨)
 - Six hyperlinked words 
  -(3 external links refers to perfume databases from this website only "https://www.wikiparfum.com/") 
- -(3 internal links refere to this list of links):
-  -https://xsellpoint.com/product-category/new-arrival/
-  -https://xsellpoint.com/product-category/oriental-fragrance/arabic-perfume/
-  -https://xsellpoint.com/product-category/best-sellers/
-  -https://xsellpoint.com/product/damou-al-dahab-edp-100ml/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/estee-lauder/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/jean-paul-gaultier/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/cartier/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/nishane/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/xerjoff/
-  -https://xsellpoint.com/product-category/shop-by-brand/brand-international/narciso-rodriguez/
+ -(3 internal links chosen randomly from this list):
+{{hyperlinks}}
 
 IMPORTANT: You MUST format your response with EXACTLY these section headings:
 
@@ -136,6 +123,8 @@ const electronics = `You are an expert eCommerce SEO content writer and digital 
 Product Name: {{title}}
 Product Link: {{url}}
 Product ID: {{id}}
+Competitor Websites for Research:
+{{competitor_websites}}
 
 ✅ Instructions:
 
@@ -151,6 +140,8 @@ Create a compelling, HTML-formatted product description that includes:
 - Comparison with similar products (when applicable)
 - One FAQ with a detailed answer addressing a common concern
 - Use of technical but accessible language to build credibility
+- Include hyperlinks to relevant pages:
+{{hyperlinks}}
 
 Format the response in JSON using this exact structure:
 {
@@ -174,6 +165,8 @@ const clothing = `You are a professional fashion copywriter and SEO specialist. 
 Product Name: {{title}}
 Product Link: {{url}}
 Product ID: {{id}}
+Competitor Websites for Research:
+{{competitor_websites}}
 
 ✅ Instructions:
 
@@ -190,6 +183,8 @@ Create a stylish, HTML-formatted product description that includes:
 - Care instructions
 - Seasonal relevance
 - Use aspirational and emotional language that helps customers envision themselves wearing the item
+- Include these hyperlinks where appropriate:
+{{hyperlinks}}
 
 Format the response in JSON using this exact structure:
 {
@@ -226,6 +221,24 @@ const PromptSettings = ({
   const [productType, setProductType] = useState("general");
   const [aiRole, setAiRole] = useState("seo_expert");
   const [activeTab, setActiveTab] = useState<string>("template");
+  
+  // New states for competitor websites
+  const [competitorWebsites, setCompetitorWebsites] = useState<string[]>([
+    "https://www.fragrantica.com",
+    "https://klinq.com",
+    "https://www.brandatt.com"
+  ]);
+  const [newWebsite, setNewWebsite] = useState("");
+  
+  // New state for hyperlinks from file
+  const [hyperlinks, setHyperlinks] = useState<string[]>([
+    "https://xsellpoint.com/product-category/new-arrival/",
+    "https://xsellpoint.com/product-category/best-sellers/",
+    "https://xsellpoint.com/product-category/shop-by-brand/brand-international/cartier/"
+  ]);
+  
+  // File input ref
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   useEffect(() => {
     // Get available models and check API keys
@@ -270,15 +283,23 @@ const PromptSettings = ({
     setProductType(type);
     
     // Update prompt based on product type
+    let updatedPrompt = "";
     if (type === "fragrance") {
-      onPromptChange(fragrancePrompt);
+      updatedPrompt = fragrancePrompt;
     } else if (type === "electronics") {
-      onPromptChange(electronics);
+      updatedPrompt = electronics;
     } else if (type === "clothing") {
-      onPromptChange(clothing);
+      updatedPrompt = clothing;
     } else {
-      onPromptChange(defaultPrompt);
+      updatedPrompt = defaultPrompt;
     }
+    
+    // Add competitor websites and hyperlinks placeholders to the prompt
+    updatedPrompt = updatedPrompt
+      .replace("{{competitor_websites}}", competitorWebsites.map(w => `- ${w}`).join("\n"))
+      .replace("{{hyperlinks}}", hyperlinks.map(link => `  -${link}`).join("\n"));
+    
+    onPromptChange(updatedPrompt);
   };
 
   // Handle AI role change
@@ -308,6 +329,75 @@ const PromptSettings = ({
     }
     
     onPromptChange(currentPrompt);
+  };
+  
+  // Handle competitor website input
+  const handleAddCompetitorWebsite = () => {
+    if (newWebsite.trim() && !competitorWebsites.includes(newWebsite.trim())) {
+      const updatedWebsites = [...competitorWebsites, newWebsite.trim()];
+      setCompetitorWebsites(updatedWebsites);
+      setNewWebsite("");
+      
+      // Update the prompt with new competitor websites
+      let updatedPrompt = prompt.replace(
+        /{{competitor_websites}}/g, 
+        updatedWebsites.map(w => `- ${w}`).join("\n")
+      );
+      
+      onPromptChange(updatedPrompt);
+    }
+  };
+  
+  // Handle competitor website removal
+  const handleRemoveCompetitorWebsite = (websiteToRemove: string) => {
+    const updatedWebsites = competitorWebsites.filter(website => website !== websiteToRemove);
+    setCompetitorWebsites(updatedWebsites);
+    
+    // Update the prompt with updated competitor websites
+    let updatedPrompt = prompt.replace(
+      /{{competitor_websites}}/g, 
+      updatedWebsites.map(w => `- ${w}`).join("\n")
+    );
+    
+    onPromptChange(updatedPrompt);
+  };
+  
+  // Handle hyperlinks file upload
+  const handleHyperlinksFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (content) {
+        // Process file content (assuming each line is a hyperlink)
+        const links = content.split('\n')
+          .map(line => line.trim())
+          .filter(line => line && (line.startsWith('http://') || line.startsWith('https://')));
+        
+        if (links.length > 0) {
+          setHyperlinks(links);
+          
+          // Update the prompt with new hyperlinks
+          let updatedPrompt = prompt.replace(
+            /{{hyperlinks}}/g, 
+            links.map(link => `  -${link}`).join("\n")
+          );
+          
+          onPromptChange(updatedPrompt);
+          toast.success(`Loaded ${links.length} hyperlinks from file`);
+        } else {
+          toast.error("No valid hyperlinks found in the file");
+        }
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset the file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   return (
@@ -361,6 +451,92 @@ const PromptSettings = ({
               <p className="text-xs text-muted-foreground">
                 Determines the writing style and expertise of the AI
               </p>
+            </div>
+          </div>
+          
+          {/* Competitor Websites Section */}
+          <div className="space-y-4 border p-4 rounded-md">
+            <h3 className="font-medium">Competitor Websites for Research</h3>
+            <p className="text-sm text-muted-foreground">
+              Add websites the AI can reference for research (3-5 recommended)
+            </p>
+            
+            <div className="space-y-2">
+              {competitorWebsites.map((website, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className="bg-muted p-2 rounded flex-1 text-sm flex items-center">
+                    <Link className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="truncate">{website}</span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={() => handleRemoveCompetitorWebsite(website)}
+                    aria-label="Remove website"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+            
+            <div className="flex gap-2">
+              <Input
+                type="url"
+                placeholder="https://example.com"
+                value={newWebsite}
+                onChange={(e) => setNewWebsite(e.target.value)}
+                className="flex-1"
+              />
+              <Button onClick={handleAddCompetitorWebsite} type="button" size="sm">
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
+            </div>
+          </div>
+          
+          {/* Hyperlinks File Upload */}
+          <div className="space-y-4 border p-4 rounded-md">
+            <h3 className="font-medium">Hyperlinks for Product Descriptions</h3>
+            <p className="text-sm text-muted-foreground">
+              Upload a text file with hyperlinks (one URL per line) to include in product descriptions
+            </p>
+            
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <Input 
+                  ref={fileInputRef}
+                  type="file" 
+                  accept=".txt"
+                  onChange={handleHyperlinksFileUpload}
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="gap-2"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload
+                </Button>
+              </div>
+              
+              {hyperlinks.length > 0 && (
+                <div className="border p-2 rounded-md bg-muted/30">
+                  <p className="text-sm font-medium mb-2">Loaded {hyperlinks.length} hyperlinks:</p>
+                  <div className="max-h-24 overflow-y-auto space-y-1">
+                    {hyperlinks.slice(0, 3).map((link, index) => (
+                      <div key={index} className="text-xs truncate">{link}</div>
+                    ))}
+                    {hyperlinks.length > 3 && (
+                      <div className="text-xs text-muted-foreground">
+                        ...and {hyperlinks.length - 3} more
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           
@@ -442,7 +618,9 @@ const PromptSettings = ({
             className="min-h-[400px] font-mono text-sm"
           />
           <p className="text-sm text-muted-foreground">
-            Use placeholders like &#123;&#123;id&#125;&#125;, &#123;&#123;title&#125;&#125;, and &#123;&#123;url&#125;&#125; which will be replaced with actual product data.
+            Use placeholders like &#123;&#123;id&#125;&#125;, &#123;&#123;title&#125;&#125;, 
+            &#123;&#123;url&#125;&#125;, &#123;&#123;competitor_websites&#125;&#125;, and 
+            &#123;&#123;hyperlinks&#125;&#125; which will be replaced with actual data.
           </p>
         </TabsContent>
       </Tabs>
@@ -454,12 +632,12 @@ const PromptSettings = ({
               <p className="text-amber-800">
                 You need to configure at least one AI provider in the settings to use this feature.
               </p>
-              <Link 
+              <RouterLink 
                 to="/settings" 
                 className="text-blue-600 hover:underline flex items-center"
               >
                 Go to Settings to configure AI providers
-              </Link>
+              </RouterLink>
             </div>
           </CardContent>
         </Card>
