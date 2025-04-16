@@ -138,3 +138,9 @@ export interface QueueStatusResponse {
   estimatedWaitTime: number; // in seconds
   activeTests: number;
 }
+
+// Chart configuration types
+export interface ChartConfig {
+  colors?: string[];
+  customHeight?: number; // To avoid conflict with Progress component height prop
+}

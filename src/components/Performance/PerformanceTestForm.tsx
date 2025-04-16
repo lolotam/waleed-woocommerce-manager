@@ -33,6 +33,7 @@ const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({
   const [advancedMode, setAdvancedMode] = useState(false);
   const [authEnabled, setAuthEnabled] = useState(false);
   const [apiTestingEnabled, setApiTestingEnabled] = useState(false);
+  const [requestMethod, setRequestMethod] = useState<"GET" | "POST" | "PUT" | "DELETE">("GET");
 
   // Test locations data
   const testLocations = [
@@ -65,24 +66,28 @@ const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({
     
     if (onSubmit) {
       // Include any additional fields for advanced mode
-      const enhancedConfig = {
+      const enhancedConfig: PerformanceTestConfig = {
         ...config,
-        ...(advancedMode && authEnabled && {
-          auth: {
-            username: (document.getElementById("username") as HTMLInputElement)?.value,
-            password: (document.getElementById("password") as HTMLInputElement)?.value
-          }
-        }),
-        ...(advancedMode && apiTestingEnabled && {
-          api: {
-            endpoint: (document.getElementById("apiEndpoint") as HTMLInputElement)?.value,
-            method: (document.getElementById("requestMethod") as HTMLSelectElement)?.value,
-            headers: (document.getElementById("requestHeaders") as HTMLTextAreaElement)?.value,
-            body: (document.getElementById("requestBody") as HTMLTextAreaElement)?.value
-          }
-        }),
         blockAds: advancedMode ? (document.getElementById("blockAds") as HTMLInputElement)?.checked : true
       };
+      
+      // Only add auth if advanced mode and auth is enabled
+      if (advancedMode && authEnabled) {
+        enhancedConfig.auth = {
+          username: (document.getElementById("username") as HTMLInputElement)?.value || '',
+          password: (document.getElementById("password") as HTMLInputElement)?.value || ''
+        };
+      }
+      
+      // Only add API if advanced mode and API testing is enabled
+      if (advancedMode && apiTestingEnabled) {
+        enhancedConfig.api = {
+          endpoint: (document.getElementById("apiEndpoint") as HTMLInputElement)?.value || '',
+          method: requestMethod,
+          headers: (document.getElementById("requestHeaders") as HTMLTextAreaElement)?.value || '',
+          body: (document.getElementById("requestBody") as HTMLTextAreaElement)?.value || ''
+        };
+      }
       
       onSubmit(enhancedConfig);
     }
@@ -128,7 +133,7 @@ const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({
               <RadioGroup
                 className="flex gap-4 mt-2"
                 value={config.device}
-                onValueChange={(value) => handleChange("device", value)}
+                onValueChange={(value) => handleChange("device", value as "desktop" | "mobile" | "tablet")}
               >
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="desktop" id="desktop" />
@@ -304,7 +309,10 @@ const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({
                     
                     <div className="space-y-2">
                       <Label htmlFor="requestMethod">Method</Label>
-                      <Select defaultValue="GET">
+                      <Select 
+                        defaultValue="GET"
+                        onValueChange={(value) => setRequestMethod(value as "GET" | "POST" | "PUT" | "DELETE")}
+                      >
                         <SelectTrigger id="requestMethod">
                           <SelectValue placeholder="Select method" />
                         </SelectTrigger>
