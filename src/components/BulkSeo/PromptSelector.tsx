@@ -71,7 +71,9 @@ const PromptSelector = ({ onPromptSelect }: PromptSelectorProps) => {
                         </span>
                       </div>
                       <div className="text-sm line-clamp-2 text-muted-foreground">
-                        {prompt.promptText.substring(0, 150)}...
+                        {prompt.promptText && prompt.promptText.length > 0 
+                          ? `${prompt.promptText.substring(0, 150)}...` 
+                          : "No prompt text available"}
                       </div>
                     </CardContent>
                     <CardFooter>

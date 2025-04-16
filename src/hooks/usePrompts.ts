@@ -26,10 +26,23 @@ export const usePrompts = () => {
         setIsLoading(true);
         const savedPrompts = localStorage.getItem(STORAGE_KEY);
         if (savedPrompts) {
-          setPrompts(JSON.parse(savedPrompts));
+          const parsedPrompts = JSON.parse(savedPrompts);
+          // Ensure all prompts have the required fields
+          const validPrompts = parsedPrompts.map((prompt: Partial<SavedPrompt>) => ({
+            id: prompt.id || crypto.randomUUID(),
+            title: prompt.title || 'Untitled Prompt',
+            description: prompt.description || '',
+            promptText: prompt.promptText || '',
+            productType: prompt.productType || 'general',
+            aiRole: prompt.aiRole || 'seo_expert',
+            createdAt: prompt.createdAt || new Date().toISOString(),
+            updatedAt: prompt.updatedAt || new Date().toISOString()
+          }));
+          setPrompts(validPrompts);
         }
       } catch (error) {
         console.error('Error loading prompts:', error);
+        setPrompts([]);
       } finally {
         setIsLoading(false);
       }
