@@ -51,11 +51,14 @@ const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({
             <Label htmlFor="url">Website URL</Label>
             <Input
               id="url"
-              placeholder="https://example.com"
+              placeholder="example.com (https:// will be added automatically)"
               value={config.url}
               onChange={(e) => handleChange("url", e.target.value)}
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Enter a domain name like 'example.com' or a full URL with 'https://'
+            </p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

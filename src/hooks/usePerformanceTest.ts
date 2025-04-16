@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { 
   PerformanceTestConfig, 
@@ -8,6 +7,7 @@ import {
 } from "@/types/performance";
 import { runPerformanceTest } from "@/services/performanceCrawlerService";
 import { v4 as uuidv4 } from "uuid";
+import { toast } from "@/components/ui/use-toast";
 
 export function usePerformanceTest() {
   const [isLoading, setIsLoading] = useState(false);
@@ -53,11 +53,24 @@ function transformCrawlerResult(
   config: PerformanceTestConfig
 ): PerformanceTestResult {
   // Generate resource timings from crawler data
-  const resources = crawlerResult.requests.map((req, index) => {
-    const response = crawlerResult.responses[index] || { size: 0 };
+  const resources = crawlerResult.requests.map((req) => {
+    const response = crawlerResult.responses.find(res => res.url === req.url) || { size: 0, time: req.time };
+    
+    // Safely extract pathname from URL
+    let pathname = "";
+    try {
+      // Make sure the URL is valid
+      if (req.url && req.url !== "about:blank") {
+        const url = new URL(req.url);
+        pathname = url.pathname;
+      }
+    } catch (e) {
+      // If URL parsing fails, use a fallback
+      pathname = req.url ? req.url.split("/").pop() || req.url : `resource-${Math.random().toString(36).substring(7)}`;
+    }
     
     return {
-      name: new URL(req.url).pathname,
+      name: pathname,
       initiatorType: req.resourceType,
       startTime: req.time,
       duration: (response.time || req.time) - req.time,

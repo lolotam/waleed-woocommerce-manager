@@ -12,6 +12,24 @@ import TestHistory from "@/components/Performance/TestHistory";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
 import usePerformanceTest from "@/hooks/usePerformanceTest";
 
+// Helper function to validate URL format
+const isValidUrl = (url: string): boolean => {
+  // Basic URL validation
+  return !!url && url.trim().length > 0;
+};
+
+// Helper function to normalize URL (add protocol if missing)
+const normalizeUrl = (url: string): string => {
+  if (!url) return '';
+  
+  // If URL doesn't start with http:// or https://, add https://
+  if (!url.match(/^https?:\/\//i)) {
+    return `https://${url}`;
+  }
+  
+  return url;
+};
+
 const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
   const [url, setUrl] = useState("");
@@ -29,18 +47,22 @@ const WebPerformancePage = () => {
   }, [error]);
 
   const handleQuickTest = async () => {
-    if (!url) {
+    if (!isValidUrl(url)) {
       toast({
-        title: "URL Required",
-        description: "Please enter a URL to test",
+        title: "Invalid URL",
+        description: "Please enter a valid URL to test",
         variant: "destructive"
       });
       return;
     }
 
+    // Normalize the URL and update it in the input field
+    const normalizedUrl = normalizeUrl(url);
+    setUrl(normalizedUrl);
+
     // Create a default config for quick test
     const quickTestConfig: PerformanceTestConfig = {
-      url,
+      url: normalizedUrl,
       device: "desktop",
       connection: "fast",
       location: "us-east",
@@ -55,6 +77,9 @@ const WebPerformancePage = () => {
   };
 
   const handleAdvancedTest = async (config: PerformanceTestConfig) => {
+    // Normalize the URL
+    config.url = normalizeUrl(config.url);
+    
     const result = await runTest(config);
     if (result) {
       setActiveTab("results");
@@ -89,7 +114,7 @@ const WebPerformancePage = () => {
         <CardContent className="pt-6">
           <div className="flex gap-2">
             <Input
-              placeholder="https://example.com"
+              placeholder="example.com (https:// will be added automatically)"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
               className="flex-1"

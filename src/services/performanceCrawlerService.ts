@@ -1,16 +1,52 @@
 
 import { CrawlerResult, PerformanceTestConfig } from "@/types/performance";
 
+// Helper function to validate URL
+function isValidUrl(url: string): boolean {
+  try {
+    // Try to construct a URL object
+    new URL(url);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// Helper function to normalize URL (add protocol if missing)
+function normalizeUrl(url: string): string {
+  if (!url) return '';
+  
+  // If URL doesn't start with http:// or https://, add https://
+  if (!url.match(/^https?:\/\//i)) {
+    return `https://${url}`;
+  }
+  
+  return url;
+}
+
 // This would normally call an actual backend API
 // For now we'll simulate the crawler with mock data
 export async function runPerformanceTest(config: PerformanceTestConfig): Promise<CrawlerResult> {
   console.log("Running performance test with config:", config);
   
+  // Validate and normalize URL
+  let normalizedUrl = normalizeUrl(config.url);
+  
+  if (!isValidUrl(normalizedUrl)) {
+    throw new Error(`Invalid URL: ${config.url}`);
+  }
+  
+  // Update config with normalized URL
+  const updatedConfig = {
+    ...config,
+    url: normalizedUrl
+  };
+  
   // Mock implementation - would be replaced with actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
-      resolve(generateMockCrawlerResult(config));
-    }, 3000); // Simulate network delay
+      resolve(generateMockCrawlerResult(updatedConfig));
+    }, 2000); // Simulate network delay
   });
 }
 
@@ -23,21 +59,43 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
   // Generate mock request/response data
   for (let i = 0; i < 30; i++) {
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-    const url = i === 0 
-      ? config.url 
-      : `${getRandomDomain(config.url)}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+    
+    // Create valid URLs for resources
+    let resourceUrl;
+    try {
+      if (i === 0) {
+        resourceUrl = config.url;
+      } else {
+        // Generate a valid subdomain URL
+        const baseUrl = new URL(config.url);
+        const domain = baseUrl.hostname;
+        const protocol = baseUrl.protocol;
+        
+        if (Math.random() > 0.7) {
+          // Use subdomain
+          resourceUrl = `${protocol}//${getRandomSubdomain()}.${domain}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+        } else {
+          // Use same domain
+          resourceUrl = `${protocol}//${domain}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+        }
+      }
+    } catch (e) {
+      // Fallback to a valid URL if there's an error
+      resourceUrl = `https://example.com/${resourceType}/${i}${getFileExtension(resourceType)}`;
+    }
+    
     const size = Math.floor(Math.random() * 500000) + 1000; // 1KB to 500KB
     const time = i === 0 ? 0 : Math.floor(Math.random() * 1000) + 200; // 200ms to 1200ms
     
     requests.push({
-      url,
+      url: resourceUrl,
       resourceType,
       method: "GET",
       time
     });
     
     responses.push({
-      url,
+      url: resourceUrl,
       status: Math.random() > 0.9 ? 404 : 200, // Occasionally add 404s
       contentType: getContentType(resourceType),
       size,
@@ -75,25 +133,9 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
 }
 
 // Helper functions for mock data generation
-function getRandomDomain(baseUrl: string): string {
-  const domains = [
-    baseUrl,
-    `cdn.${getDomainFromUrl(baseUrl)}`,
-    `assets.${getDomainFromUrl(baseUrl)}`,
-    `api.${getDomainFromUrl(baseUrl)}`,
-    "fonts.googleapis.com",
-    "ajax.googleapis.com",
-    "www.google-analytics.com"
-  ];
-  return domains[Math.floor(Math.random() * domains.length)];
-}
-
-function getDomainFromUrl(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch (e) {
-    return "example.com";
-  }
+function getRandomSubdomain(): string {
+  const subdomains = ["cdn", "assets", "api", "static", "img", "media", "fonts"];
+  return subdomains[Math.floor(Math.random() * subdomains.length)];
 }
 
 function getFileExtension(resourceType: string): string {
