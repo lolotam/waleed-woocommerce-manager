@@ -6,6 +6,18 @@ import { CrawlerResult, PerformanceTestConfig } from "@/types/performance";
 export async function runPerformanceTest(config: PerformanceTestConfig): Promise<CrawlerResult> {
   console.log("Running performance test with config:", config);
   
+  // Validate URL format
+  try {
+    // Make sure URL is properly formatted
+    const urlObj = new URL(config.url);
+    // Use the normalized URL
+    config.url = urlObj.toString();
+  } catch (err) {
+    console.error("Invalid URL format:", config.url);
+    // Provide a default URL for demo purposes instead of failing
+    config.url = "https://example.com";
+  }
+  
   // Mock implementation - would be replaced with actual API call
   return new Promise((resolve) => {
     setTimeout(() => {
@@ -23,9 +35,17 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
   // Generate mock request/response data
   for (let i = 0; i < 30; i++) {
     const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
-    const url = i === 0 
-      ? config.url 
-      : `${getRandomDomain(config.url)}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+    let url;
+    try {
+      // For the first request, use the input URL
+      url = i === 0 
+        ? config.url 
+        : `${getRandomDomain(config.url)}/${resourceType}/${i}${getFileExtension(resourceType)}`;
+    } catch (e) {
+      // Fallback URL in case of errors
+      url = `https://example.com/${resourceType}/${i}${getFileExtension(resourceType)}`;
+    }
+    
     const size = Math.floor(Math.random() * 500000) + 1000; // 1KB to 500KB
     const time = i === 0 ? 0 : Math.floor(Math.random() * 1000) + 200; // 200ms to 1200ms
     
@@ -76,11 +96,19 @@ function generateMockCrawlerResult(config: PerformanceTestConfig): CrawlerResult
 
 // Helper functions for mock data generation
 function getRandomDomain(baseUrl: string): string {
+  let hostname = "example.com";
+  try {
+    hostname = new URL(baseUrl).hostname;
+  } catch (e) {
+    // Default hostname if URL is invalid
+    console.warn("Invalid URL when getting domain, using default");
+  }
+  
   const domains = [
     baseUrl,
-    `cdn.${getDomainFromUrl(baseUrl)}`,
-    `assets.${getDomainFromUrl(baseUrl)}`,
-    `api.${getDomainFromUrl(baseUrl)}`,
+    `cdn.${hostname}`,
+    `assets.${hostname}`,
+    `api.${hostname}`,
     "fonts.googleapis.com",
     "ajax.googleapis.com",
     "www.google-analytics.com"

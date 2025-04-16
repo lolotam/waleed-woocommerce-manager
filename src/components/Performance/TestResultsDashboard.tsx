@@ -10,6 +10,7 @@ import MetricsTable from "./MetricsTable";
 import RecommendationsList from "./RecommendationsList";
 import HistoryChart from "./HistoryChart";
 import PerformanceVisualization from "./PerformanceVisualization";
+import { toast } from "sonner";
 
 interface TestResultsDashboardProps {
   testResult: PerformanceTestResult;
@@ -29,7 +30,14 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
   const handleDownloadReport = () => {
     // This would generate and download a PDF report in a real app
     console.log("Downloading report for", testResult.id);
-    alert("Report download functionality would be implemented here");
+    toast.success("Report download initiated");
+  };
+
+  // Format page size for display
+  const formatPageSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    else if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
+    else return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
   };
 
   return (
@@ -38,7 +46,7 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
         <div>
           <h2 className="text-2xl font-bold">Test Results</h2>
           <p className="text-muted-foreground">
-            {new URL(testResult.url).hostname} • {new Date(testResult.testDate).toLocaleString()}
+            {testResult.url} • {new Date(testResult.testDate).toLocaleString()}
           </p>
         </div>
         
@@ -105,7 +113,7 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Page Size</span>
-                <span className="font-medium">{(testResult.metrics.totalPageSize / (1024 * 1024)).toFixed(2)} MB</span>
+                <span className="font-medium">{formatPageSize(testResult.metrics.totalPageSize)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Requests</span>

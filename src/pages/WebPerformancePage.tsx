@@ -8,12 +8,18 @@ import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
 import UserDashboard from "@/components/Performance/UserDashboard"; 
 import { usePerformanceTest } from "@/hooks/usePerformanceTest";
+import { toast } from "sonner";
 
 const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
   const { runTest, isLoading, testResult } = usePerformanceTest();
 
   const handleRunTest = async (formData: any) => {
+    if (!formData.url) {
+      toast.error("Please enter a URL to test");
+      return;
+    }
+    
     const result = await runTest(formData);
     if (result) {
       setActiveTab("results");
