@@ -1,9 +1,12 @@
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { ChartContainer } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-import { Search } from "lucide-react";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, ReferenceLine } from "recharts";
+import { Search, Filter, ArrowUp, ArrowDown } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ResourceTiming } from "@/types/performance";
 
 interface ResourceWaterfallChartProps {
@@ -88,49 +91,114 @@ const transformResourceData = (resources: ResourceTiming[]) => {
 
 const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resources = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortOrder, setSortOrder] = useState<"startTime" | "duration" | "size">("startTime");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [filterType, setFilterType] = useState<string>("all");
   
-  const getResourceTypeColor = (type: string) => {
-    switch (type) {
-      case "html": return "#4299e1";
-      case "css": return "#48bb78";
-      case "javascript": return "#ecc94b";
-      case "image": return "#ed8936";
-      case "font": return "#9f7aea";
-      case "api": return "#f56565";
-      default: return "#a0aec0";
-    }
+  const resourceTypeColors = {
+    html: "#4299e1",     // Blue
+    css: "#48bb78",      // Green
+    javascript: "#ecc94b", // Yellow
+    image: "#ed8936",    // Orange
+    font: "#9f7aea",     // Purple
+    api: "#f56565",      // Red
+    other: "#a0aec0"     // Gray
   };
   
   // Use provided resources or fallback to mock data
-  const waterfallData = resources.length > 0 
-    ? transformResourceData(resources) 
-    : generateMockWaterfallData();
-  
-  const filteredData = waterfallData.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    item.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.type.toLowerCase().includes(searchQuery.toLowerCase())
+  const waterfallData = useMemo(() => 
+    resources.length > 0 
+      ? transformResourceData(resources) 
+      : generateMockWaterfallData(),
+    [resources]
   );
   
-  const config = {
-    html: { color: "#4299e1" },
-    css: { color: "#48bb78" },
-    javascript: { color: "#ecc94b" },
-    image: { color: "#ed8936" },
-    font: { color: "#9f7aea" },
-    api: { color: "#f56565" }
+  // Apply filters and sorting
+  const processedData = useMemo(() => {
+    let data = [...waterfallData];
+    
+    // Apply search filter
+    if (searchQuery) {
+      data = data.filter(item => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        item.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.type.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Apply type filter
+    if (filterType !== "all") {
+      data = data.filter(item => item.type === filterType);
+    }
+    
+    // Apply sorting
+    data.sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortOrder) {
+        case "startTime":
+          comparison = a.startTime - b.startTime;
+          break;
+        case "duration":
+          comparison = a.duration - b.duration;
+          break;
+        case "size":
+          comparison = a.size - b.size;
+          break;
+      }
+      
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+    
+    return data;
+  }, [waterfallData, searchQuery, filterType, sortOrder, sortDirection]);
+  
+  // Calculate waterfall statistics
+  const stats = useMemo(() => {
+    if (!processedData.length) return { total: 0, avgDuration: 0, maxDuration: 0 };
+    
+    const total = processedData.length;
+    const totalDuration = processedData.reduce((sum, item) => sum + item.duration, 0);
+    const avgDuration = Math.round(totalDuration / total);
+    const maxDuration = Math.max(...processedData.map(item => item.duration));
+    
+    return { total, avgDuration, maxDuration };
+  }, [processedData]);
+  
+  // Get distinct resource types for filtering
+  const resourceTypes = useMemo(() => {
+    const types = new Set(waterfallData.map(item => item.type));
+    return ["all", ...Array.from(types)];
+  }, [waterfallData]);
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === "asc" ? "desc" : "asc");
+  };
+  
+  const handleSortChange = (value: "startTime" | "duration" | "size") => {
+    if (sortOrder === value) {
+      toggleSortDirection();
+    } else {
+      setSortOrder(value);
+      setSortDirection("asc");
+    }
   };
 
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-white p-3 border rounded shadow-lg">
-          <p className="font-medium">{data.name}</p>
-          <p className="text-sm text-gray-600">{data.domain}</p>
-          <div className="text-xs mt-2 grid grid-cols-2 gap-x-4">
+        <div className="bg-white dark:bg-gray-800 p-4 border rounded shadow-lg">
+          <p className="font-medium text-sm">{data.name}</p>
+          <p className="text-xs text-gray-600 dark:text-gray-400">{data.domain}</p>
+          <div className="text-xs mt-2 grid grid-cols-2 gap-x-4 gap-y-1">
             <span>Type:</span> 
-            <span className="font-medium">{data.type}</span>
+            <span className="font-medium">
+              <Badge className="font-normal" 
+                style={{ backgroundColor: resourceTypeColors[data.type] || resourceTypeColors.other }}>
+                {data.type}
+              </Badge>
+            </span>
             
             <span>Start Time:</span> 
             <span className="font-medium">{data.startTime.toFixed(0)} ms</span>
@@ -148,23 +216,102 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
     return null;
   };
 
+  const SortIcon = ({ currentSort, sortField }: { currentSort: string, sortField: string }) => {
+    if (currentSort !== sortField) return null;
+    return sortDirection === "asc" ? <ArrowUp className="h-3 w-3 ml-1" /> : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
+
   return (
     <div className="h-full flex flex-col">
-      <div className="relative mb-4">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Search resources..."
-          className="pl-8"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
+      <div className="flex flex-col gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search resources..."
+              className="pl-8"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select 
+              value={filterType} 
+              onValueChange={(value) => setFilterType(value)}
+            >
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Filter by type" />
+              </SelectTrigger>
+              <SelectContent>
+                {resourceTypes.map(type => (
+                  <SelectItem key={type} value={type}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="text-sm text-muted-foreground">Sort by:</div>
+            <div className="flex gap-1">
+              <Button 
+                variant={sortOrder === "startTime" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleSortChange("startTime")}
+                className="text-xs h-8"
+              >
+                Start Time
+                <SortIcon currentSort={sortOrder} sortField="startTime" />
+              </Button>
+              <Button 
+                variant={sortOrder === "duration" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleSortChange("duration")}
+                className="text-xs h-8"
+              >
+                Duration
+                <SortIcon currentSort={sortOrder} sortField="duration" />
+              </Button>
+              <Button 
+                variant={sortOrder === "size" ? "default" : "outline"} 
+                size="sm"
+                onClick={() => handleSortChange("size")}
+                className="text-xs h-8"
+              >
+                Size
+                <SortIcon currentSort={sortOrder} sortField="size" />
+              </Button>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center text-sm">
+          <div className="text-muted-foreground">
+            Showing <span className="font-medium">{processedData.length}</span> of <span className="font-medium">{waterfallData.length}</span> resources
+          </div>
+          <div className="flex gap-4">
+            <div className="text-muted-foreground">
+              Avg duration: <span className="font-medium">{stats.avgDuration} ms</span>
+            </div>
+            <div className="text-muted-foreground">
+              Max duration: <span className="font-medium">{stats.maxDuration} ms</span>
+            </div>
+          </div>
+        </div>
       </div>
       
       <div className="flex-1 overflow-y-auto">
-        <ChartContainer config={config} className="w-full h-[1500px]">
+        <ChartContainer 
+          config={resourceTypeColors} 
+          className="w-full"
+          style={{ height: Math.max(500, 30 * processedData.length) }}
+        >
           <BarChart
             layout="vertical"
-            data={filteredData}
+            data={processedData}
             margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" />
@@ -179,20 +326,37 @@ const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resourc
               tick={{ fontSize: 10 }}
             />
             <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine x={stats.avgDuration} stroke="#888" strokeDasharray="3 3" />
             <Bar
               dataKey="duration"
               background={{ fill: '#eee' }}
               radius={[0, 4, 4, 0]}
               fillOpacity={0.8}
               stroke="none"
-              fill="#8884d8" // Default fill that will be overridden by Cell
             >
-              {filteredData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={getResourceTypeColor(entry.type)} />
+              {processedData.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={resourceTypeColors[entry.type] || resourceTypeColors.other} 
+                />
               ))}
             </Bar>
           </BarChart>
         </ChartContainer>
+      </div>
+      
+      <div className="mt-3 flex justify-center">
+        <div className="flex gap-4 text-xs">
+          {Object.entries(resourceTypeColors).filter(([key]) => key !== 'other').map(([type, color]) => (
+            <div key={type} className="flex items-center gap-1">
+              <div 
+                className="w-3 h-3 rounded-sm" 
+                style={{ backgroundColor: color }}
+              />
+              <span className="capitalize">{type}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
