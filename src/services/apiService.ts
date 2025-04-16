@@ -1,4 +1,4 @@
-import axios, { AxiosInstance, AxiosResponse, AxiosError } from 'axios';
+import axios from 'axios';
 
 interface ApiErrorResponse {
   error: string;
@@ -14,10 +14,16 @@ interface TestResult {
   testId: string;
   url: string;
   status: 'queued' | 'running' | 'completed' | 'failed';
+  timestamp: string; // Added for the comparison tool
   results?: {
     metrics: {
       loadTime: number;
       resourceCount: number;
+      totalSize: number;
+      ttfb: number;
+      fcp?: number;
+      lcp?: number;
+      cls?: number;
     };
     lighthouse: {
       performance: number;
@@ -27,7 +33,7 @@ interface TestResult {
 
 class ApiService {
   private baseUrl: string;
-  private client: AxiosInstance;
+  private client: any; // Using 'any' type instead of AxiosInstance
 
   constructor() {
     this.baseUrl = '/api';
@@ -40,7 +46,7 @@ class ApiService {
     });
 
     // Add auth interceptor
-    this.client.interceptors.request.use((config) => {
+    this.client.interceptors.request.use((config: any) => {
       const token = localStorage.getItem('auth_token');
       if (token) {
         config.headers['Authorization'] = `Bearer ${token}`;
@@ -49,7 +55,7 @@ class ApiService {
     });
   }
 
-  private handleError(error: AxiosError): ApiErrorResponse {
+  private handleError(error: any): ApiErrorResponse {
     if (error.response) {
       // Server responded with error
       console.error('API error:', error.response.data);
@@ -72,10 +78,10 @@ class ApiService {
 
   async runTest(testData: TestConfig): Promise<TestResult | null> {
     try {
-      const response: AxiosResponse<TestResult> = await this.client.post('/tests', testData);
+      const response = await this.client.post('/tests', testData);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -83,10 +89,10 @@ class ApiService {
 
   async getTestResult(testId: string): Promise<TestResult | null> {
     try {
-      const response: AxiosResponse<TestResult> = await this.client.get(`/tests/${testId}`);
+      const response = await this.client.get(`/tests/${testId}`);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -94,10 +100,10 @@ class ApiService {
 
   async getTestHistory(userId: string, params = {}): Promise<TestResult[]> {
     try {
-      const response: AxiosResponse<TestResult[]> = await this.client.get(`/users/${userId}/tests`, { params });
+      const response = await this.client.get(`/users/${userId}/tests`, { params });
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return [];
     }
@@ -105,10 +111,10 @@ class ApiService {
 
   async getUserProfile(userId: string): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.get(`/users/${userId}`);
+      const response = await this.client.get(`/users/${userId}`);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -116,10 +122,10 @@ class ApiService {
 
   async updateUserProfile(userId: string, userData: any): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.put(`/users/${userId}`, userData);
+      const response = await this.client.put(`/users/${userId}`, userData);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -127,10 +133,10 @@ class ApiService {
 
   async getUserSubscription(userId: string): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.get(`/users/${userId}/subscription`);
+      const response = await this.client.get(`/users/${userId}/subscription`);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -138,10 +144,10 @@ class ApiService {
 
   async upgradeSubscription(userId: string, planId: string): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.post(`/users/${userId}/subscription`, { planId });
+      const response = await this.client.post(`/users/${userId}/subscription`, { planId });
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -149,10 +155,10 @@ class ApiService {
 
   async createApiKey(userId: string, keyData: any): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.post(`/users/${userId}/api-keys`, keyData);
+      const response = await this.client.post(`/users/${userId}/api-keys`, keyData);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -160,10 +166,10 @@ class ApiService {
 
   async listApiKeys(userId: string): Promise<any[]> {
     try {
-      const response: AxiosResponse<any[]> = await this.client.get(`/users/${userId}/api-keys`);
+      const response = await this.client.get(`/users/${userId}/api-keys`);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return [];
     }
@@ -171,10 +177,10 @@ class ApiService {
 
   async revokeApiKey(userId: string, keyId: string): Promise<any | null> {
     try {
-      const response: AxiosResponse<any> = await this.client.delete(`/users/${userId}/api-keys/${keyId}`);
+      const response = await this.client.delete(`/users/${userId}/api-keys/${keyId}`);
       return response.data;
     } catch (error) {
-      const apiError = this.handleError(error as AxiosError);
+      const apiError = this.handleError(error as any);
       console.error(apiError);
       return null;
     }
@@ -221,3 +227,4 @@ class ApiService {
 }
 
 export default new ApiService();
+export type { TestResult, TestConfig };
