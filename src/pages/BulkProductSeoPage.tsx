@@ -10,6 +10,7 @@ import { getAiConfig } from "@/utils/ai/config";
 import PromptSelector from "@/components/BulkSeo/PromptSelector";
 import { SavedPrompt } from "@/hooks/usePrompts";
 import { Helmet } from "react-helmet";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const BulkProductSeoPage = () => {
   const [activeTab, setActiveTab] = useState("upload");
@@ -22,6 +23,7 @@ const BulkProductSeoPage = () => {
   const [failed, setFailed] = useState<any[]>([]);
   const [productType, setProductType] = useState<string>("general");
   const [aiRole, setAiRole] = useState<string>("seo_expert");
+  const isMobile = useIsMobile();
 
   // Load configs from settings
   useEffect(() => {
@@ -67,31 +69,51 @@ const BulkProductSeoPage = () => {
   };
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="mx-auto py-4 md:py-6 space-y-4 md:space-y-6 px-2 md:px-6">
       <Helmet>
         <title>Bulk Product SEO Generator | WooCommerce AI Tools</title>
       </Helmet>
       
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Bulk Product SEO Generator</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight">Bulk Product SEO Generator</h1>
+        <p className="text-muted-foreground text-sm md:text-base">
           Generate SEO content for multiple products using AI
         </p>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="upload">Upload Products</TabsTrigger>
-          <TabsTrigger value="prompt">Configure Prompt</TabsTrigger>
-          <TabsTrigger value="processing">Processing</TabsTrigger>
-          <TabsTrigger value="results">Results</TabsTrigger>
+        <TabsList className="w-full md:w-auto flex overflow-x-auto md:overflow-visible pb-1 md:pb-0">
+          <TabsTrigger 
+            value="upload" 
+            className="flex-1 md:flex-none text-sm md:text-base py-2"
+          >
+            Upload Products
+          </TabsTrigger>
+          <TabsTrigger 
+            value="prompt" 
+            className="flex-1 md:flex-none text-sm md:text-base py-2"
+          >
+            Configure Prompt
+          </TabsTrigger>
+          <TabsTrigger 
+            value="processing" 
+            className="flex-1 md:flex-none text-sm md:text-base py-2"
+          >
+            Processing
+          </TabsTrigger>
+          <TabsTrigger 
+            value="results" 
+            className="flex-1 md:flex-none text-sm md:text-base py-2"
+          >
+            Results
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="upload" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Upload Product Data</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Upload Product Data</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Upload an Excel file with product IDs, titles, and URLs
               </CardDescription>
             </CardHeader>
@@ -104,10 +126,10 @@ const BulkProductSeoPage = () => {
         <TabsContent value="prompt" className="space-y-4">
           <Card>
             <CardHeader>
-              <div className="flex justify-between items-center">
+              <div className={`flex ${isMobile ? 'flex-col gap-4' : 'justify-between items-center'}`}>
                 <div>
-                  <CardTitle>Configure AI Prompt</CardTitle>
-                  <CardDescription>
+                  <CardTitle className="text-lg md:text-xl">Configure AI Prompt</CardTitle>
+                  <CardDescription className="text-sm md:text-base">
                     Choose AI provider and enter the prompt for generating SEO content
                   </CardDescription>
                 </div>
@@ -136,8 +158,8 @@ const BulkProductSeoPage = () => {
         <TabsContent value="processing" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Processing Products</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Processing Products</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Generating SEO content for your products
               </CardDescription>
             </CardHeader>
@@ -161,8 +183,8 @@ const BulkProductSeoPage = () => {
         <TabsContent value="results" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Results</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Results</CardTitle>
+              <CardDescription className="text-sm md:text-base">
                 Summary of SEO content generation
               </CardDescription>
             </CardHeader>

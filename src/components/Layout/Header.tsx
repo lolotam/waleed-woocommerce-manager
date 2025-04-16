@@ -1,16 +1,19 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { MoonIcon, SunIcon, Menu } from "lucide-react";
+import { MoonIcon, SunIcon, Menu, X } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface HeaderProps {
   toggleSidebar: () => void;
+  sidebarOpen: boolean;
 }
 
-const Header = ({ toggleSidebar }: HeaderProps) => {
+const Header = ({ toggleSidebar, sidebarOpen }: HeaderProps) => {
   const navigate = useNavigate();
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const isMobile = useIsMobile();
   
   useEffect(() => {
     // Check if theme is stored in localStorage
@@ -34,13 +37,25 @@ const Header = ({ toggleSidebar }: HeaderProps) => {
   };
 
   return (
-    <header className="sticky top-0 z-10 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
+    <header className="sticky top-0 z-20 w-full bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm">
       <div className="px-4 h-16 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="md:hidden">
-            <Menu className="h-5 w-5" />
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar} 
+            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+          >
+            {sidebarOpen && isMobile ? (
+              <X className="h-5 w-5" />
+            ) : (
+              <Menu className="h-5 w-5" />
+            )}
           </Button>
-          <div className="font-semibold text-lg cursor-pointer" onClick={() => navigate('/')}>
+          <div 
+            className="font-semibold text-lg truncate cursor-pointer max-w-[180px] md:max-w-none" 
+            onClick={() => navigate('/')}
+          >
             Waleed Smart WooCommerce
           </div>
         </div>

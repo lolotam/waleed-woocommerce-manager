@@ -43,18 +43,18 @@ const LicenseActivation = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 p-4">
       <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold">Waleed Smart WooCommerce</h1>
-          <p className="text-muted-foreground mt-2">AI-powered WooCommerce management</p>
+        <div className="text-center mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-bold">Waleed Smart WooCommerce</h1>
+          <p className="text-muted-foreground mt-2 text-sm md:text-base">AI-powered WooCommerce management</p>
         </div>
         
-        <Card>
+        <Card className="shadow-lg">
           <CardHeader>
             <div className="mx-auto bg-blue-100 dark:bg-blue-900 p-3 rounded-full w-12 h-12 flex items-center justify-center mb-2">
               <LockKeyhole className="h-6 w-6 text-blue-600 dark:text-blue-300" />
             </div>
-            <CardTitle className="text-center">License Activation</CardTitle>
-            <CardDescription className="text-center">
+            <CardTitle className="text-center text-xl md:text-2xl">License Activation</CardTitle>
+            <CardDescription className="text-center text-sm md:text-base">
               Enter your license key to activate the application
             </CardDescription>
           </CardHeader>
@@ -67,14 +67,16 @@ const LicenseActivation = () => {
                   placeholder="XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"
                   value={licenseKey}
                   onChange={(e) => setLicenseKey(e.target.value)}
+                  className="text-base md:text-base"
                 />
                 {error && <p className="text-sm text-red-500">{error}</p>}
               </div>
               
               <Button 
-                className="w-full" 
+                className="w-full text-base" 
                 onClick={handleActivation}
                 disabled={isActivating}
+                size="lg"
               >
                 {isActivating ? (
                   <>

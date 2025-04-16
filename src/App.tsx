@@ -56,41 +56,43 @@ const App = () => {
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <Routes>
-            {/* License Activation Route (public) */}
-            <Route path="/license" element={<LicenseActivation />} />
-            
-            {/* License Generator Route (admin only) */}
-            <Route path="/license-generator" element={<LicenseGenerator />} />
+          <div className="min-h-screen flex flex-col w-full text-base md:text-base">
+            <Routes>
+              {/* License Activation Route (public) */}
+              <Route path="/license" element={<LicenseActivation />} />
+              
+              {/* License Generator Route (admin only) */}
+              <Route path="/license-generator" element={<LicenseGenerator />} />
 
-            {/* Protected Routes */}
-            {isLicensed ? (
-              <Route element={<MainLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/brands" element={<BrandsManager />} />
-                <Route path="/categories" element={<CategoriesPage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/bulk-product-seo" element={<BulkProductSeoPage />} />
-                <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/import-export" element={<ImportExportPage />} />
-                <Route path="/prompts" element={<PromptsPage />} />
-                <Route path="/logs" element={<LogsPage />} />
-                <Route path="/web-tools" element={<WebToolsPage />} />
-                <Route path="/scraper" element={<ScraperImporterPage />} />
-                <Route path="/web-performance" element={<WebPerformancePage />} />
-              </Route>
-            ) : (
-              <Route path="*" element={<Navigate to="/license" replace />} />
-            )}
+              {/* Protected Routes */}
+              {isLicensed ? (
+                <Route element={<MainLayout />}>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/brands" element={<BrandsManager />} />
+                  <Route path="/categories" element={<CategoriesPage />} />
+                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/bulk-product-seo" element={<BulkProductSeoPage />} />
+                  <Route path="/brand-logo-uploader" element={<BrandLogoUploader />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/import-export" element={<ImportExportPage />} />
+                  <Route path="/prompts" element={<PromptsPage />} />
+                  <Route path="/logs" element={<LogsPage />} />
+                  <Route path="/web-tools" element={<WebToolsPage />} />
+                  <Route path="/scraper" element={<ScraperImporterPage />} />
+                  <Route path="/web-performance" element={<WebPerformancePage />} />
+                </Route>
+              ) : (
+                <Route path="*" element={<Navigate to="/license" replace />} />
+              )}
 
-            {/* Catch-all route */}
-            <Route path="*" element={<NotFound />} />
+              {/* Catch-all route */}
+              <Route path="*" element={<NotFound />} />
 
-            {/* WooCommerce Callback Route */}
-            <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
-          </Routes>
+              {/* WooCommerce Callback Route */}
+              <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
+            </Routes>
+          </div>
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
