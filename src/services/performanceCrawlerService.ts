@@ -1,4 +1,3 @@
-
 import { CrawlerResult, PerformanceTestConfig } from "@/types/performance";
 
 // This would normally call an actual backend API
@@ -14,8 +13,7 @@ export async function runPerformanceTest(config: PerformanceTestConfig): Promise
     config.url = urlObj.toString();
   } catch (err) {
     console.error("Invalid URL format:", config.url);
-    // Provide a default URL for demo purposes instead of failing
-    config.url = "https://example.com";
+    throw new Error("Invalid URL: Please enter a valid website address");
   }
   
   // Mock implementation - would be replaced with actual API call
@@ -114,14 +112,6 @@ function getRandomDomain(baseUrl: string): string {
     "www.google-analytics.com"
   ];
   return domains[Math.floor(Math.random() * domains.length)];
-}
-
-function getDomainFromUrl(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch (e) {
-    return "example.com";
-  }
 }
 
 function getFileExtension(resourceType: string): string {

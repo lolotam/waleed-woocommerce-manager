@@ -22,6 +22,7 @@ const WebPerformancePage = () => {
     
     const result = await runTest(formData);
     if (result) {
+      // Explicitly switch to the results tab after successful test
       setActiveTab("results");
     }
   };

@@ -22,15 +22,31 @@ export function usePerformanceTest() {
     setError(null);
     
     // Basic URL validation
-    if (!config.url) {
+    if (!config.url || config.url.trim() === '') {
       toast.error("Please enter a valid URL");
       setIsLoading(false);
       return null;
     }
     
-    // Ensure URL has a protocol
-    if (!config.url.startsWith('http://') && !config.url.startsWith('https://')) {
-      config.url = 'https://' + config.url;
+    // Try to fix common URL issues
+    try {
+      let urlToTest = config.url.trim();
+      
+      // Ensure URL has a protocol
+      if (!urlToTest.startsWith('http://') && !urlToTest.startsWith('https://')) {
+        urlToTest = 'https://' + urlToTest;
+      }
+      
+      // Validate URL format
+      new URL(urlToTest);
+      
+      // Update the config with the fixed URL
+      config.url = urlToTest;
+    } catch (err) {
+      toast.error("Invalid URL format. Please enter a valid website address.");
+      setIsLoading(false);
+      setError("Invalid URL format");
+      return null;
     }
     
     try {
