@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,9 +12,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AIModel } from "@/utils/ai/types";
 
-// Define the prompt categories
 const PROMPT_CATEGORIES = [
-  // Product categories
   { id: 'product_long_description', name: 'Product Long Description', group: 'product' },
   { id: 'product_short_description', name: 'Product Short Description', group: 'product' },
   { id: 'product_focus_keywords', name: 'Product Focus Keywords', group: 'product' },
@@ -28,7 +25,6 @@ const PROMPT_CATEGORIES = [
   { id: 'product_image_description', name: 'Product Image Description', group: 'product' },
   { id: 'product_full_prompt', name: 'Product Full Prompt', group: 'product' },
   
-  // Category categories
   { id: 'category_description', name: 'Category Description', group: 'category' },
   { id: 'category_extra_description', name: 'Category Extra Description', group: 'category' },
   { id: 'category_focus_keyword', name: 'Category Focus Keyword', group: 'category' },
@@ -36,7 +32,6 @@ const PROMPT_CATEGORIES = [
   { id: 'category_meta_description', name: 'Category Meta Description', group: 'category' },
   { id: 'category_permalink', name: 'Category Permalink (Slug)', group: 'category' },
   
-  // Brand categories
   { id: 'brand_description', name: 'Brand Description', group: 'brand' },
   { id: 'brand_focus_keyword', name: 'Brand Focus Keyword', group: 'brand' },
   { id: 'brand_meta_title', name: 'Brand Meta Title', group: 'brand' },
@@ -44,7 +39,6 @@ const PROMPT_CATEGORIES = [
   { id: 'brand_permalink', name: 'Brand Permalink (Slug)', group: 'brand' },
 ];
 
-// Define product types
 const PRODUCT_TYPES = [
   { id: 'simple', name: 'Simple Product' },
   { id: 'variable', name: 'Variable Product' },
@@ -56,7 +50,6 @@ const PRODUCT_TYPES = [
   { id: 'service', name: 'Service' },
 ];
 
-// Define AI roles
 const AI_ROLES = [
   { id: 'copywriter', name: 'Copywriter' },
   { id: 'seo_specialist', name: 'SEO Specialist' },
@@ -68,7 +61,6 @@ const AI_ROLES = [
   { id: 'analytical', name: 'Analytical' },
 ];
 
-// Default prompts for common categories
 const DEFAULT_PROMPTS = {
   product_long_description: "Write a detailed product description for {product_name}. Include key features, benefits, and specifications. Make it engaging and SEO-friendly with a focus on the keyword {keyword}.",
   product_short_description: "Create a concise product description (max 50 words) for {product_name} that highlights the key selling points.",
@@ -96,14 +88,12 @@ const PromptManager = () => {
   const [filter, setFilter] = useState<string>('all');
   const [activeTab, setActiveTab] = useState<string>("product");
 
-  // Load prompts from localStorage or use defaults
   useEffect(() => {
     const savedPrompts = localStorage.getItem('saved_prompts');
     
     if (savedPrompts) {
       setPrompts(JSON.parse(savedPrompts));
     } else {
-      // Initialize with default prompts
       const defaultPromptsList = Object.entries(DEFAULT_PROMPTS).map(([category, promptText]) => ({
         id: `default-${category}`,
         name: PROMPT_CATEGORIES.find(c => c.id === category)?.name || category,
@@ -118,7 +108,6 @@ const PromptManager = () => {
     }
   }, []);
 
-  // Create a new prompt
   const createPrompt = () => {
     const newPrompt: Prompt = {
       id: `custom-${Date.now()}`,
@@ -134,15 +123,12 @@ const PromptManager = () => {
     setEditDialogOpen(true);
   };
 
-  // Edit existing prompt
   const editPrompt = (prompt: Prompt) => {
     setSelectedPrompt({...prompt});
     setEditDialogOpen(true);
   };
 
-  // Delete prompt
   const deletePrompt = (id: string) => {
-    // Don't allow deleting default prompts
     const promptToDelete = prompts.find(p => p.id === id);
     if (promptToDelete?.isDefault) {
       toast.error("Cannot delete default prompts. You can edit them instead.");
@@ -157,7 +143,6 @@ const PromptManager = () => {
     }
   };
 
-  // Save prompt
   const savePrompt = () => {
     if (!selectedPrompt) return;
     
@@ -166,14 +151,12 @@ const PromptManager = () => {
       return;
     }
     
-    // If this is a new prompt (doesn't exist in the array)
     if (!prompts.some(prompt => prompt.id === selectedPrompt.id)) {
       const updatedPrompts = [...prompts, selectedPrompt];
       setPrompts(updatedPrompts);
       localStorage.setItem('saved_prompts', JSON.stringify(updatedPrompts));
       toast.success('Prompt created successfully');
     } else {
-      // Update existing prompt
       const updatedPrompts = prompts.map(prompt => 
         prompt.id === selectedPrompt.id ? selectedPrompt : prompt
       );
@@ -185,19 +168,16 @@ const PromptManager = () => {
     setEditDialogOpen(false);
   };
 
-  // Copy prompt to clipboard
   const copyPrompt = (prompt: string, id: string) => {
     navigator.clipboard.writeText(prompt);
     setCopiedId(id);
     toast.success('Prompt copied to clipboard');
     
-    // Reset the copied status after 2 seconds
     setTimeout(() => {
       setCopiedId(null);
     }, 2000);
   };
 
-  // Filter prompts by category group and specific filter
   const filteredPrompts = prompts.filter(prompt => {
     const category = PROMPT_CATEGORIES.find(c => c.id === prompt.category);
     
@@ -212,7 +192,6 @@ const PromptManager = () => {
     return true;
   });
 
-  // Count prompts by group
   const productPromptsCount = prompts.filter(p => 
     PROMPT_CATEGORIES.find(c => c.id === p.category)?.group === 'product'
   ).length;
@@ -387,7 +366,6 @@ const PromptManager = () => {
         </div>
       </Tabs>
       
-      {/* Edit Prompt Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
@@ -439,18 +417,17 @@ const PromptManager = () => {
                   </Select>
                 </div>
                 
-                {/* New Product Type Filter */}
                 <div className="grid gap-2">
                   <Label htmlFor="productType">Product Type</Label>
                   <Select 
-                    value={selectedPrompt.productType || ''} 
-                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, productType: value})}
+                    value={selectedPrompt.productType || "any"} 
+                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, productType: value === "any" ? "" : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select product type (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Any product type</SelectItem>
+                      <SelectItem value="any">Any product type</SelectItem>
                       {PRODUCT_TYPES.map((type) => (
                         <SelectItem key={type.id} value={type.id}>
                           {type.name}
@@ -463,18 +440,17 @@ const PromptManager = () => {
                   </p>
                 </div>
                 
-                {/* New AI Role Filter */}
                 <div className="grid gap-2">
                   <Label htmlFor="aiRole">AI Role</Label>
                   <Select 
-                    value={selectedPrompt.aiRole || ''} 
-                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, aiRole: value})}
+                    value={selectedPrompt.aiRole || "default"} 
+                    onValueChange={(value) => setSelectedPrompt({...selectedPrompt, aiRole: value === "default" ? "" : value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select AI role (optional)" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">Default role</SelectItem>
+                      <SelectItem value="default">Default role</SelectItem>
                       {AI_ROLES.map((role) => (
                         <SelectItem key={role.id} value={role.id}>
                           {role.name}
