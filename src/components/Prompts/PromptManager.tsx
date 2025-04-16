@@ -10,74 +10,47 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash, Pencil, Plus, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AIModel } from "@/utils/ai/types";
 
-// Expanded prompt categories to include all AI-generated fields
+// Define the prompt categories
 const PROMPT_CATEGORIES = [
   // Product categories
-  { id: 'product_description', name: 'Product Description' },
-  { id: 'product_short_description', name: 'Product Short Description' },
-  { id: 'product_seo_title', name: 'Product SEO Title' },
-  { id: 'product_seo_description', name: 'Product SEO Description' },
-  { id: 'product_tags', name: 'Product Tags' },
-  { id: 'product_focus_keyword', name: 'Product Focus Keyword' },
-  { id: 'product_alt_text', name: 'Product Image Alt Text' },
-  { id: 'product_image_title', name: 'Product Image Title' },
-  { id: 'product_image_caption', name: 'Product Image Caption' },
-  { id: 'product_image_description', name: 'Product Image Description' },
-  { id: 'product_fragrance_description', name: 'Product Fragrance Description' },
-  { id: 'product_features', name: 'Product Features' },
-  { id: 'product_benefits', name: 'Product Benefits' },
-  { id: 'product_usage_instructions', name: 'Product Usage Instructions' },
-  { id: 'product_ingredients', name: 'Product Ingredients' },
-  { id: 'product_specifications', name: 'Product Specifications' },
-  { id: 'product_faq', name: 'Product FAQ' },
-  
-  // Brand categories
-  { id: 'brand_description', name: 'Brand Description' },
-  { id: 'brand_seo_title', name: 'Brand SEO Title' },
-  { id: 'brand_seo_description', name: 'Brand SEO Description' },
-  { id: 'brand_story', name: 'Brand Story' },
-  { id: 'brand_values', name: 'Brand Values' },
-  { id: 'brand_unique_selling_points', name: 'Brand Unique Selling Points' },
-  { id: 'brand_mission', name: 'Brand Mission Statement' },
-  { id: 'brand_vision', name: 'Brand Vision Statement' },
-  { id: 'brand_history', name: 'Brand History' },
-  { id: 'brand_tagline', name: 'Brand Tagline' },
-  { id: 'brand_founder_story', name: 'Brand Founder Story' },
-  { id: 'brand_certifications', name: 'Brand Certifications' },
-  { id: 'brand_partnerships', name: 'Brand Partnerships' },
-  { id: 'brand_social_impact', name: 'Brand Social Impact' },
-  { id: 'brand_sustainability', name: 'Brand Sustainability Practices' },
-  { id: 'brand_faq', name: 'Brand FAQ' },
+  { id: 'product_long_description', name: 'Product Long Description', group: 'product' },
+  { id: 'product_short_description', name: 'Product Short Description', group: 'product' },
+  { id: 'product_focus_keywords', name: 'Product Focus Keywords', group: 'product' },
+  { id: 'product_meta_title', name: 'Product Meta Title', group: 'product' },
+  { id: 'product_meta_description', name: 'Product Meta Description', group: 'product' },
+  { id: 'product_permalink', name: 'Product Permalink (Slug)', group: 'product' },
+  { id: 'product_image_alt_text', name: 'Product Image Alt Text', group: 'product' },
+  { id: 'product_image_title', name: 'Product Image Title', group: 'product' },
+  { id: 'product_image_caption', name: 'Product Image Caption', group: 'product' },
+  { id: 'product_image_description', name: 'Product Image Description', group: 'product' },
+  { id: 'product_full_prompt', name: 'Product Full Prompt', group: 'product' },
   
   // Category categories
-  { id: 'category_description', name: 'Category Description' },
-  { id: 'category_seo_title', name: 'Category SEO Title' },
-  { id: 'category_seo_description', name: 'Category SEO Description' },
-  { id: 'category_buying_guide', name: 'Category Buying Guide' },
-  { id: 'category_faq', name: 'Category FAQ' },
-  { id: 'category_best_sellers', name: 'Category Best Sellers Introduction' },
-  { id: 'category_trends', name: 'Category Trends Overview' },
-  { id: 'category_comparison', name: 'Category Product Comparison' },
-  { id: 'category_benefits', name: 'Category Benefits' },
-  { id: 'category_history', name: 'Category History/Background' },
-  { id: 'category_usage_tips', name: 'Category Usage Tips' },
-  { id: 'category_care_instructions', name: 'Category Care Instructions' },
-  { id: 'category_seasonal_guide', name: 'Category Seasonal Guide' },
-  { id: 'category_expert_advice', name: 'Category Expert Advice' },
+  { id: 'category_description', name: 'Category Description', group: 'category' },
+  { id: 'category_extra_description', name: 'Category Extra Description', group: 'category' },
+  { id: 'category_focus_keyword', name: 'Category Focus Keyword', group: 'category' },
+  { id: 'category_meta_title', name: 'Category Meta Title', group: 'category' },
+  { id: 'category_meta_description', name: 'Category Meta Description', group: 'category' },
+  { id: 'category_permalink', name: 'Category Permalink (Slug)', group: 'category' },
+  
+  // Brand categories
+  { id: 'brand_description', name: 'Brand Description', group: 'brand' },
+  { id: 'brand_focus_keyword', name: 'Brand Focus Keyword', group: 'brand' },
+  { id: 'brand_meta_title', name: 'Brand Meta Title', group: 'brand' },
+  { id: 'brand_meta_description', name: 'Brand Meta Description', group: 'brand' },
+  { id: 'brand_permalink', name: 'Brand Permalink (Slug)', group: 'brand' },
 ];
 
-// Example default prompts
+// Default prompts for common categories
 const DEFAULT_PROMPTS = {
-  product_description: "Write a compelling product description for {product_name}. Include key features, benefits, and use cases. Keep it persuasive and engaging. Aim for 150-200 words.",
-  product_seo_title: "Create an SEO-friendly title (max 60 characters) for {product_name} that includes the main keyword {keyword}.",
-  product_seo_description: "Write a meta description (max 160 characters) for {product_name} that highlights key features and includes the keyword {keyword}.",
-  brand_description: "Create a concise, compelling brand description for {brand_name}. Include their unique selling points, product range, and brand values.",
-  brand_seo_title: "Create an SEO-friendly meta title (under 60 characters) for {brand_name}'s product category page.",
-  brand_seo_description: "Write an engaging meta description (under 160 characters) for {brand_name} that includes key products and encourages clicks.",
-  category_description: "Write a category description for {category_name} products. Include what types of products are in this category, who they're for, and why customers should explore this category.",
-  category_seo_title: "Create an SEO-friendly title (max 60 characters) for the {category_name} category page.",
-  category_seo_description: "Write a meta description (max 160 characters) for the {category_name} category that encourages clicks and includes relevant keywords."
+  product_long_description: "Write a detailed product description for {product_name}. Include key features, benefits, and specifications. Make it engaging and SEO-friendly with a focus on the keyword {keyword}.",
+  product_short_description: "Create a concise product description (max 50 words) for {product_name} that highlights the key selling points.",
+  product_meta_title: "Create an SEO-friendly title (max 60 characters) for {product_name} that includes the main keyword {keyword}.",
+  category_description: "Write a comprehensive category description for {category_name} products. Include what types of products are in this category, who they're for, and why customers should explore this category.",
+  brand_description: "Create a compelling brand description for {brand_name}. Include their history, product range, unique selling points, and brand values."
 };
 
 interface Prompt {
@@ -95,6 +68,7 @@ const PromptManager = () => {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [activeTab, setActiveTab] = useState<string>("product");
 
   // Load prompts from localStorage or use defaults
   useEffect(() => {
@@ -109,7 +83,7 @@ const PromptManager = () => {
         name: PROMPT_CATEGORIES.find(c => c.id === category)?.name || category,
         category,
         prompt: promptText,
-        model: 'gpt4o' as const,
+        model: 'gpt4o' as string,
         isDefault: true
       }));
       
@@ -123,7 +97,7 @@ const PromptManager = () => {
     const newPrompt: Prompt = {
       id: `custom-${Date.now()}`,
       name: '',
-      category: PROMPT_CATEGORIES[0].id,
+      category: PROMPT_CATEGORIES.find(c => c.group === activeTab)?.id || PROMPT_CATEGORIES[0].id,
       prompt: '',
       model: 'gpt4o',
       isDefault: false
@@ -195,17 +169,40 @@ const PromptManager = () => {
     }, 2000);
   };
 
-  // Filter prompts by category
-  const filteredPrompts = filter === 'all' 
-    ? prompts
-    : prompts.filter(prompt => prompt.category.startsWith(filter));
+  // Filter prompts by category group and specific filter
+  const filteredPrompts = prompts.filter(prompt => {
+    const category = PROMPT_CATEGORIES.find(c => c.id === prompt.category);
+    
+    if (activeTab !== 'all' && category?.group !== activeTab) {
+      return false;
+    }
+    
+    if (filter !== 'all') {
+      return prompt.category === filter;
+    }
+    
+    return true;
+  });
+
+  // Count prompts by group
+  const productPromptsCount = prompts.filter(p => 
+    PROMPT_CATEGORIES.find(c => c.id === p.category)?.group === 'product'
+  ).length;
+  
+  const categoryPromptsCount = prompts.filter(p => 
+    PROMPT_CATEGORIES.find(c => c.id === p.category)?.group === 'category'
+  ).length;
+  
+  const brandPromptsCount = prompts.filter(p => 
+    PROMPT_CATEGORIES.find(c => c.id === p.category)?.group === 'brand'
+  ).length;
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Prompt Manager</h1>
-          <p className="text-muted-foreground">Create and manage your AI prompts</p>
+          <h1 className="text-3xl font-bold tracking-tight">AI Prompt Manager</h1>
+          <p className="text-muted-foreground">Create and manage your AI prompts for generating content</p>
         </div>
         <Button onClick={createPrompt}>
           <Plus className="mr-2 h-4 w-4" />
@@ -213,99 +210,144 @@ const PromptManager = () => {
         </Button>
       </div>
       
-      <div className="flex justify-between items-center">
-        <Select 
-          value={filter} 
-          onValueChange={setFilter}
-        >
-          <SelectTrigger className="w-[200px]">
-            <SelectValue placeholder="Filter by type" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Prompts</SelectItem>
-            <SelectItem value="product">Product Prompts</SelectItem>
-            <SelectItem value="brand">Brand Prompts</SelectItem>
-            <SelectItem value="category">Category Prompts</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Prompts</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Model</TableHead>
-                <TableHead className="hidden md:table-cell">Prompt</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredPrompts.map((prompt) => (
-                <TableRow key={prompt.id}>
-                  <TableCell className="font-medium">{prompt.name}</TableCell>
-                  <TableCell>
-                    {PROMPT_CATEGORIES.find(c => c.id === prompt.category)?.name || prompt.category}
-                  </TableCell>
-                  <TableCell>
-                    {prompt.model === 'gpt4o' && 'GPT-4o'}
-                    {prompt.model === 'gpt4o_mini' && 'GPT-4o Mini'}
-                    {prompt.model === 'o1' && 'OpenAI o1'}
-                    {prompt.model === 'o1_mini' && 'OpenAI o1 Mini'}
-                    {prompt.model === 'claude35_sonnet' && 'Claude 3.5 Sonnet'}
-                    {prompt.model === 'claude37' && 'Claude 3.7'}
-                    {prompt.model === 'gemini_flash' && 'Gemini Flash'}
-                    {prompt.model === 'gemini_pro' && 'Gemini Pro'}
-                    {prompt.model === 'claude3' && 'Claude 3'}
-                    {prompt.model === 'gemini' && 'Gemini'}
-                  </TableCell>
-                  <TableCell className="max-w-md truncate hidden md:table-cell">
-                    {prompt.prompt}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => copyPrompt(prompt.prompt, prompt.id)}
-                      >
-                        {copiedId === prompt.id ? (
-                          <Check className="h-4 w-4 text-green-500" />
-                        ) : (
-                          <Copy className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => editPrompt(prompt)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        onClick={() => deletePrompt(prompt.id)}
-                        disabled={prompt.isDefault}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {filteredPrompts.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
-                    No prompts found. Add your first prompt to get started.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="product" className="flex-1">
+            Product Prompts
+            <span className="ml-2 bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
+              {productPromptsCount}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="category" className="flex-1">
+            Category Prompts
+            <span className="ml-2 bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
+              {categoryPromptsCount}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="brand" className="flex-1">
+            Brand Prompts
+            <span className="ml-2 bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
+              {brandPromptsCount}
+            </span>
+          </TabsTrigger>
+          <TabsTrigger value="all" className="flex-1">
+            All Prompts
+            <span className="ml-2 bg-muted text-muted-foreground text-xs px-2 py-0.5 rounded-full">
+              {prompts.length}
+            </span>
+          </TabsTrigger>
+        </TabsList>
+        
+        <div className="mt-6">
+          {activeTab !== 'all' && (
+            <div className="flex justify-between items-center mb-4">
+              <Select 
+                value={filter} 
+                onValueChange={setFilter}
+              >
+                <SelectTrigger className="w-[250px]">
+                  <SelectValue placeholder="Filter by specific field" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All {activeTab} prompts</SelectItem>
+                  {PROMPT_CATEGORIES.filter(c => c.group === activeTab).map((category) => (
+                    <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Button onClick={createPrompt} variant="outline" size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Add {activeTab} prompt
+              </Button>
+            </div>
+          )}
+          
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                {activeTab === 'product' && 'Product Prompts'}
+                {activeTab === 'category' && 'Category Prompts'}
+                {activeTab === 'brand' && 'Brand Prompts'}
+                {activeTab === 'all' && 'All Prompts'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Field</TableHead>
+                    <TableHead>Model</TableHead>
+                    <TableHead className="hidden md:table-cell">Prompt</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPrompts.map((prompt) => {
+                    const category = PROMPT_CATEGORIES.find(c => c.id === prompt.category);
+                    
+                    return (
+                      <TableRow key={prompt.id}>
+                        <TableCell className="font-medium">{prompt.name}</TableCell>
+                        <TableCell>
+                          {category?.name || prompt.category}
+                        </TableCell>
+                        <TableCell>
+                          {prompt.model === 'gpt4o' && 'GPT-4o'}
+                          {prompt.model === 'gpt4o_mini' && 'GPT-4o Mini'}
+                          {prompt.model === 'o1' && 'OpenAI o1'}
+                          {prompt.model === 'o1_mini' && 'OpenAI o1 Mini'}
+                          {prompt.model === 'claude35_sonnet' && 'Claude 3.5 Sonnet'}
+                          {prompt.model === 'claude37' && 'Claude 3.7'}
+                          {prompt.model === 'gemini_flash' && 'Gemini Flash'}
+                          {prompt.model === 'gemini_pro' && 'Gemini Pro'}
+                        </TableCell>
+                        <TableCell className="max-w-md truncate hidden md:table-cell">
+                          {prompt.prompt}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => copyPrompt(prompt.prompt, prompt.id)}
+                            >
+                              {copiedId === prompt.id ? (
+                                <Check className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <Copy className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => editPrompt(prompt)}>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              onClick={() => deletePrompt(prompt.id)}
+                              disabled={prompt.isDefault}
+                            >
+                              <Trash className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  {filteredPrompts.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                        No prompts found. Add your first prompt to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
+      </Tabs>
       
       {/* Edit Prompt Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
@@ -337,20 +379,20 @@ const PromptManager = () => {
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
                     <SelectContent className="max-h-80">
-                      <SelectItem value="header_product">-- Product Fields --</SelectItem>
-                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('product_')).map((category) => (
+                      <SelectItem value="header_product" disabled>-- Product Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.group === 'product').map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
                       ))}
-                      <SelectItem value="header_brand">-- Brand Fields --</SelectItem>
-                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('brand_')).map((category) => (
+                      <SelectItem value="header_category" disabled>-- Category Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.group === 'category').map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
                       ))}
-                      <SelectItem value="header_category">-- Category Fields --</SelectItem>
-                      {PROMPT_CATEGORIES.filter(c => c.id.startsWith('category_')).map((category) => (
+                      <SelectItem value="header_brand" disabled>-- Brand Fields --</SelectItem>
+                      {PROMPT_CATEGORIES.filter(c => c.group === 'brand').map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
                         </SelectItem>
@@ -360,7 +402,7 @@ const PromptManager = () => {
                 </div>
                 
                 <div className="grid gap-2">
-                  <Label htmlFor="model">Default AI Model</Label>
+                  <Label htmlFor="model">AI Model</Label>
                   <Select 
                     value={selectedPrompt.model} 
                     onValueChange={(value) => setSelectedPrompt({...selectedPrompt, model: value})}
@@ -369,7 +411,7 @@ const PromptManager = () => {
                       <SelectValue placeholder="Select AI model" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="header_openai">-- OpenAI Models --</SelectItem>
+                      <SelectItem value="header_openai" disabled>-- OpenAI Models --</SelectItem>
                       <SelectItem value="gpt4o">OpenAI GPT-4o</SelectItem>
                       <SelectItem value="gpt4o_mini">OpenAI GPT-4o Mini</SelectItem>
                       <SelectItem value="gpt45">OpenAI GPT-4.5</SelectItem>
@@ -377,13 +419,13 @@ const PromptManager = () => {
                       <SelectItem value="o1_mini">OpenAI o1 Mini</SelectItem>
                       <SelectItem value="o1_mini_high">OpenAI o1 Mini High</SelectItem>
                       
-                      <SelectItem value="header_anthropic">-- Anthropic Models --</SelectItem>
+                      <SelectItem value="header_anthropic" disabled>-- Anthropic Models --</SelectItem>
                       <SelectItem value="claude37">Anthropic Claude 3.7</SelectItem>
                       <SelectItem value="claude35_sonnet">Anthropic Claude 3.5 Sonnet</SelectItem>
                       <SelectItem value="claude35_haiku">Anthropic Claude 3.5 Haiku</SelectItem>
                       <SelectItem value="claude3_opus">Anthropic Claude 3 Opus</SelectItem>
                       
-                      <SelectItem value="header_gemini">-- Google Models --</SelectItem>
+                      <SelectItem value="header_gemini" disabled>-- Google Models --</SelectItem>
                       <SelectItem value="gemini_flash">Google Gemini Flash</SelectItem>
                       <SelectItem value="gemini_flash_thinking">Google Gemini Flash Thinking</SelectItem>
                       <SelectItem value="gemini_pro">Google Gemini Pro</SelectItem>
@@ -399,7 +441,7 @@ const PromptManager = () => {
                     value={selectedPrompt.prompt} 
                     onChange={(e) => setSelectedPrompt({...selectedPrompt, prompt: e.target.value})}
                     placeholder="Enter prompt text"
-                    rows={6}
+                    rows={8}
                   />
                   <p className="text-xs text-muted-foreground">
                     Use placeholders like {"{product_name}"}, {"{brand_name}"}, {"{category_name}"}, 
