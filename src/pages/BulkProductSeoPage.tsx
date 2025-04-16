@@ -7,6 +7,9 @@ import PromptSettings from "@/components/BulkSeo/PromptSettings";
 import ProductProcessing from "@/components/BulkSeo/ProductProcessing";
 import CompletionProgress from "@/components/BulkSeo/CompletionProgress";
 import { getAiConfig } from "@/utils/ai/config";
+import PromptSelector from "@/components/BulkSeo/PromptSelector";
+import { SavedPrompt } from "@/hooks/usePrompts";
+import { Helmet } from "react-helmet";
 
 const BulkProductSeoPage = () => {
   const [activeTab, setActiveTab] = useState("upload");
@@ -17,6 +20,8 @@ const BulkProductSeoPage = () => {
   const [processing, setProcessing] = useState(false);
   const [completed, setCompleted] = useState<any[]>([]);
   const [failed, setFailed] = useState<any[]>([]);
+  const [productType, setProductType] = useState<string>("general");
+  const [aiRole, setAiRole] = useState<string>("seo_expert");
 
   // Load configs from settings
   useEffect(() => {
@@ -55,8 +60,18 @@ const BulkProductSeoPage = () => {
     setActiveTab("processing");
   };
 
+  const handlePromptSelected = (savedPrompt: SavedPrompt) => {
+    setPrompt(savedPrompt.promptText);
+    setProductType(savedPrompt.productType);
+    setAiRole(savedPrompt.aiRole);
+  };
+
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <Helmet>
+        <title>Bulk Product SEO Generator | WooCommerce AI Tools</title>
+      </Helmet>
+      
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Bulk Product SEO Generator</h1>
         <p className="text-muted-foreground">
@@ -89,10 +104,15 @@ const BulkProductSeoPage = () => {
         <TabsContent value="prompt" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Configure AI Prompt</CardTitle>
-              <CardDescription>
-                Choose AI provider and enter the prompt for generating SEO content
-              </CardDescription>
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle>Configure AI Prompt</CardTitle>
+                  <CardDescription>
+                    Choose AI provider and enter the prompt for generating SEO content
+                  </CardDescription>
+                </div>
+                <PromptSelector onPromptSelect={handlePromptSelected} />
+              </div>
             </CardHeader>
             <CardContent>
               <PromptSettings 
@@ -104,6 +124,10 @@ const BulkProductSeoPage = () => {
                 onPromptChange={setPrompt}
                 onStartProcessing={handleStartProcessing}
                 productsCount={uploadedProducts.length}
+                productType={productType}
+                onProductTypeChange={setProductType}
+                aiRole={aiRole}
+                onAiRoleChange={setAiRole}
               />
             </CardContent>
           </Card>

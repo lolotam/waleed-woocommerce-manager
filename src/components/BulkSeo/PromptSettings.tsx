@@ -22,6 +22,10 @@ interface PromptSettingsProps {
   onPromptChange: (prompt: string) => void;
   onStartProcessing: () => void;
   productsCount: number;
+  productType: string;
+  onProductTypeChange: (type: string) => void;
+  aiRole: string;
+  onAiRoleChange: (role: string) => void;
 }
 
 const defaultPrompt = `Generate SEO content for this product:
@@ -210,7 +214,11 @@ const PromptSettings = ({
   prompt,
   onPromptChange,
   onStartProcessing,
-  productsCount
+  productsCount,
+  productType,
+  onProductTypeChange,
+  aiRole,
+  onAiRoleChange
 }: PromptSettingsProps) => {
   const [availableModels, setAvailableModels] = useState<any[]>([]);
   const [hasApiKeys, setHasApiKeys] = useState<{[key: string]: boolean}>({
@@ -218,8 +226,6 @@ const PromptSettings = ({
     anthropic: false,
     google: false
   });
-  const [productType, setProductType] = useState("general");
-  const [aiRole, setAiRole] = useState("seo_expert");
   const [activeTab, setActiveTab] = useState<string>("template");
   
   // New states for competitor websites
@@ -280,31 +286,33 @@ const PromptSettings = ({
 
   // Handle product type change
   const handleProductTypeChange = (type: string) => {
-    setProductType(type);
+    onProductTypeChange(type);
     
-    // Update prompt based on product type
-    let updatedPrompt = "";
-    if (type === "fragrance") {
-      updatedPrompt = fragrancePrompt;
-    } else if (type === "electronics") {
-      updatedPrompt = electronics;
-    } else if (type === "clothing") {
-      updatedPrompt = clothing;
-    } else {
-      updatedPrompt = defaultPrompt;
+    // Update prompt based on product type if the prompt is one of the defaults
+    if (prompt === defaultPrompt || prompt === fragrancePrompt || prompt === electronics || prompt === clothing) {
+      let updatedPrompt = "";
+      if (type === "fragrance") {
+        updatedPrompt = fragrancePrompt;
+      } else if (type === "electronics") {
+        updatedPrompt = electronics;
+      } else if (type === "clothing") {
+        updatedPrompt = clothing;
+      } else {
+        updatedPrompt = defaultPrompt;
+      }
+      
+      // Add competitor websites and hyperlinks placeholders to the prompt
+      updatedPrompt = updatedPrompt
+        .replace("{{competitor_websites}}", competitorWebsites.map(w => `- ${w}`).join("\n"))
+        .replace("{{hyperlinks}}", hyperlinks.map(link => `  -${link}`).join("\n"));
+      
+      onPromptChange(updatedPrompt);
     }
-    
-    // Add competitor websites and hyperlinks placeholders to the prompt
-    updatedPrompt = updatedPrompt
-      .replace("{{competitor_websites}}", competitorWebsites.map(w => `- ${w}`).join("\n"))
-      .replace("{{hyperlinks}}", hyperlinks.map(link => `  -${link}`).join("\n"));
-    
-    onPromptChange(updatedPrompt);
   };
 
   // Handle AI role change
   const handleAiRoleChange = (role: string) => {
-    setAiRole(role);
+    onAiRoleChange(role);
     
     // Create a modified prompt based on the selected role
     let currentPrompt = prompt;
