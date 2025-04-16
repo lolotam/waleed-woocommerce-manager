@@ -1,3 +1,4 @@
+
 export interface PerformanceMetrics {
   pageLoadTime: number;
   totalPageSize: number;
@@ -27,20 +28,9 @@ export interface ResourceTiming {
 export interface PerformanceTestConfig {
   url: string;
   device: 'desktop' | 'mobile' | 'tablet';
-  connection: 'fast' | 'average' | 'slow' | '3g' | '4g' | '2g';
+  connection: 'fast' | 'average' | 'slow' | '3g' | '4g';
   location: string;
   browser: 'chrome' | 'firefox' | 'safari' | 'edge';
-  blockAds?: boolean;
-  auth?: {
-    username: string;
-    password: string;
-  };
-  api?: {
-    endpoint: string;
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
-    headers: string;
-    body: string;
-  };
 }
 
 export interface PerformanceTestResult {
@@ -52,7 +42,6 @@ export interface PerformanceTestResult {
   resources: ResourceTiming[];
   config: PerformanceTestConfig;
   recommendations: PerformanceRecommendation[];
-  passedChecks?: PassedCheck[];
 }
 
 export interface PerformanceRecommendation {
@@ -61,14 +50,6 @@ export interface PerformanceRecommendation {
   description: string;
   impact: 'high' | 'medium' | 'low';
   category: 'speed' | 'optimization' | 'accessibility' | 'best-practices';
-  resources?: ResourceTiming[];
-  remediation?: string;
-}
-
-export interface PassedCheck {
-  id: string;
-  title: string;
-  description: string;
 }
 
 export interface TestHistoryItem {
@@ -78,6 +59,7 @@ export interface TestHistoryItem {
   overallScore: number;
 }
 
+// New types for crawler functionality
 export interface CrawlerRequest {
   url: string;
   resourceType: string;
@@ -116,35 +98,4 @@ export interface CrawlerResult {
   lighthouse: LighthouseMetrics;
   requests: CrawlerRequest[];
   responses: CrawlerResponse[];
-}
-
-export interface CoreWebVitals {
-  lcp: number;  // Largest Contentful Paint (ms)
-  fid: number;  // First Input Delay (ms)
-  cls: number;  // Cumulative Layout Shift (unitless)
-  ttfb: number; // Time to First Byte (ms)
-  tbt: number;  // Total Blocking Time (ms)
-}
-
-export type TestStatus = 'queued' | 'processing' | 'completed' | 'failed';
-
-export interface QueuedTestResponse {
-  testId: string;
-  status: TestStatus;
-  position: number;
-  estimatedTime: number; // in seconds
-  result?: PerformanceTestResult;
-  queuedAt?: string;
-  config?: PerformanceTestConfig;
-}
-
-export interface QueueStatusResponse {
-  queueLength: number;
-  estimatedWaitTime: number; // in seconds
-  activeTests: number;
-}
-
-export interface ChartConfig {
-  colors?: string[];
-  customHeight?: number; // To avoid conflict with Progress component height prop
 }

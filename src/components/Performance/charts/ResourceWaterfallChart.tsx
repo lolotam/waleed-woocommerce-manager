@@ -1,175 +1,199 @@
 
-import React, { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ResourceTiming, ChartConfig } from "@/types/performance";
+import React, { useState } from "react";
+import { ChartContainer } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import { Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ResourceTiming } from "@/types/performance";
 
 interface ResourceWaterfallChartProps {
   resources?: ResourceTiming[];
-  config?: ChartConfig;
 }
 
-// Default style configuration
-const defaultColors = [
-  "#4f46e5", // indigo
-  "#0ea5e9", // sky blue
-  "#10b981", // emerald
-  "#f59e0b", // amber
-  "#ef4444", // red
-  "#8b5cf6", // violet
-  "#ec4899", // pink
-  "#84cc16", // lime
-];
-
-const resourceTypeColors: Record<string, string> = {
-  document: "#4f46e5", // indigo
-  script: "#0ea5e9", // sky blue
-  stylesheet: "#10b981", // emerald
-  image: "#f59e0b", // amber
-  font: "#ef4444", // red
-  fetch: "#8b5cf6", // violet
-  xmlhttprequest: "#ec4899", // pink
-  other: "#84cc16", // lime
+// Fallback to mock data if no resources are provided
+const generateMockWaterfallData = () => {
+  const resourceTypes = ["html", "css", "javascript", "image", "font", "api"];
+  const domains = ["example.com", "cdn.example.com", "api.example.com", "fonts.googleapis.com", "analytics.com"];
+  
+  const data = [];
+  let startTime = 0;
+  
+  for (let i = 0; i < 30; i++) {
+    const resourceType = resourceTypes[Math.floor(Math.random() * resourceTypes.length)];
+    const domain = domains[Math.floor(Math.random() * domains.length)];
+    const size = Math.random() * 500 + 10; // in KB
+    const duration = Math.random() * 500 + 10; // in ms
+    
+    // Add some variation to start times, with some resources loading in parallel
+    if (i > 0 && Math.random() > 0.7) {
+      startTime += Math.random() * 50;
+    }
+    
+    data.push({
+      id: i,
+      name: `${resourceType}-${i}.${resourceType === "image" ? "png" : resourceType}`,
+      domain,
+      type: resourceType,
+      startTime,
+      duration,
+      endTime: startTime + duration,
+      size
+    });
+    
+    if (i > 0 && Math.random() > 0.3) {
+      startTime += duration * (Math.random() * 0.5);
+    }
+  }
+  
+  return data.sort((a, b) => a.startTime - b.startTime);
 };
 
-const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resources = [], config }) => {
-  // Merge default config with provided config
-  const chartConfig = useMemo(() => ({
-    colors: config?.colors || defaultColors,
-    customHeight: config?.customHeight || 500,
-  }), [config]);
-
-  const chartData = useMemo(() => {
-    if (!resources || resources.length === 0) {
-      // Return mock data if no resources provided
-      return Array.from({ length: 10 }, (_, i) => ({
-        name: `/mock-resource-${i + 1}.${i % 2 === 0 ? 'js' : 'css'}`,
-        initiatorType: i % 2 === 0 ? 'script' : 'stylesheet',
-        startTime: i * 100,
-        duration: Math.random() * 500 + 50,
-        transferSize: Math.random() * 100000,
-      }));
+// Transform ResourceTiming data to waterfall format
+const transformResourceData = (resources: ResourceTiming[]) => {
+  return resources.map((resource, index) => {
+    // Extract domain from resource name
+    let domain = "unknown";
+    try {
+      const urlObj = new URL(resource.name);
+      domain = urlObj.hostname;
+    } catch {
+      // If name is not a valid URL, try to extract domain-like part
+      const parts = resource.name.split('/');
+      if (parts.length > 1) {
+        domain = parts[0];
+      }
     }
 
-    // Sort resources by start time
-    return [...resources]
-      .sort((a, b) => a.startTime - b.startTime)
-      .slice(0, 50) // Limit to 50 resources for performance
-      .map(resource => {
-        let fileName = resource.name;
-        
-        // Extract just the filename from the URL
-        try {
-          // Check if it's a valid URL
-          if (resource.name.startsWith('http://') || resource.name.startsWith('https://')) {
-            const url = new URL(resource.name);
-            fileName = url.pathname.split('/').pop() || url.pathname;
-          } else {
-            // If it's not a valid URL, just use the last part of the path
-            fileName = resource.name.split('/').pop() || resource.name;
-          }
-        } catch (e) {
-          // If URL parsing fails, just use the last part of the path
-          fileName = resource.name.split('/').pop() || resource.name;
-        }
-        
-        // Truncate long filenames
-        if (fileName.length > 25) {
-          fileName = fileName.substring(0, 22) + '...';
-        }
-        
-        return {
-          ...resource,
-          name: fileName,
-          waitingTime: resource.startTime,
-          downloadTime: resource.duration,
-          // Convert to KB with 2 decimal places
-          size: Math.round(resource.transferSize / 1024 * 100) / 100
-        };
-      });
-  }, [resources]);
+    // Map initiatorType to our type categories
+    let type = resource.initiatorType.toLowerCase();
+    if (type === "img" || type === "image") type = "image";
+    else if (type === "script") type = "javascript";
+    else if (type === "link" && resource.name.includes(".css")) type = "css";
+    else if (type === "document") type = "html";
+    else if (type === "xmlhttprequest" || type === "fetch") type = "api";
+    else if (resource.name.includes("font") || type.includes("font")) type = "font";
 
-  const getResourceTypeColor = (type: string): string => {
-    return resourceTypeColors[type.toLowerCase()] || resourceTypeColors.other;
+    return {
+      id: index,
+      name: resource.name.split('/').pop() || resource.name,
+      domain,
+      type,
+      startTime: resource.startTime,
+      duration: resource.duration,
+      endTime: resource.startTime + resource.duration,
+      size: resource.transferSize / 1024 // Convert bytes to KB
+    };
+  }).sort((a, b) => a.startTime - b.startTime);
+};
+
+const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resources = [] }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const getResourceTypeColor = (type: string) => {
+    switch (type) {
+      case "html": return "#4299e1";
+      case "css": return "#48bb78";
+      case "javascript": return "#ecc94b";
+      case "image": return "#ed8936";
+      case "font": return "#9f7aea";
+      case "api": return "#f56565";
+      default: return "#a0aec0";
+    }
   };
-
-  // If no resources are provided, show a message
-  if (!resources || resources.length === 0) {
-    return (
-      <div className="h-[500px] flex flex-col items-center justify-center text-muted-foreground">
-        <p>No resource timing data available.</p>
-        <p className="text-sm">Using sample data for preview.</p>
-      </div>
-    );
-  }
+  
+  // Use provided resources or fallback to mock data
+  const waterfallData = resources.length > 0 
+    ? transformResourceData(resources) 
+    : generateMockWaterfallData();
+  
+  const filteredData = waterfallData.filter(item => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    item.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.type.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const config = {
+    html: { color: "#4299e1" },
+    css: { color: "#48bb78" },
+    javascript: { color: "#ecc94b" },
+    image: { color: "#ed8936" },
+    font: { color: "#9f7aea" },
+    api: { color: "#f56565" }
+  };
 
   const CustomTooltip = ({ active, payload }: any) => {
-    if (!active || !payload || !payload.length) {
-      return null;
-    }
-
-    const data = payload[0].payload;
-
-    return (
-      <div className="bg-popover p-3 rounded-lg shadow-md border text-sm">
-        <p className="font-semibold">{data.name}</p>
-        <p className="text-muted-foreground mb-1">Type: {data.initiatorType}</p>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-          <p>Start: {Math.round(data.startTime)}ms</p>
-          <p>Duration: {Math.round(data.duration)}ms</p>
-          <p>Size: {data.size}KB</p>
-          <p>Transfer: {Math.round(data.transferSize / 1024)}KB</p>
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-white p-3 border rounded shadow-lg">
+          <p className="font-medium">{data.name}</p>
+          <p className="text-sm text-gray-600">{data.domain}</p>
+          <div className="text-xs mt-2 grid grid-cols-2 gap-x-4">
+            <span>Type:</span> 
+            <span className="font-medium">{data.type}</span>
+            
+            <span>Start Time:</span> 
+            <span className="font-medium">{data.startTime.toFixed(0)} ms</span>
+            
+            <span>Duration:</span> 
+            <span className="font-medium">{data.duration.toFixed(0)} ms</span>
+            
+            <span>Size:</span> 
+            <span className="font-medium">{data.size.toFixed(1)} KB</span>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+    
+    return null;
   };
-
-  // Fix for the FillProps type error - using a function to determine color
-  const getBarFill = (data: any) => getResourceTypeColor(data.initiatorType);
 
   return (
     <div className="h-full flex flex-col">
-      <ResponsiveContainer width="100%" height={chartConfig.customHeight}>
-        <BarChart
-          data={chartData}
-          layout="vertical"
-          margin={{ top: 20, right: 30, left: 30, bottom: 0 }}
-          barSize={15}
-          barGap={1}
-        >
-          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-          <XAxis 
-            type="number" 
-            label={{ 
-              value: 'Time (ms)', 
-              position: 'insideBottom', 
-              offset: -5 
-            }} 
-          />
-          <YAxis 
-            dataKey="name" 
-            type="category" 
-            width={150}
-            tick={{ fontSize: 12 }}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Legend />
-          <Bar 
-            dataKey="startTime" 
-            stackId="a" 
-            name="Waiting Time" 
-            fill="#94a3b8" 
-            fillOpacity={0.6}
-          />
-          <Bar 
-            dataKey="duration" 
-            stackId="a" 
-            name="Download Time" 
-            fill="#4f46e5"
-            fillOpacity={0.7}
-          />
-        </BarChart>
-      </ResponsiveContainer>
+      <div className="relative mb-4">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search resources..."
+          className="pl-8"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+      </div>
+      
+      <div className="flex-1 overflow-y-auto">
+        <ChartContainer config={config} className="w-full h-[1500px]">
+          <BarChart
+            layout="vertical"
+            data={filteredData}
+            margin={{ top: 20, right: 30, left: 150, bottom: 5 }}
+          >
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis
+              type="number"
+              label={{ value: 'Time (ms)', position: 'insideBottom', offset: -5 }}
+            />
+            <YAxis
+              dataKey="name"
+              type="category"
+              width={150}
+              tick={{ fontSize: 10 }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Bar
+              dataKey="duration"
+              background={{ fill: '#eee' }}
+              radius={[0, 4, 4, 0]}
+              fillOpacity={0.8}
+              stroke="none"
+              fill="#8884d8" // Default fill that will be overridden by Cell
+            >
+              {filteredData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={getResourceTypeColor(entry.type)} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ChartContainer>
+      </div>
     </div>
   );
 };

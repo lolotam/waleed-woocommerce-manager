@@ -1,79 +1,105 @@
 
 import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PerformanceRecommendation } from "@/types/performance";
-import { AlertTriangle, CheckCircle2, Info } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 
 interface RecommendationsListProps {
   recommendations: PerformanceRecommendation[];
 }
 
 const RecommendationsList: React.FC<RecommendationsListProps> = ({ recommendations }) => {
-  // Sort recommendations by impact
-  const sortedRecommendations = [...recommendations].sort((a, b) => {
-    const impactValues = { high: 3, medium: 2, low: 1 };
-    return impactValues[b.impact] - impactValues[a.impact];
-  });
+  // Filter recommendations by category
+  const highImpactRecs = recommendations.filter(rec => rec.impact === "high");
+  const mediumImpactRecs = recommendations.filter(rec => rec.impact === "medium");
+  const lowImpactRecs = recommendations.filter(rec => rec.impact === "low");
 
-  const getImpactIcon = (impact: 'high' | 'medium' | 'low') => {
+  const getImpactIcon = (impact: string) => {
     switch (impact) {
-      case 'high':
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case 'medium':
-        return <Info className="w-5 h-5 text-amber-500" />;
-      case 'low':
-        return <CheckCircle2 className="w-5 h-5 text-green-500" />;
-    }
-  };
-
-  const getImpactClass = (impact: 'high' | 'medium' | 'low') => {
-    switch (impact) {
-      case 'high':
-        return "border-red-200 bg-red-50";
-      case 'medium':
-        return "border-amber-200 bg-amber-50";
-      case 'low':
-        return "border-green-200 bg-green-50";
+      case "high":
+        return <XCircle className="h-5 w-5 text-red-500" />;
+      case "medium":
+        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
+      case "low":
+        return <Info className="h-5 w-5 text-blue-500" />;
+      default:
+        return <Info className="h-5 w-5" />;
     }
   };
 
   return (
-    <div className="space-y-4">
-      {sortedRecommendations.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
-          No recommendations available. Your site is performing well!
-        </div>
-      ) : (
-        sortedRecommendations.map((rec) => (
-          <div 
-            key={rec.id} 
-            className={`p-4 rounded-lg border ${getImpactClass(rec.impact)}`}
-          >
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 pt-0.5">
-                {getImpactIcon(rec.impact)}
-              </div>
-              <div className="flex-grow">
-                <h3 className="font-medium mb-1">{rec.title}</h3>
-                <p className="text-sm text-muted-foreground mb-2">
-                  {rec.description}
-                </p>
-                {rec.remediation && (
-                  <div className="mt-2 text-sm border-t pt-2 border-gray-200">
-                    <strong className="block mb-1">Suggested fix:</strong>
-                    <p>{rec.remediation}</p>
-                  </div>
-                )}
-              </div>
-              <div className="flex-shrink-0 self-start">
-                <span className="px-2 py-1 text-xs font-medium rounded-full capitalize">
-                  {rec.category}
-                </span>
-              </div>
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CheckCircle2 className="h-5 w-5" />
+          Optimization Recommendations
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          {highImpactRecs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-red-500 flex items-center gap-2">
+                <XCircle className="h-4 w-4" />
+                Critical Issues
+              </h3>
+              {highImpactRecs.map(rec => (
+                <Alert key={rec.id} variant="destructive">
+                  <AlertTitle className="flex items-center gap-2">
+                    {getImpactIcon(rec.impact)}
+                    {rec.title}
+                  </AlertTitle>
+                  <AlertDescription>{rec.description}</AlertDescription>
+                </Alert>
+              ))}
             </div>
-          </div>
-        ))
-      )}
-    </div>
+          )}
+
+          {mediumImpactRecs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-amber-500 flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4" />
+                Improvements Needed
+              </h3>
+              {mediumImpactRecs.map(rec => (
+                <Alert key={rec.id}>
+                  <AlertTitle className="flex items-center gap-2">
+                    {getImpactIcon(rec.impact)}
+                    {rec.title}
+                  </AlertTitle>
+                  <AlertDescription>{rec.description}</AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          )}
+
+          {lowImpactRecs.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-blue-500 flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Opportunities
+              </h3>
+              {lowImpactRecs.map(rec => (
+                <Alert key={rec.id}>
+                  <AlertTitle className="flex items-center gap-2">
+                    {getImpactIcon(rec.impact)}
+                    {rec.title}
+                  </AlertTitle>
+                  <AlertDescription>{rec.description}</AlertDescription>
+                </Alert>
+              ))}
+            </div>
+          )}
+
+          {recommendations.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No recommendations available
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   );
 };
 

@@ -1,196 +1,252 @@
 
-import React, { useState } from "react";
+import { useState, useEffect } from "react";
+import { BarChart as BarChartIcon, Download, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download } from "lucide-react";
-import { PerformanceTestResult, TestHistoryItem } from "@/types/performance";
-import ScoreGauge from "./ScoreGauge";
-import MetricsTable from "./MetricsTable";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult } from "@/types/performance";
+import PerformanceScoreCard from "./charts/PerformanceScoreCard";
+import PerformanceMetricsChart from "./charts/PerformanceMetricsChart";
+import ResourceWaterfallChart from "./charts/ResourceWaterfallChart";
 import RecommendationsList from "./RecommendationsList";
-import HistoryChart from "./HistoryChart";
-import PerformanceVisualization from "./PerformanceVisualization";
-import { toast } from "sonner";
 
 interface TestResultsDashboardProps {
-  testResult: PerformanceTestResult;
-  onTestAgain: () => void;
+  testResult?: PerformanceTestResult | null;
+  onTestAgain?: () => void;
   isLoading?: boolean;
-  historyData?: TestHistoryItem[];
 }
 
-const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
-  testResult,
-  onTestAgain,
-  isLoading = false,
-  historyData = []
+const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({ 
+  testResult, 
+  onTestAgain, 
+  isLoading = false 
 }) => {
-  const [activeResultTab, setActiveResultTab] = useState("metrics");
+  // If no test result is provided, use mock data
+  const [scores, setScores] = useState<PerformanceScore>({
+    overall: 72,
+    speed: 65,
+    optimization: 80,
+    accessibility: 75
+  });
 
-  const handleDownloadReport = () => {
-    // This would generate and download a PDF report in a real app
-    console.log("Downloading report for", testResult.id);
-    toast.success("Report download initiated");
-  };
+  const [metrics, setMetrics] = useState<PerformanceMetrics>({
+    pageLoadTime: 3.8,
+    totalPageSize: 2.4,
+    numberOfRequests: 87,
+    firstContentfulPaint: 1.2,
+    largestContentfulPaint: 2.8,
+    timeToInteractive: 4.2,
+    cumulativeLayoutShift: 0.12
+  });
 
-  // Format page size for display
-  const formatPageSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    else if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
-    else return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  const [recommendations, setRecommendations] = useState<PerformanceRecommendation[]>([
+    {
+      id: "rec1",
+      title: "Optimize Images",
+      description: "Compress and properly size images to reduce page load time",
+      impact: "high",
+      category: "optimization"
+    },
+    {
+      id: "rec2",
+      title: "Reduce JavaScript Bundle Size",
+      description: "Consider code splitting and tree shaking to reduce JavaScript payload",
+      impact: "high",
+      category: "speed"
+    },
+    {
+      id: "rec3",
+      title: "Implement Browser Caching",
+      description: "Set appropriate cache headers for static resources",
+      impact: "medium",
+      category: "optimization"
+    },
+    {
+      id: "rec4",
+      title: "Eliminate Render-Blocking Resources",
+      description: "Defer non-critical CSS and JavaScript loading",
+      impact: "medium",
+      category: "speed"
+    },
+    {
+      id: "rec5",
+      title: "Improve Accessibility",
+      description: "Add proper alt tags to images and ensure proper contrast ratios",
+      impact: "medium",
+      category: "accessibility"
+    }
+  ]);
+
+  // Update state when testResult changes
+  useEffect(() => {
+    if (testResult) {
+      setScores(testResult.scores);
+      setMetrics(testResult.metrics);
+      setRecommendations(testResult.recommendations);
+    }
+  }, [testResult]);
+
+  // Format the test date for display
+  const formatTestDate = (date: string | undefined) => {
+    if (!date) return "April 16, 2025"; // Default date if none provided
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-bold">Test Results</h2>
+          <h2 className="text-2xl font-bold">Performance Report</h2>
           <p className="text-muted-foreground">
-            {testResult.url} • {new Date(testResult.testDate).toLocaleString()}
+            Result for: <span className="font-medium">{testResult?.url || "https://example.com"}</span> • 
+            Tested on {formatTestDate(testResult?.testDate)}
           </p>
         </div>
-        
         <div className="flex gap-2">
-          <Button variant="outline" onClick={onTestAgain}>
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Test Again
+          <Button variant="outline" size="sm">
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
           </Button>
-          <Button variant="outline" onClick={handleDownloadReport}>
-            <Download className="mr-2 h-4 w-4" />
-            Download Report
+          <Button variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+          <Button 
+            size="sm"
+            onClick={onTestAgain}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Testing...
+              </>
+            ) : (
+              "Test Again"
+            )}
           </Button>
         </div>
       </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Overall Score</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <ScoreGauge 
-              score={testResult.scores.overall} 
-              size="large"
-              label="Overall"
-            />
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Performance Scores</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="grid grid-cols-3 gap-2">
-              <ScoreGauge 
-                score={testResult.scores.speed} 
-                label="Speed"
-                size="small"
-              />
-              <ScoreGauge 
-                score={testResult.scores.optimization} 
-                label="Optimization"
-                size="small"
-              />
-              <ScoreGauge 
-                score={testResult.scores.accessibility} 
-                label="Accessibility"
-                size="small"
-              />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base font-medium">Key Metrics</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-0">
-            <div className="space-y-2">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Page Load Time</span>
-                <span className="font-medium">{testResult.metrics.pageLoadTime.toFixed(2)}s</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Page Size</span>
-                <span className="font-medium">{formatPageSize(testResult.metrics.totalPageSize)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Requests</span>
-                <span className="font-medium">{testResult.metrics.numberOfRequests}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">First Contentful Paint</span>
-                <span className="font-medium">{testResult.metrics.firstContentfulPaint.toFixed(2)}s</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <PerformanceScoreCard title="Overall Score" score={scores.overall} />
+        <PerformanceScoreCard title="Speed" score={scores.speed} />
+        <PerformanceScoreCard title="Optimization" score={scores.optimization} />
+        <PerformanceScoreCard title="Accessibility" score={scores.accessibility} />
       </div>
-      
-      <Tabs 
-        value={activeResultTab} 
-        onValueChange={setActiveResultTab} 
-        defaultValue="metrics"
-      >
-        <TabsList className="w-full border-b mb-4 justify-start overflow-x-auto">
-          <TabsTrigger value="metrics">Detailed Metrics</TabsTrigger>
-          <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
-          <TabsTrigger value="history">History</TabsTrigger>
-          <TabsTrigger value="visualization">Visualization</TabsTrigger>
+
+      <Tabs defaultValue="metrics" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="metrics">
+            <BarChartIcon className="h-4 w-4 mr-2" />
+            Performance Metrics
+          </TabsTrigger>
+          <TabsTrigger value="waterfall">
+            Timeline
+          </TabsTrigger>
+          <TabsTrigger value="recommendations">
+            Recommendations
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="metrics">
           <Card>
             <CardHeader>
-              <CardTitle>Performance Metrics</CardTitle>
+              <CardTitle>Core Web Vitals & Metrics</CardTitle>
               <CardDescription>
-                Detailed metrics about your page's performance
+                Key performance indicators that affect user experience
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MetricsTable metrics={testResult.metrics} />
+              <div className="h-[400px]">
+                <PerformanceMetricsChart metrics={metrics} />
+              </div>
+              
+              <Accordion type="single" collapsible className="mt-6">
+                <AccordionItem value="metrics-details">
+                  <AccordionTrigger>Metrics Details</AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Page Load Time</h4>
+                        <p className="text-2xl font-bold">{metrics.pageLoadTime.toFixed(1)}s</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total time to fully load the page
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Total Page Size</h4>
+                        <p className="text-2xl font-bold">{metrics.totalPageSize.toFixed(1)} MB</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total size of all resources
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Number of Requests</h4>
+                        <p className="text-2xl font-bold">{metrics.numberOfRequests}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Total HTTP requests made
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">First Contentful Paint</h4>
+                        <p className="text-2xl font-bold">{metrics.firstContentfulPaint.toFixed(1)}s</p>
+                        <p className="text-sm text-muted-foreground">
+                          Time until first content is painted
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Largest Contentful Paint</h4>
+                        <p className="text-2xl font-bold">{metrics.largestContentfulPaint.toFixed(1)}s</p>
+                        <p className="text-sm text-muted-foreground">
+                          Time until largest content element is visible
+                        </p>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <h4 className="font-medium">Time to Interactive</h4>
+                        <p className="text-2xl font-bold">{metrics.timeToInteractive.toFixed(1)}s</p>
+                        <p className="text-sm text-muted-foreground">
+                          Time until the page becomes fully interactive
+                        </p>
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="waterfall">
+          <Card>
+            <CardHeader>
+              <CardTitle>Resource Waterfall</CardTitle>
+              <CardDescription>
+                Timeline of resource loading sequence
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[500px]">
+                <ResourceWaterfallChart resources={testResult?.resources} />
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
         
         <TabsContent value="recommendations">
-          <Card>
-            <CardHeader>
-              <CardTitle>Recommendations</CardTitle>
-              <CardDescription>
-                Suggestions to improve your page's performance
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <RecommendationsList recommendations={testResult.recommendations} />
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="history">
-          <Card>
-            <CardHeader>
-              <CardTitle>Performance History</CardTitle>
-              <CardDescription>
-                How your site's performance has changed over time
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {historyData.length > 1 ? (
-                <HistoryChart data={historyData} />
-              ) : (
-                <p className="text-center py-8 text-muted-foreground">
-                  Not enough historical data available yet.
-                  Run more tests to see performance trends.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="visualization">
-          <PerformanceVisualization testResult={testResult} />
+          <RecommendationsList recommendations={recommendations} />
         </TabsContent>
       </Tabs>
     </div>
