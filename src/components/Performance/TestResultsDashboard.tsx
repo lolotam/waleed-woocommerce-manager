@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +24,8 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
   isLoading = false,
   historyData = []
 }) => {
+  const [activeResultTab, setActiveResultTab] = useState("metrics");
+
   const handleDownloadReport = () => {
     // This would generate and download a PDF report in a real app
     console.log("Downloading report for", testResult.id);
@@ -117,8 +120,12 @@ const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({
         </Card>
       </div>
       
-      <Tabs defaultValue="metrics">
-        <TabsList>
+      <Tabs 
+        value={activeResultTab} 
+        onValueChange={setActiveResultTab} 
+        defaultValue="metrics"
+      >
+        <TabsList className="w-full border-b mb-4 justify-start overflow-x-auto">
           <TabsTrigger value="metrics">Detailed Metrics</TabsTrigger>
           <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
