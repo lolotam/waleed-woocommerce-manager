@@ -58,3 +58,44 @@ export interface TestHistoryItem {
   testDate: string;
   overallScore: number;
 }
+
+// New types for crawler functionality
+export interface CrawlerRequest {
+  url: string;
+  resourceType: string;
+  method: string;
+  time: number;
+}
+
+export interface CrawlerResponse {
+  url: string;
+  status: number;
+  contentType: string;
+  size: number;
+  time: number;
+}
+
+export interface LighthouseMetrics {
+  performance: number;
+  accessibility: number;
+  'best-practices': number;
+  seo: number;
+}
+
+export interface CrawlerMetrics {
+  loadTime: number;
+  resourceCount: number;
+  totalSize: number;
+  ttfb: number;
+  domComplete: number;
+}
+
+export interface CrawlerResult {
+  url: string;
+  deviceType: string;
+  timestamp: string;
+  metrics: CrawlerMetrics;
+  lighthouse: LighthouseMetrics;
+  requests: CrawlerRequest[];
+  responses: CrawlerResponse[];
+}

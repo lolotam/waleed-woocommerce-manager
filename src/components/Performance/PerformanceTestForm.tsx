@@ -8,8 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PerformanceTestConfig } from "@/types/performance";
 import { Globe, RefreshCw, Smartphone, Laptop, Wifi } from "lucide-react";
 
-const PerformanceTestForm = () => {
-  const [isLoading, setIsLoading] = useState(false);
+interface PerformanceTestFormProps {
+  onSubmit?: (config: PerformanceTestConfig) => void;
+  isLoading?: boolean;
+}
+
+const PerformanceTestForm: React.FC<PerformanceTestFormProps> = ({ 
+  onSubmit, 
+  isLoading = false 
+}) => {
   const [config, setConfig] = useState<PerformanceTestConfig>({
     url: "",
     device: "desktop",
@@ -27,12 +34,10 @@ const PerformanceTestForm = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // This would normally call an API to start a test
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 3000);
+    if (onSubmit) {
+      onSubmit(config);
+    }
   };
 
   return (

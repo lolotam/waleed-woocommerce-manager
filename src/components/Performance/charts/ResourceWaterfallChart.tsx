@@ -4,8 +4,13 @@ import { ChartContainer } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { ResourceTiming } from "@/types/performance";
 
-// Mock data for the waterfall chart
+interface ResourceWaterfallChartProps {
+  resources?: ResourceTiming[];
+}
+
+// Fallback to mock data if no resources are provided
 const generateMockWaterfallData = () => {
   const resourceTypes = ["html", "css", "javascript", "image", "font", "api"];
   const domains = ["example.com", "cdn.example.com", "api.example.com", "fonts.googleapis.com", "analytics.com"];
@@ -43,9 +48,45 @@ const generateMockWaterfallData = () => {
   return data.sort((a, b) => a.startTime - b.startTime);
 };
 
-const mockWaterfallData = generateMockWaterfallData();
+// Transform ResourceTiming data to waterfall format
+const transformResourceData = (resources: ResourceTiming[]) => {
+  return resources.map((resource, index) => {
+    // Extract domain from resource name
+    let domain = "unknown";
+    try {
+      const urlObj = new URL(resource.name);
+      domain = urlObj.hostname;
+    } catch {
+      // If name is not a valid URL, try to extract domain-like part
+      const parts = resource.name.split('/');
+      if (parts.length > 1) {
+        domain = parts[0];
+      }
+    }
 
-const ResourceWaterfallChart = () => {
+    // Map initiatorType to our type categories
+    let type = resource.initiatorType.toLowerCase();
+    if (type === "img" || type === "image") type = "image";
+    else if (type === "script") type = "javascript";
+    else if (type === "link" && resource.name.includes(".css")) type = "css";
+    else if (type === "document") type = "html";
+    else if (type === "xmlhttprequest" || type === "fetch") type = "api";
+    else if (resource.name.includes("font") || type.includes("font")) type = "font";
+
+    return {
+      id: index,
+      name: resource.name.split('/').pop() || resource.name,
+      domain,
+      type,
+      startTime: resource.startTime,
+      duration: resource.duration,
+      endTime: resource.startTime + resource.duration,
+      size: resource.transferSize / 1024 // Convert bytes to KB
+    };
+  }).sort((a, b) => a.startTime - b.startTime);
+};
+
+const ResourceWaterfallChart: React.FC<ResourceWaterfallChartProps> = ({ resources = [] }) => {
   const [searchQuery, setSearchQuery] = useState("");
   
   const getResourceTypeColor = (type: string) => {
@@ -60,7 +101,12 @@ const ResourceWaterfallChart = () => {
     }
   };
   
-  const filteredData = mockWaterfallData.filter(item => 
+  // Use provided resources or fallback to mock data
+  const waterfallData = resources.length > 0 
+    ? transformResourceData(resources) 
+    : generateMockWaterfallData();
+  
+  const filteredData = waterfallData.filter(item => 
     item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
     item.domain.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.type.toLowerCase().includes(searchQuery.toLowerCase())

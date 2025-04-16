@@ -1,29 +1,68 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { BarChart, Clock, Globe, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PerformanceTestConfig } from "@/types/performance";
+import { toast } from "@/components/ui/use-toast";
 import PerformanceTestForm from "@/components/Performance/PerformanceTestForm";
 import TestHistory from "@/components/Performance/TestHistory";
 import TestResultsDashboard from "@/components/Performance/TestResultsDashboard";
+import usePerformanceTest from "@/hooks/usePerformanceTest";
 
 const WebPerformancePage = () => {
   const [activeTab, setActiveTab] = useState("test");
-  const [isLoading, setIsLoading] = useState(false);
   const [url, setUrl] = useState("");
+  const { runTest, isLoading, testResult, error } = usePerformanceTest();
 
-  const handleQuickTest = () => {
-    if (!url) return;
-    setIsLoading(true);
-    
-    // This would normally call an API to start a test
-    setTimeout(() => {
-      setIsLoading(false);
+  // Handle any errors from the test
+  useEffect(() => {
+    if (error) {
+      toast({
+        title: "Test Failed",
+        description: error,
+        variant: "destructive"
+      });
+    }
+  }, [error]);
+
+  const handleQuickTest = async () => {
+    if (!url) {
+      toast({
+        title: "URL Required",
+        description: "Please enter a URL to test",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Create a default config for quick test
+    const quickTestConfig: PerformanceTestConfig = {
+      url,
+      device: "desktop",
+      connection: "fast",
+      location: "us-east",
+      browser: "chrome"
+    };
+
+    // Run the test
+    const result = await runTest(quickTestConfig);
+    if (result) {
       setActiveTab("results");
-    }, 3000);
+    }
+  };
+
+  const handleAdvancedTest = async (config: PerformanceTestConfig) => {
+    const result = await runTest(config);
+    if (result) {
+      setActiveTab("results");
+    }
+  };
+
+  const handleTestAgain = () => {
+    setActiveTab("test");
   };
 
   return (
@@ -86,11 +125,15 @@ const WebPerformancePage = () => {
         </TabsList>
         
         <TabsContent value="test" className="space-y-4">
-          <PerformanceTestForm />
+          <PerformanceTestForm onSubmit={handleAdvancedTest} isLoading={isLoading} />
         </TabsContent>
         
         <TabsContent value="results" className="space-y-4">
-          <TestResultsDashboard />
+          <TestResultsDashboard 
+            testResult={testResult} 
+            onTestAgain={handleTestAgain} 
+            isLoading={isLoading} 
+          />
         </TabsContent>
         
         <TabsContent value="history" className="space-y-4">

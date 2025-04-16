@@ -1,18 +1,28 @@
 
-import { useState } from "react";
-import { BarChart as BarChartIcon, Download, Share2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { BarChart as BarChartIcon, Download, Share2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation } from "@/types/performance";
+import { PerformanceMetrics, PerformanceScore, PerformanceRecommendation, PerformanceTestResult } from "@/types/performance";
 import PerformanceScoreCard from "./charts/PerformanceScoreCard";
 import PerformanceMetricsChart from "./charts/PerformanceMetricsChart";
 import ResourceWaterfallChart from "./charts/ResourceWaterfallChart";
 import RecommendationsList from "./RecommendationsList";
 
-const TestResultsDashboard = () => {
-  // Mocked data - would normally be fetched from an API
+interface TestResultsDashboardProps {
+  testResult?: PerformanceTestResult | null;
+  onTestAgain?: () => void;
+  isLoading?: boolean;
+}
+
+const TestResultsDashboard: React.FC<TestResultsDashboardProps> = ({ 
+  testResult, 
+  onTestAgain, 
+  isLoading = false 
+}) => {
+  // If no test result is provided, use mock data
   const [scores, setScores] = useState<PerformanceScore>({
     overall: 72,
     speed: 65,
@@ -68,13 +78,35 @@ const TestResultsDashboard = () => {
     }
   ]);
 
+  // Update state when testResult changes
+  useEffect(() => {
+    if (testResult) {
+      setScores(testResult.scores);
+      setMetrics(testResult.metrics);
+      setRecommendations(testResult.recommendations);
+    }
+  }, [testResult]);
+
+  // Format the test date for display
+  const formatTestDate = (date: string | undefined) => {
+    if (!date) return "April 16, 2025"; // Default date if none provided
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold">Performance Report</h2>
           <p className="text-muted-foreground">
-            Result for: <span className="font-medium">https://example.com</span> • Tested on April 16, 2025
+            Result for: <span className="font-medium">{testResult?.url || "https://example.com"}</span> • 
+            Tested on {formatTestDate(testResult?.testDate)}
           </p>
         </div>
         <div className="flex gap-2">
@@ -86,8 +118,19 @@ const TestResultsDashboard = () => {
             <Download className="h-4 w-4 mr-2" />
             Download PDF
           </Button>
-          <Button size="sm">
-            Test Again
+          <Button 
+            size="sm"
+            onClick={onTestAgain}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                Testing...
+              </>
+            ) : (
+              "Test Again"
+            )}
           </Button>
         </div>
       </div>
@@ -196,7 +239,7 @@ const TestResultsDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="h-[500px]">
-                <ResourceWaterfallChart />
+                <ResourceWaterfallChart resources={testResult?.resources} />
               </div>
             </CardContent>
           </Card>
