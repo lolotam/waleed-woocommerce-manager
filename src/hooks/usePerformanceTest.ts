@@ -4,10 +4,10 @@ import {
   PerformanceTestConfig, 
   CrawlerResult, 
   PerformanceTestResult, 
-  PerformanceRecommendation,
   CrawlerResponse
 } from "@/types/performance";
 import { runPerformanceTest } from "@/services/performanceCrawlerService";
+import metricsEngine from "@/services/metricsEngineService";
 import { v4 as uuidv4 } from "uuid";
 
 export function usePerformanceTest() {
@@ -67,13 +67,22 @@ function transformCrawlerResult(
     };
   });
 
-  // Calculate overall scores from lighthouse scores
-  const lighthouse = crawlerResult.lighthouse;
-  const overall = Math.round((lighthouse.performance + lighthouse.accessibility + 
-    lighthouse['best-practices'] + lighthouse.seo) / 4);
+  // Calculate performance metrics
+  const metricsData = {
+    lcp: (crawlerResult.metrics.ttfb + 500), // Estimate LCP
+    fid: Math.random() * 100 + 50, // Mock FID
+    cls: Math.random() * 0.2, // Mock CLS
+    ttfb: crawlerResult.metrics.ttfb,
+    tbt: Math.random() * 300 + 100, // Mock TBT
+    loadTime: crawlerResult.metrics.loadTime,
+    totalSize: crawlerResult.metrics.totalSize
+  };
 
-  // Generate recommendations based on the metrics
-  const recommendations = generateRecommendations(crawlerResult);
+  // Calculate scores using the metrics engine
+  const scores = metricsEngine.calculatePerformanceScore(metricsData);
+
+  // Generate recommendations using the metrics engine
+  const recommendations = metricsEngine.generateRecommendations(crawlerResult);
 
   return {
     id: uuidv4(),
@@ -86,84 +95,13 @@ function transformCrawlerResult(
       firstContentfulPaint: crawlerResult.metrics.ttfb / 1000 + 0.2, // estimate FCP
       largestContentfulPaint: (crawlerResult.metrics.ttfb + 500) / 1000, // estimate LCP
       timeToInteractive: crawlerResult.metrics.domComplete / 1000,
-      cumulativeLayoutShift: Math.random() * 0.2 // random CLS for mock data
+      cumulativeLayoutShift: metricsData.cls // use the same CLS value
     },
-    scores: {
-      overall,
-      speed: lighthouse.performance,
-      optimization: lighthouse['best-practices'],
-      accessibility: lighthouse.accessibility
-    },
+    scores,
     resources,
     config,
     recommendations
   };
-}
-
-// Generate recommendations based on crawler results
-function generateRecommendations(crawlerResult: CrawlerResult): PerformanceRecommendation[] {
-  const recommendations: PerformanceRecommendation[] = [];
-  
-  // Check load time
-  if (crawlerResult.metrics.loadTime > 3000) {
-    recommendations.push({
-      id: uuidv4(),
-      title: "Optimize Page Load Time",
-      description: "Your page load time exceeds 3 seconds, which can lead to high bounce rates.",
-      impact: "high",
-      category: "speed"
-    });
-  }
-  
-  // Check resource count
-  if (crawlerResult.metrics.resourceCount > 20) {
-    recommendations.push({
-      id: uuidv4(),
-      title: "Reduce HTTP Requests",
-      description: `Your page makes ${crawlerResult.metrics.resourceCount} HTTP requests. Consider bundling resources to reduce this number.`,
-      impact: "medium",
-      category: "optimization"
-    });
-  }
-  
-  // Check total size
-  if (crawlerResult.metrics.totalSize > 1024 * 1024 * 3) { // 3MB
-    recommendations.push({
-      id: uuidv4(),
-      title: "Reduce Page Weight",
-      description: `Your page total size is ${Math.round(crawlerResult.metrics.totalSize / (1024 * 1024))}MB. Consider optimizing images and minifying resources.`,
-      impact: "high",
-      category: "optimization"
-    });
-  }
-  
-  // Check for large images
-  const largeImages = crawlerResult.responses.filter(
-    res => res.contentType?.includes('image') && res.size > 200000
-  );
-  
-  if (largeImages.length > 0) {
-    recommendations.push({
-      id: uuidv4(),
-      title: "Optimize Images",
-      description: `You have ${largeImages.length} images larger than 200KB. Consider resizing and compressing them.`,
-      impact: "medium",
-      category: "optimization"
-    });
-  }
-  
-  // Add some accessibility recommendations
-  if (crawlerResult.lighthouse.accessibility < 90) {
-    recommendations.push({
-      id: uuidv4(),
-      title: "Improve Accessibility",
-      description: "Your accessibility score is below 90. Ensure proper contrast ratios and semantic HTML.",
-      impact: "medium",
-      category: "accessibility"
-    });
-  }
-  
-  return recommendations;
 }
 
 export default usePerformanceTest;

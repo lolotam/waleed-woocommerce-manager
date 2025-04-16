@@ -50,6 +50,13 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
     }
   };
   
+  // Get the display URL, checking different possible sources in order
+  const getDisplayUrl = () => {
+    if (activeTest.config?.url) return activeTest.config.url;
+    if (activeTest.result?.url) return activeTest.result.url;
+    return "URL unavailable";
+  };
+  
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -66,7 +73,7 @@ const QueueStatus: React.FC<QueueStatusProps> = ({
                 </span>
               </Badge>
               <span className="text-sm text-muted-foreground">
-                {activeTest.url || activeTest.config?.url || "URL unavailable"}
+                {getDisplayUrl()}
               </span>
             </div>
             <Button 

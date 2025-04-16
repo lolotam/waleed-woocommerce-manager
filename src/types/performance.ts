@@ -100,6 +100,15 @@ export interface CrawlerResult {
   responses: CrawlerResponse[];
 }
 
+// Extended metrics for Core Web Vitals
+export interface CoreWebVitals {
+  lcp: number;  // Largest Contentful Paint (ms)
+  fid: number;  // First Input Delay (ms)
+  cls: number;  // Cumulative Layout Shift (unitless)
+  ttfb: number; // Time to First Byte (ms)
+  tbt: number;  // Total Blocking Time (ms)
+}
+
 // Queue system types
 export type TestStatus = 'queued' | 'processing' | 'completed' | 'failed';
 
