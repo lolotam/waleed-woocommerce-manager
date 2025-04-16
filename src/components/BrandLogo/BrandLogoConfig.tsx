@@ -36,16 +36,13 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     setWpAppPassword(savedConfig.wpAppPassword || '');
     setAuthMethod(savedConfig.authMethod || 'app_password');
     
-    // Check for tab query parameter
     const searchParams = new URLSearchParams(location.search);
     const tab = searchParams.get('tab');
     if (tab === 'config') {
-      // Check if OAuth timed out
       if (checkOAuthTimeout()) {
         toast.error('WooCommerce authentication timed out. Please try again.');
       }
       
-      // Check for auth_in_progress
       const authInProgress = localStorage.getItem('wc_auth_in_progress');
       if (authInProgress) {
         toast.info('Authentication in progress', {
@@ -54,7 +51,6 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
         });
       }
       
-      // Detect potential OAuth issues with environment
       const issues = detectCommonOAuthIssues();
       if (issues.length > 0) {
         setOauthIssues(issues);
@@ -113,7 +109,6 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     localStorage.setItem('woocommerce_config', JSON.stringify(config));
     toast.success('WooCommerce settings saved');
     
-    // Test connection
     handleTestConnection();
   };
   
@@ -140,7 +135,6 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
     
     setOauthConnecting(true);
     
-    // First save the URL so it's available when we return
     let cleanUrl = woocommerceUrl.trim().replace(/\/+$/, '');
     if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
       cleanUrl = 'https://' + cleanUrl;
@@ -154,13 +148,10 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
       return;
     }
     
-    // Store the URL for later use
     localStorage.setItem('wc_temp_store_url', cleanUrl);
     
-    // Initiate OAuth flow with the specified URL
     try {
       initiateWooCommerceOAuth(cleanUrl);
-      // Reset connecting state after a delay to ensure the UI updates correctly
       setTimeout(() => {
         setOauthConnecting(false);
       }, 3000);
@@ -177,17 +168,17 @@ const BrandLogoConfig = ({ config, onUpdateConfig }: BrandLogoConfigProps) => {
         <h3 className="text-lg font-medium">WooCommerce Connection</h3>
         
         {oauthIssues.length > 0 && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Potential Authentication Issues Detected</AlertTitle>
-          <AlertDescription>
-            <ul className="list-disc pl-5 text-sm mt-1">
-              {oauthIssues.map((issue, index) => (
-                <li key={index}>{issue}</li>
-              ))}
-            </ul>
-          </AlertDescription>
-        </Alert>
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Potential Authentication Issues Detected</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-5 text-sm mt-1">
+                {oauthIssues.map((issue, index) => (
+                  <li key={index}>{issue}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
         )}
         
         <div className="grid gap-4">
