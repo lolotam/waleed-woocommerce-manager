@@ -6,10 +6,11 @@ import { toast } from "sonner";
 
 interface LicenseInfo {
   key: string;
-  type: 'trial' | 'full';
+  type: 'one_time' | 'time_limited' | 'permanent';
   deviceId: string;
   activated: boolean;
   activationDate: string;
+  expiryDate?: string; // For time-limited licenses
 }
 
 // Mock function to get hardware ID (in a real app, this would use native APIs)
@@ -38,21 +39,27 @@ const isValidLicenseFormat = (key: string): boolean => {
   return licensePattern.test(key);
 };
 
-// Mock license validation (in a real app, this would validate against a server)
-const validateLicense = async (key: string): Promise<{ valid: boolean; type: 'trial' | 'full' }> => {
-  // For demo purposes, we'll simulate license validation
+// Decode license type from key
+// In a real implementation, this would use cryptographic methods
+const decodeLicenseType = (key: string): { valid: boolean; type: 'one_time' | 'time_limited' | 'permanent', expiryDate?: string } => {
   if (!isValidLicenseFormat(key)) {
-    return { valid: false, type: 'trial' };
+    return { valid: false, type: 'one_time' };
   }
   
-  // Check if it's a trial or full license based on key prefix
-  // In a real app, this would validate with a license server
-  const isTrial = key.startsWith('TRIAL');
-  
-  return { 
-    valid: true, 
-    type: isTrial ? 'trial' : 'full' 
-  };
+  // This is a simplified approach - your external key generator would use a more secure method
+  // Assume the key has encoded information about its type:
+  if (key.startsWith('PERM')) {
+    return { valid: true, type: 'permanent' };
+  } else if (key.startsWith('TIME')) {
+    // Decode expiry date - assume it's encoded in the key
+    // For demonstration, set expiry to 30 days from now
+    const expiryDate = new Date();
+    expiryDate.setDate(expiryDate.getDate() + 30);
+    return { valid: true, type: 'time_limited', expiryDate: expiryDate.toISOString() };
+  } else {
+    // Treat as one-time license if no specific prefix
+    return { valid: true, type: 'one_time' };
+  }
 };
 
 // Activate license
@@ -61,8 +68,8 @@ export const activateLicense = async (licenseKey: string): Promise<boolean> => {
     // Get hardware ID
     const deviceId = await getHardwareId();
     
-    // Validate license
-    const { valid, type } = await validateLicense(licenseKey);
+    // Validate and decode license
+    const { valid, type, expiryDate } = decodeLicenseType(licenseKey);
     
     if (!valid) {
       toast.error('Invalid license key format');
@@ -82,7 +89,8 @@ export const activateLicense = async (licenseKey: string): Promise<boolean> => {
       type,
       deviceId,
       activated: true,
-      activationDate: new Date().toISOString()
+      activationDate: new Date().toISOString(),
+      ...(expiryDate && { expiryDate })
     };
     
     localStorage.setItem('license_info', JSON.stringify(licenseInfo));
@@ -125,15 +133,12 @@ export const isLicenseValid = async (): Promise<boolean> => {
       return false;
     }
     
-    // For trial licenses, check if it's expired
-    if (licenseInfo.type === 'trial') {
-      const activationDate = new Date(licenseInfo.activationDate);
-      const trialDays = 14; // 14-day trial
-      const expirationDate = new Date(activationDate);
-      expirationDate.setDate(expirationDate.getDate() + trialDays);
+    // For time-limited licenses, check if it's expired
+    if (licenseInfo.type === 'time_limited' && licenseInfo.expiryDate) {
+      const expiryDate = new Date(licenseInfo.expiryDate);
       
-      if (new Date() > expirationDate) {
-        console.error('Trial license expired');
+      if (new Date() > expiryDate) {
+        console.error('Time-limited license expired');
         return false;
       }
     }
@@ -145,22 +150,8 @@ export const isLicenseValid = async (): Promise<boolean> => {
   }
 };
 
-// Generate a sample license key (for demo purposes)
-export const generateSampleLicenseKey = (type: 'trial' | 'full'): string => {
-  const generateSegment = () => {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    return Array(5).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-  };
-  
-  const prefix = type === 'trial' ? 'TRIAL' : 'FULL-';
-  const segments = [prefix, generateSegment(), generateSegment(), generateSegment(), generateSegment()];
-  
-  return segments.join('-');
-};
-
 export default {
   activateLicense,
   getLicenseInfo,
-  isLicenseValid,
-  generateSampleLicenseKey
+  isLicenseValid
 };
