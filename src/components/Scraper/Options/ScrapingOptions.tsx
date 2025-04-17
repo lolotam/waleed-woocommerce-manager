@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import ScrapingModeSelector from '../ScrapingModeSelector';
 import ProxySettings from '../ProxySettings';
-import { ScrapingOptions as ScrapingOptionsType } from '../types/scraperTypes';
+import { ScrapingOptions as ScrapingOptionsType, ScrapingMode } from '../types/scraperTypes';
 
 interface ScrapingOptionsProps {
   options: ScrapingOptionsType;
@@ -17,7 +17,7 @@ const ScrapingOptions = ({ options, onOptionsChange }: ScrapingOptionsProps) => 
     <div className="space-y-6">
       <ScrapingModeSelector 
         value={options.mode} 
-        onChange={(mode) => onOptionsChange({ mode })} 
+        onChange={(mode: ScrapingMode) => onOptionsChange({ mode })} 
       />
       
       <ProxySettings 
