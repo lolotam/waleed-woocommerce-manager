@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Database, FileSpreadsheet, Globe, Loader2, Download, FileJson, FileText } from "lucide-react";
+import { Database, FileSpreadsheet, Globe, Loader2, Download, FileJson, FileText, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { ScraperPlatform, ScrapedProduct } from "@/types/scraper";
 import UrlInputSection from "./UrlInput/UrlInputSection";
@@ -12,6 +12,9 @@ import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import useProcessLog from "@/hooks/useProcessLog";
 
 interface WebScraperProps {
   onProductsScraped: (products: ScrapedProduct[]) => void;
@@ -26,8 +29,10 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
   const [progress, setProgress] = useState(0);
   const [scrapedCount, setScrapedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [failedCount, setFailedCount] = useState(0);
+  const [activeTab, setActiveTab] = useState("process");
   const [exportFormat, setExportFormat] = useState<ExportFormat>('excel');
+  const { processLog, addLogEntry, hasPermissionError } = useProcessLog();
   
   const [scrapingOptions, setScrapingOptions] = useState<ScrapingOptionsType>({
     mode: 'auto',
@@ -36,13 +41,14 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
     scrapeAll: false,
     maxProducts: 50,
     bypassProtection: true,
-    enableCache: true
+    enableCache: true,
+    scrollBehavior: 'none',
+    emulateUser: true,
+    maxRetries: 3,
+    requestDelay: 1000,
+    randomizeDelay: true,
+    concurrentRequests: 1
   });
-  
-  const addLog = (message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setLogs(prev => [...prev, `[${timestamp}] ${message}`]);
-  };
   
   const handleScrape = async () => {
     if (!url) {
@@ -54,28 +60,35 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
     setProgress(0);
     setScrapedCount(0);
     setTotalCount(0);
-    setLogs([]);
+    setFailedCount(0);
+    addLogEntry(`Starting scraper in ${scrapingOptions.mode} mode for ${platform || 'unknown'} platform`);
+    addLogEntry(`Target URL: ${url}`);
+    
+    if (scrapingOptions.isCategory) {
+      addLogEntry(`Scraping category page with${scrapingOptions.scrapeAll ? '' : 'out'} pagination`);
+      if (scrapingOptions.scrapeAll) {
+        addLogEntry(`Maximum products set to: ${scrapingOptions.maxProducts}`);
+        addLogEntry(`Scroll behavior: ${scrapingOptions.scrollBehavior}`);
+      }
+    }
+    
+    if (scrapingOptions.useProxy) {
+      addLogEntry("Using proxy for this request");
+    }
+    
+    if (scrapingOptions.bypassProtection) {
+      addLogEntry("Bot protection bypass enabled");
+    }
+    
+    if (scrapingOptions.emulateUser) {
+      addLogEntry("Using human-like behavior simulation");
+    }
+    
+    if (scrapingOptions.concurrentRequests > 1) {
+      addLogEntry(`Using ${scrapingOptions.concurrentRequests} concurrent connections`);
+    }
     
     try {
-      // Log start of scraping process
-      addLog(`Starting scraper in ${scrapingOptions.mode} mode for ${platform || 'unknown'} platform`);
-      addLog(`Target URL: ${url}`);
-      
-      if (scrapingOptions.isCategory) {
-        addLog(`Scraping category page with${scrapingOptions.scrapeAll ? '' : 'out'} pagination`);
-        if (scrapingOptions.scrapeAll) {
-          addLog(`Maximum products set to: ${scrapingOptions.maxProducts}`);
-        }
-      }
-      
-      if (scrapingOptions.useProxy) {
-        addLog("Using proxy for this request");
-      }
-      
-      if (scrapingOptions.bypassProtection) {
-        addLog("Bot protection bypass enabled");
-      }
-      
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -87,14 +100,35 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
         });
         
         setScrapedCount(prev => prev + Math.floor(Math.random() * 3) + 1);
+        
+        // Simulate some failures
+        if (Math.random() > 0.8) {
+          setFailedCount(prev => prev + 1);
+          addLogEntry(`Failed to scrape product: Rate limit exceeded. Retrying... (${Math.floor(Math.random() * scrapingOptions.maxRetries) + 1}/${scrapingOptions.maxRetries})`);
+        }
       }, 500);
       
       // Simulate total count update
       setTimeout(() => {
         const estimated = Math.floor(Math.random() * 50) + 20;
         setTotalCount(estimated);
-        addLog(`Found approximately ${estimated} products to scrape`);
+        addLogEntry(`Found approximately ${estimated} products to scrape`);
       }, 1000);
+      
+      // Simulate detection of Cloudflare protection
+      setTimeout(() => {
+        if (scrapingOptions.bypassProtection) {
+          addLogEntry("Detected Cloudflare protection, applying bypass technique");
+          addLogEntry("Waiting for challenge to pass...");
+          setTimeout(() => {
+            addLogEntry("Successfully bypassed Cloudflare protection");
+          }, 1500);
+        } else {
+          if (Math.random() > 0.5) {
+            addLogEntry("WARNING: Cloudflare protection detected but bypass is disabled");
+          }
+        }
+      }, 2000);
       
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 3500));
@@ -135,23 +169,49 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
         }
       ];
       
+      // Add more mock products for a better demo
+      for (let i = 3; i <= 15; i++) {
+        mockProducts.push({
+          id: `mock-${i}`,
+          title: `Sample Product ${i}`,
+          regular_price: `${(Math.random() * 100).toFixed(2)}`,
+          sku: `SP00${i}`,
+          image_url: `https://picsum.photos/id/${30 + i}/500/500`,
+          categories: ["Sample Category"],
+          description: "Product description example",
+          source_url: url,
+          platform: platform || 'unknown'
+        });
+      }
+      
       clearInterval(progressInterval);
       setProgress(100);
       setScrapedCount(mockProducts.length);
       
-      addLog(`Successfully scraped ${mockProducts.length} products`);
-      addLog(`Scraping completed in 3.5 seconds`);
-      addLog(`Data ready for export in ${exportFormat} format`);
+      addLogEntry(`Successfully scraped ${mockProducts.length} products`);
+      addLogEntry(`Failed attempts: ${failedCount}`);
+      addLogEntry(`Scraping completed in 3.5 seconds`);
+      addLogEntry(`Data ready for export in ${exportFormat} format`);
       
       toast.success(`Successfully scraped ${mockProducts.length} products using ${scrapingOptions.mode} mode`);
       onProductsScraped(mockProducts);
     } catch (error) {
       console.error(error);
-      addLog(`ERROR: ${(error as Error).message}`);
+      addLogEntry(`ERROR: ${(error as Error).message}`);
       toast.error("Failed to scrape products: " + (error as Error).message);
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleExport = () => {
+    if (scrapedCount === 0) {
+      toast.error("No products to export");
+      return;
+    }
+    
+    toast.success(`Exported ${scrapedCount} products as ${exportFormat.toUpperCase()}`);
+    addLogEntry(`Exported ${scrapedCount} products in ${exportFormat} format`);
   };
   
   const getExportIcon = () => {
@@ -178,62 +238,91 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
           onPlatformDetect={setPlatform}
         />
         
-        <ScrapingOptions 
-          options={scrapingOptions}
-          onOptionsChange={(updates) => setScrapingOptions({ ...scrapingOptions, ...updates })}
-        />
-        
-        <div className="space-y-2 border-t pt-3 mt-3 border-gray-200 dark:border-gray-800">
-          <h3 className="font-medium text-sm mb-2">Export Format</h3>
-          <RadioGroup 
-            value={exportFormat} 
-            onValueChange={(value) => setExportFormat(value as ExportFormat)}
-            className="flex space-x-4"
-          >
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="excel" id="excel" />
-              <Label htmlFor="excel">Excel (.xlsx)</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="csv" id="csv" />
-              <Label htmlFor="csv">CSV</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <RadioGroupItem value="json" id="json" />
-              <Label htmlFor="json">JSON</Label>
-            </div>
-          </RadioGroup>
-        </div>
-        
-        {isLoading && (
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span>Scraping products...</span>
-              <span>{scrapedCount} {totalCount ? `/ ~${totalCount}` : ''}</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        )}
-        
-        {logs.length > 0 && (
-          <div className="space-y-2 border rounded-md p-2">
-            <h3 className="text-sm font-medium">Scraping Logs</h3>
-            <ScrollArea className="h-32 w-full rounded-md border p-2 bg-black/5 dark:bg-white/5">
-              {logs.map((log, index) => (
-                <div key={index} className="text-xs font-mono py-0.5">
-                  {log}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="options" className="flex-1">Scraping Options</TabsTrigger>
+            <TabsTrigger value="process" className="flex-1">Process & Logs</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="options" className="space-y-4">
+            <ScrapingOptions 
+              options={scrapingOptions}
+              onOptionsChange={(updates) => setScrapingOptions({ ...scrapingOptions, ...updates })}
+            />
+          </TabsContent>
+          
+          <TabsContent value="process" className="space-y-4">
+            {(isLoading || scrapedCount > 0) && (
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Scraping progress</span>
+                    <span>{scrapedCount} {totalCount ? `/ ~${totalCount}` : ''}</span>
+                  </div>
+                  <Progress value={progress} className="h-2" />
+                  
+                  {failedCount > 0 && (
+                    <Alert variant="destructive" className="mt-2">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>
+                        {failedCount} requests failed. Retrying up to {scrapingOptions.maxRetries} times.
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
-              ))}
-            </ScrollArea>
-          </div>
-        )}
+                
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium">Scraping Logs</h3>
+                  <ScrollArea className="h-60 w-full rounded-md border p-2 bg-black/5 dark:bg-white/5">
+                    {processLog.map((log, index) => (
+                      <div 
+                        key={index} 
+                        className={`text-xs font-mono py-0.5 ${
+                          log.includes("ERROR") || log.includes("WARNING") 
+                            ? "text-red-500 dark:text-red-400" 
+                            : log.includes("Successfully") 
+                              ? "text-green-600 dark:text-green-400"
+                              : ""
+                        }`}
+                      >
+                        {log}
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-2 border-t pt-3 mt-3 border-gray-200 dark:border-gray-800">
+              <h3 className="font-medium text-sm mb-2">Export Format</h3>
+              <RadioGroup 
+                value={exportFormat} 
+                onValueChange={(value) => setExportFormat(value as ExportFormat)}
+                className="flex space-x-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="excel" id="excel" />
+                  <Label htmlFor="excel">Excel (.xlsx)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="csv" id="csv" />
+                  <Label htmlFor="csv">CSV</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="json" id="json" />
+                  <Label htmlFor="json">JSON</Label>
+                </div>
+              </RadioGroup>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
       
       <CardFooter className="flex justify-between bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 p-6">
         <Button 
           variant="outline" 
           disabled={isLoading || !(scrapedCount > 0)}
-          onClick={() => toast.success(`Exported ${scrapedCount} products as ${exportFormat.toUpperCase()}`)}
+          onClick={handleExport}
         >
           {getExportIcon()}
           Export {scrapedCount > 0 ? `(${scrapedCount})` : ''}
