@@ -1,6 +1,7 @@
 
 export type ScrapingMode = 'auto' | 'simple' | 'headless' | 'authenticated';
 export type ScrollBehavior = 'none' | 'bottom' | 'infinite';
+export type PageType = 'product' | 'category' | 'auto-detect';
 
 export interface ProxyConfig {
   enabled: boolean;
@@ -17,6 +18,7 @@ export interface ScrapingOptions {
   proxyConfig?: ProxyConfig;
   maxProducts?: number;
   isCategory: boolean;
+  pageType: PageType;
   scrapeAll: boolean;
   customSelectors?: Record<string, string>;
   bypassProtection: boolean;
@@ -27,5 +29,5 @@ export interface ScrapingOptions {
   requestDelay: number;
   randomizeDelay?: boolean;
   concurrentRequests: number;
+  waitForSelector?: string;
 }
-

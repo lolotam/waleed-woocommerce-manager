@@ -1,14 +1,14 @@
-
 import React from 'react';
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShieldAlert, Clock, RotateCw } from "lucide-react";
+import { ShieldAlert, Clock, RotateCw, FileSearch } from "lucide-react";
 import ScrapingModeSelector from '../ScrapingModeSelector';
 import ProxySettings from '../ProxySettings';
-import { ScrapingOptions as ScrapingOptionsType, ScrapingMode } from '../types/scraperTypes';
+import { ScrapingOptions as ScrapingOptionsType, ScrapingMode, PageType } from '../types/scraperTypes';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 interface ScrapingOptionsProps {
   options: ScrapingOptionsType;
@@ -27,16 +27,72 @@ const ScrapingOptions = ({ options, onOptionsChange }: ScrapingOptionsProps) => 
         enabled={options.useProxy}
         onEnabledChange={(enabled) => onOptionsChange({ useProxy: enabled })}
       />
+
+      <Card className="border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/20">
+        <CardContent className="p-4 space-y-4">
+          <h3 className="font-medium text-sm flex items-center">
+            <FileSearch className="h-4 w-4 mr-2 text-blue-600" />
+            Page Type Detection
+          </h3>
+          
+          <RadioGroup 
+            value={options.pageType} 
+            onValueChange={(value) => onOptionsChange({ 
+              pageType: value as PageType,
+              isCategory: value === 'category' ? true : value === 'product' ? false : options.isCategory
+            })}
+            className="flex space-x-4"
+          >
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="auto-detect" id="auto-detect" />
+              <Label htmlFor="auto-detect">Auto-detect</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="product" id="product" />
+              <Label htmlFor="product">Product Page</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <RadioGroupItem value="category" id="category" />
+              <Label htmlFor="category">Category Page</Label>
+            </div>
+          </RadioGroup>
+
+          <div className="text-xs text-muted-foreground">
+            Auto-detect will analyze the page structure to determine if it's a product or category page.
+          </div>
+
+          {options.pageType === 'product' && (
+            <div className="space-y-2 pl-6 border-l-2 border-blue-100 dark:border-blue-800">
+              <div className="flex items-center space-x-2">
+                <Label htmlFor="wait-selector">Wait for selector:</Label>
+                <Input
+                  id="wait-selector"
+                  type="text"
+                  className="w-full"
+                  value={options.waitForSelector || '.product-info, .product-title, h1'}
+                  onChange={(e) => onOptionsChange({ waitForSelector: e.target.value })}
+                  placeholder=".product-info, h1.product-title"
+                />
+              </div>
+              <div className="text-xs text-muted-foreground">
+                Add CSS selectors to wait for product data to load (comma-separated)
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       
       <div className="space-y-4">
-        <div className="flex items-center space-x-2">
-          <Switch
-            id="category-page"
-            checked={options.isCategory}
-            onCheckedChange={(isCategory) => onOptionsChange({ isCategory })}
-          />
-          <Label htmlFor="category-page">This is a category page</Label>
-        </div>
+        {options.pageType !== 'product' && (
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="category-page"
+              checked={options.isCategory}
+              onCheckedChange={(isCategory) => onOptionsChange({ isCategory })}
+            />
+            <Label htmlFor="category-page">This is a category page</Label>
+          </div>
+        )}
         
         {options.isCategory && (
           <div className="space-y-2 pl-6 border-l-2 border-blue-100 dark:border-blue-800">

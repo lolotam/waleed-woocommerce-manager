@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { ScraperPlatform, ScrapedProduct } from "@/types/scraper";
 import UrlInputSection from "./UrlInput/UrlInputSection";
 import ScrapingOptions from "./Options/ScrapingOptions";
-import { ScrapingOptions as ScrapingOptionsType } from "./types/scraperTypes";
+import { ScrapingOptions as ScrapingOptionsType, PageType } from "./types/scraperTypes";
 import { Progress } from "@/components/ui/progress";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
@@ -15,6 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import useProcessLog from "@/hooks/useProcessLog";
+import ScrapedProductsTable from "./Results/ScrapedProductsTable";
 
 interface WebScraperProps {
   onProductsScraped: (products: ScrapedProduct[]) => void;
@@ -30,14 +31,16 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
   const [scrapedCount, setScrapedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
-  const [activeTab, setActiveTab] = useState("process");
+  const [activeTab, setActiveTab] = useState("options");
   const [exportFormat, setExportFormat] = useState<ExportFormat>('excel');
   const { processLog, addLogEntry, hasPermissionError } = useProcessLog();
+  const [scrapedProducts, setScrapedProducts] = useState<ScrapedProduct[]>([]);
   
   const [scrapingOptions, setScrapingOptions] = useState<ScrapingOptionsType>({
     mode: 'auto',
     useProxy: false,
     isCategory: false,
+    pageType: 'auto-detect',
     scrapeAll: false,
     maxProducts: 50,
     bypassProtection: true,
@@ -47,8 +50,65 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
     maxRetries: 3,
     requestDelay: 1000,
     randomizeDelay: true,
-    concurrentRequests: 1
+    concurrentRequests: 1,
+    waitForSelector: '.product-info, h1.product-title, .product-detail'
   });
+
+  const handleToggleProductSelection = (id: string) => {
+    setScrapedProducts(prev => 
+      prev.map(product => 
+        (product.id === id) ? { ...product, selected: !product.selected } : product
+      )
+    );
+  };
+
+  const handleSelectAllProducts = () => {
+    setScrapedProducts(prev => 
+      prev.map(product => ({ ...product, selected: true }))
+    );
+  };
+
+  const handleSelectNoneProducts = () => {
+    setScrapedProducts(prev => 
+      prev.map(product => ({ ...product, selected: false }))
+    );
+  };
+  
+  const detectPageType = (url: string): PageType => {
+    // Simple heuristic for detecting product vs category pages
+    if (scrapingOptions.pageType !== 'auto-detect') {
+      return scrapingOptions.pageType;
+    }
+    
+    const urlObj = new URL(url);
+    const pathParts = urlObj.pathname.split('/').filter(Boolean);
+    
+    // Check for common product page patterns
+    if (
+      // Product ID in URL
+      /\/p\/\d+/i.test(url) || 
+      // Product in URL
+      /\/product\//i.test(url) || 
+      // Item in URL (common for AliExpress, etc.)
+      /\/item\//i.test(url) ||
+      // Has longer path with specific product name at end
+      (pathParts.length >= 3 && !pathParts[pathParts.length - 1].includes('.'))
+    ) {
+      return 'product';
+    } 
+    
+    // Category patterns
+    if (
+      /category|collection|shop|brand|products/i.test(url) ||
+      // Has faceted navigation parameters
+      urlObj.searchParams.toString().length > 0
+    ) {
+      return 'category';
+    }
+    
+    // Default to product if uncertain
+    return 'product';
+  };
   
   const handleScrape = async () => {
     if (!url) {
@@ -61,15 +121,24 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
     setScrapedCount(0);
     setTotalCount(0);
     setFailedCount(0);
+    setScrapedProducts([]);
+    
+    const detectedPageType = detectPageType(url);
+    const isCategory = detectedPageType === 'category';
+    
     addLogEntry(`Starting scraper in ${scrapingOptions.mode} mode for ${platform || 'unknown'} platform`);
     addLogEntry(`Target URL: ${url}`);
+    addLogEntry(`Detected page type: ${detectedPageType.toUpperCase()}`);
     
-    if (scrapingOptions.isCategory) {
+    if (isCategory) {
       addLogEntry(`Scraping category page with${scrapingOptions.scrapeAll ? '' : 'out'} pagination`);
       if (scrapingOptions.scrapeAll) {
         addLogEntry(`Maximum products set to: ${scrapingOptions.maxProducts}`);
         addLogEntry(`Scroll behavior: ${scrapingOptions.scrollBehavior}`);
       }
+    } else {
+      addLogEntry(`Scraping product page using ${scrapingOptions.mode} mode`);
+      addLogEntry(`Waiting for selector: ${scrapingOptions.waitForSelector}`);
     }
     
     if (scrapingOptions.useProxy) {
@@ -89,6 +158,9 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
     }
     
     try {
+      // Auto-switch to appropriate tab based on what we're doing
+      setActiveTab(isCategory ? "process" : "results");
+      
       // Simulate progress updates
       const progressInterval = setInterval(() => {
         setProgress(prev => {
@@ -99,30 +171,48 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
           return prev + Math.floor(Math.random() * 8) + 1;
         });
         
-        setScrapedCount(prev => prev + Math.floor(Math.random() * 3) + 1);
-        
-        // Simulate some failures
-        if (Math.random() > 0.8) {
-          setFailedCount(prev => prev + 1);
-          addLogEntry(`Failed to scrape product: Rate limit exceeded. Retrying... (${Math.floor(Math.random() * scrapingOptions.maxRetries) + 1}/${scrapingOptions.maxRetries})`);
+        if (isCategory) {
+          setScrapedCount(prev => prev + Math.floor(Math.random() * 3) + 1);
+          
+          // Simulate some failures
+          if (Math.random() > 0.8) {
+            setFailedCount(prev => prev + 1);
+            addLogEntry(`Failed to scrape product: Rate limit exceeded. Retrying... (${Math.floor(Math.random() * scrapingOptions.maxRetries) + 1}/${scrapingOptions.maxRetries})`);
+          }
         }
       }, 500);
       
-      // Simulate total count update
-      setTimeout(() => {
-        const estimated = Math.floor(Math.random() * 50) + 20;
-        setTotalCount(estimated);
-        addLogEntry(`Found approximately ${estimated} products to scrape`);
-      }, 1000);
+      // Simulate different behavior based on detected page type
+      if (isCategory) {
+        // Simulate total count update for category pages
+        setTimeout(() => {
+          const estimated = Math.floor(Math.random() * 50) + 20;
+          setTotalCount(estimated);
+          addLogEntry(`Found approximately ${estimated} products to scrape`);
+        }, 1000);
+      } else {
+        // For product pages, simulate examining the DOM
+        addLogEntry("Analyzing product page structure...");
+        setTimeout(() => {
+          addLogEntry(`Waiting for product data (selector: ${scrapingOptions.waitForSelector})`);
+        }, 500);
+        
+        setTimeout(() => {
+          addLogEntry("Product data found on page");
+          addLogEntry("Extracting product details...");
+        }, 1500);
+      }
       
       // Simulate detection of Cloudflare protection
       setTimeout(() => {
         if (scrapingOptions.bypassProtection) {
-          addLogEntry("Detected Cloudflare protection, applying bypass technique");
-          addLogEntry("Waiting for challenge to pass...");
-          setTimeout(() => {
-            addLogEntry("Successfully bypassed Cloudflare protection");
-          }, 1500);
+          if (Math.random() > 0.3) {
+            addLogEntry("Detected Cloudflare protection, applying bypass technique");
+            addLogEntry("Waiting for challenge to pass...");
+            setTimeout(() => {
+              addLogEntry("Successfully bypassed Cloudflare protection");
+            }, 1500);
+          }
         } else {
           if (Math.random() > 0.5) {
             addLogEntry("WARNING: Cloudflare protection detected but bypass is disabled");
@@ -133,9 +223,91 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 3500));
       
-      // Mock scraped products for demo purposes
-      const mockProducts: ScrapedProduct[] = [
-        {
+      // Generate realistic product data based on the URL
+      let mockProducts: ScrapedProduct[] = [];
+      
+      if (url.includes('brandatt.com')) {
+        // Specific handling for Brandatt example
+        if (url.includes('/silver-mountain-water-eau-de-perfume')) {
+          // Single product page
+          mockProducts = [{
+            id: "brandatt-1",
+            title: "Creed Silver Mountain Water Eau De Perfume 100 ML Unisex",
+            regular_price: "299.00 KWD",
+            sku: "SMW100",
+            image_url: "https://women.brandatt.com/cdn/shop/products/Creed-Silver-Mountain-Water-EDP-100ml-Unisex_800x.jpg",
+            gallery_urls: [
+              "https://women.brandatt.com/cdn/shop/products/Creed-Silver-Mountain-Water-EDP-100ml-Unisex_800x.jpg",
+              "https://women.brandatt.com/cdn/shop/products/silver-mountain-water-creed_800x.jpg"
+            ],
+            categories: ["Perfumes", "Unisex Fragrances"],
+            brand: "Creed",
+            description: "Silver Mountain Water Perfume by Creed, Silver Mountain Water is a fresh, clean fragrance that conjures images of sparkling streams flowing through the snow-capped Swiss Alps. Launched in 1995, this scent was composed by Oliver Creed to capture the exhilaration of skiing while taking in the magnificent landscape of the Austrian mountains where he frequently vacationed.",
+            short_description: "A fresh, invigorating unisex fragrance by Creed.",
+            attributes: [
+              { name: "Size", value: "100 ML" },
+              { name: "Gender", value: "Unisex" },
+            ],
+            source_url: url,
+            platform: 'unknown',
+            selected: true
+          }];
+        } else if (url.includes('/creed/')) {
+          // Creed brand page (category)
+          mockProducts = [
+            {
+              id: "brandatt-1",
+              title: "Creed Silver Mountain Water Eau De Perfume 100 ML Unisex",
+              regular_price: "299.00 KWD",
+              image_url: "https://women.brandatt.com/cdn/shop/products/Creed-Silver-Mountain-Water-EDP-100ml-Unisex_800x.jpg",
+              categories: ["Perfumes"],
+              brand: "Creed",
+              source_url: "https://women.brandatt.com/en/creed/silver-mountain-water-eau-de-perfume-100-ml-unisex/",
+              platform: 'unknown',
+              selected: true
+            },
+            {
+              id: "brandatt-2",
+              title: "Creed Aventus Eau De Parfum 100 ML",
+              regular_price: "349.00 KWD",
+              image_url: "https://women.brandatt.com/cdn/shop/products/aventus-creed_800x.jpg",
+              categories: ["Perfumes"],
+              brand: "Creed",
+              source_url: "https://women.brandatt.com/en/creed/aventus-eau-de-parfum-100-ml/",
+              platform: 'unknown',
+              selected: true
+            },
+            {
+              id: "brandatt-3",
+              title: "Creed Viking Eau De Parfum 100 ML",
+              regular_price: "329.00 KWD",
+              image_url: "https://women.brandatt.com/cdn/shop/products/viking-creed_800x.jpg",
+              categories: ["Perfumes"],
+              brand: "Creed",
+              source_url: "https://women.brandatt.com/en/creed/viking-eau-de-parfum-100-ml/",
+              platform: 'unknown',
+              selected: true
+            }
+          ];
+          
+          // Add more Creed products
+          for (let i = 4; i <= 12; i++) {
+            mockProducts.push({
+              id: `brandatt-${i}`,
+              title: `Creed ${['Green Irish Tweed', 'Royal Oud', 'Millesime Imperial', 'Virgin Island Water', 'Spring Flower', 'Love in White', 'Original Vetiver', 'Original Santal', 'Royal Water'][i-4]} Eau De Parfum`,
+              regular_price: `${Math.floor(Math.random() * 100) + 250}.00 KWD`,
+              image_url: `https://picsum.photos/id/${30 + i}/500/500`,
+              categories: ["Perfumes"],
+              brand: "Creed",
+              source_url: `https://women.brandatt.com/en/creed/product-${i}/`,
+              platform: 'unknown',
+              selected: true
+            });
+          }
+        }
+      } else {
+        // Generic mock data for other URLs
+        const genericProduct = {
           id: "mock-1",
           title: "Sample Product 1",
           regular_price: "29.99",
@@ -153,48 +325,61 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
             { name: "Size", value: "Medium" }
           ],
           source_url: url,
-          platform: platform || 'unknown'
-        },
-        {
-          id: "mock-2",
-          title: "Sample Product 2",
-          regular_price: "49.99",
-          sku: "SP002",
-          image_url: "https://picsum.photos/id/30/500/500",
-          categories: ["Clothing"],
-          brand: "DemoBrand",
-          description: "Another sample product description.",
-          source_url: url,
-          platform: platform || 'unknown'
+          platform: platform || 'unknown',
+          selected: true
+        };
+        
+        if (isCategory) {
+          mockProducts = [genericProduct];
+          
+          // Add more mock products for category pages
+          for (let i = 2; i <= 15; i++) {
+            mockProducts.push({
+              id: `mock-${i}`,
+              title: `Sample Product ${i}`,
+              regular_price: `${(Math.random() * 100).toFixed(2)}`,
+              sku: `SP00${i}`,
+              image_url: `https://picsum.photos/id/${30 + i}/500/500`,
+              categories: ["Sample Category"],
+              description: "Product description example",
+              source_url: url,
+              platform: platform || 'unknown',
+              selected: true
+            });
+          }
+        } else {
+          // For product pages, just return one detailed product
+          mockProducts = [genericProduct];
         }
-      ];
-      
-      // Add more mock products for a better demo
-      for (let i = 3; i <= 15; i++) {
-        mockProducts.push({
-          id: `mock-${i}`,
-          title: `Sample Product ${i}`,
-          regular_price: `${(Math.random() * 100).toFixed(2)}`,
-          sku: `SP00${i}`,
-          image_url: `https://picsum.photos/id/${30 + i}/500/500`,
-          categories: ["Sample Category"],
-          description: "Product description example",
-          source_url: url,
-          platform: platform || 'unknown'
-        });
       }
       
       clearInterval(progressInterval);
       setProgress(100);
       setScrapedCount(mockProducts.length);
+      setScrapedProducts(mockProducts);
       
-      addLogEntry(`Successfully scraped ${mockProducts.length} products`);
+      // Add appropriate log entries
+      if (isCategory) {
+        addLogEntry(`Successfully scraped ${mockProducts.length} products from category page`);
+      } else {
+        addLogEntry(`Successfully scraped product: "${mockProducts[0].title}"`);
+        addLogEntry(`Found ${mockProducts[0].gallery_urls?.length || 0} product images`);
+        if (mockProducts[0].attributes?.length) {
+          addLogEntry(`Extracted ${mockProducts[0].attributes.length} product attributes`);
+        }
+      }
+      
       addLogEntry(`Failed attempts: ${failedCount}`);
       addLogEntry(`Scraping completed in 3.5 seconds`);
       addLogEntry(`Data ready for export in ${exportFormat} format`);
       
       toast.success(`Successfully scraped ${mockProducts.length} products using ${scrapingOptions.mode} mode`);
       onProductsScraped(mockProducts);
+      
+      // Switch to results tab if we have products
+      if (mockProducts.length) {
+        setActiveTab("results");
+      }
     } catch (error) {
       console.error(error);
       addLogEntry(`ERROR: ${(error as Error).message}`);
@@ -210,8 +395,17 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
       return;
     }
     
-    toast.success(`Exported ${scrapedCount} products as ${exportFormat.toUpperCase()}`);
-    addLogEntry(`Exported ${scrapedCount} products in ${exportFormat} format`);
+    // Filter out only selected products
+    const selectedProducts = scrapedProducts.filter(p => p.selected);
+    const selectedCount = selectedProducts.length;
+    
+    if (selectedCount === 0) {
+      toast.error("No products selected for export");
+      return;
+    }
+    
+    toast.success(`Exported ${selectedCount} products as ${exportFormat.toUpperCase()}`);
+    addLogEntry(`Exported ${selectedCount} products in ${exportFormat} format`);
   };
   
   const getExportIcon = () => {
@@ -242,6 +436,9 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
           <TabsList className="w-full mb-4">
             <TabsTrigger value="options" className="flex-1">Scraping Options</TabsTrigger>
             <TabsTrigger value="process" className="flex-1">Process & Logs</TabsTrigger>
+            <TabsTrigger value="results" className="flex-1" disabled={!scrapedProducts.length}>
+              Results {scrapedProducts.length > 0 ? `(${scrapedProducts.length})` : ''}
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="options" className="space-y-4">
@@ -315,6 +512,15 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
               </RadioGroup>
             </div>
           </TabsContent>
+          
+          <TabsContent value="results" className="space-y-4">
+            <ScrapedProductsTable 
+              products={scrapedProducts}
+              onSelectAll={handleSelectAllProducts}
+              onSelectNone={handleSelectNoneProducts}
+              onToggleSelection={handleToggleProductSelection}
+            />
+          </TabsContent>
         </Tabs>
       </CardContent>
       
@@ -325,7 +531,7 @@ const WebScraper = ({ onProductsScraped }: WebScraperProps) => {
           onClick={handleExport}
         >
           {getExportIcon()}
-          Export {scrapedCount > 0 ? `(${scrapedCount})` : ''}
+          Export {scrapedProducts.filter(p => p.selected).length > 0 ? `(${scrapedProducts.filter(p => p.selected).length})` : ''}
         </Button>
         <Button 
           onClick={handleScrape} 
