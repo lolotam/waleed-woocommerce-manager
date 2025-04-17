@@ -3,8 +3,10 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScraperPlatform } from "@/types/scraper";
-import { ZoomIn, Loader2, CheckCircle2 } from "lucide-react";
+import { ZoomIn, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { detectPlatform, platformConfigs } from "@/config/scraperConfigs";
 
 interface PlatformDetectorProps {
   url: string;
@@ -21,33 +23,13 @@ const PlatformDetector = ({ url, onDetect }: PlatformDetectorProps) => {
     setIsDetecting(true);
     
     try {
-      // In a real implementation, this would call a backend API
-      // For demo purposes, we'll simulate the response
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      let platform: ScraperPlatform = 'unknown';
-      
-      if (url.includes('shopify.com') || url.includes('myshopify.com')) {
-        platform = 'shopify';
-      } else if (url.includes('amazon.com')) {
-        platform = 'amazon';
-      } else if (url.includes('temu.com')) {
-        platform = 'temu';
-      } else if (url.includes('shein.com')) {
-        platform = 'shein';
-      } else if (url.includes('aliexpress.com')) {
-        platform = 'aliexpress';
-      } else if (url.includes('woocommerce')) {
-        platform = 'woocommerce';
-      } else {
-        // Check for common patterns in the URL
-        if (url.includes('/product/') || url.includes('/shop/')) {
-          platform = 'woocommerce';
-        }
-      }
-      
+      const platform = detectPlatform(url);
       setDetectedPlatform(platform);
       onDetect(platform);
+      
     } catch (error) {
       console.error('Error detecting platform:', error);
     } finally {
@@ -55,22 +37,18 @@ const PlatformDetector = ({ url, onDetect }: PlatformDetectorProps) => {
     }
   };
   
-  const getPlatformColor = (platform: ScraperPlatform): string => {
-    switch (platform) {
-      case 'shopify':
-        return 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-300';
-      case 'woocommerce':
-        return 'bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900 dark:text-purple-300';
-      case 'amazon':
-        return 'bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-300';
-      case 'aliexpress':
-        return 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-300';
-      case 'temu':
-      case 'shein':
-        return 'bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-300';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800 dark:text-gray-300';
-    }
+  const getPlatformInfo = (platform: ScraperPlatform) => {
+    const config = platformConfigs[platform];
+    const requiresProxy = config.use_proxy;
+    const scrapingMode = config.scraping_mode;
+    
+    return {
+      requiresProxy,
+      scrapingMode,
+      color: platform === 'unknown' ? 'gray' : 
+             requiresProxy ? 'amber' : 
+             scrapingMode === 'headless' ? 'blue' : 'green'
+    };
   };
   
   return (
@@ -91,7 +69,7 @@ const PlatformDetector = ({ url, onDetect }: PlatformDetectorProps) => {
           {isDetecting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Detecting Platform...
+              Analyzing URL...
             </>
           ) : (
             <>
@@ -102,7 +80,7 @@ const PlatformDetector = ({ url, onDetect }: PlatformDetectorProps) => {
         </Button>
         
         {detectedPlatform && (
-          <div className="rounded-md border p-3 space-y-2">
+          <div className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="font-medium flex items-center">
                 <CheckCircle2 className="h-4 w-4 mr-1 text-green-500" />
@@ -110,22 +88,27 @@ const PlatformDetector = ({ url, onDetect }: PlatformDetectorProps) => {
               </div>
               <Badge 
                 variant="outline" 
-                className={getPlatformColor(detectedPlatform)}
+                className={`bg-${getPlatformInfo(detectedPlatform).color}-100 text-${getPlatformInfo(detectedPlatform).color}-800 border-${getPlatformInfo(detectedPlatform).color}-200`}
               >
                 {detectedPlatform.charAt(0).toUpperCase() + detectedPlatform.slice(1)}
               </Badge>
             </div>
             
-            {(detectedPlatform === 'amazon' || detectedPlatform === 'temu' || detectedPlatform === 'shein') && (
-              <p className="text-xs text-amber-600 dark:text-amber-400">
-                Note: This platform typically requires proxy and authentication for successful scraping.
-              </p>
+            {getPlatformInfo(detectedPlatform).requiresProxy && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  This platform requires proxy and authentication for reliable scraping.
+                </AlertDescription>
+              </Alert>
             )}
             
-            {detectedPlatform === 'shopify' && (
-              <p className="text-xs text-blue-600 dark:text-blue-400">
-                Note: Shopify sites work best with headless browser mode due to JavaScript rendering.
-              </p>
+            {getPlatformInfo(detectedPlatform).scrapingMode === 'headless' && (
+              <Alert>
+                <AlertDescription>
+                  Using headless browser mode for JavaScript-heavy content.
+                </AlertDescription>
+              </Alert>
             )}
           </div>
         )}
