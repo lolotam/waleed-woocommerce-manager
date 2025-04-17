@@ -60,6 +60,28 @@ const ScrapingOptions = ({ options, onOptionsChange }: ScrapingOptionsProps) => 
             </div>
           </div>
         )}
+        
+        <div className="space-y-2 border-t pt-3 mt-3 border-gray-200 dark:border-gray-800">
+          <h3 className="font-medium text-sm">Advanced Options</h3>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="bypass-protection"
+              checked={options.bypassProtection}
+              onCheckedChange={(bypassProtection) => onOptionsChange({ bypassProtection })}
+            />
+            <Label htmlFor="bypass-protection">Bypass bot protection (recommended for complex sites)</Label>
+          </div>
+          
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="enable-cache"
+              checked={options.enableCache}
+              onCheckedChange={(enableCache) => onOptionsChange({ enableCache })}
+            />
+            <Label htmlFor="enable-cache">Enable result caching (faster for repeated scrapes)</Label>
+          </div>
+        </div>
       </div>
     </div>
   );
