@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import MainLayout from "./components/Layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import BrandsManager from "./pages/BrandsManager";
@@ -25,6 +25,7 @@ import BulkProductSeoPage from "./pages/BulkProductSeoPage";
 import WebToolsPage from "./pages/WebToolsPage";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
+import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
@@ -34,9 +35,15 @@ const App = () => {
 
   useEffect(() => {
     const checkLicense = async () => {
-      const valid = await isLicenseValid();
-      setIsLicensed(valid);
-      setIsLoading(false);
+      try {
+        const valid = await isLicenseValid();
+        setIsLicensed(valid);
+      } catch (error) {
+        console.error("License check error:", error);
+        setIsLicensed(false);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     checkLicense();
@@ -58,19 +65,25 @@ const App = () => {
           <Sonner />
           <div className="min-h-screen flex flex-col w-full text-base md:text-base">
             <Routes>
+              {/* Root Index Route - Handles redirects */}
+              <Route path="/" element={<Index />} />
+              
               {/* License Activation Route (public) */}
               <Route path="/license" element={<LicenseActivation />} />
               
               {/* License Generator Route (admin only - restrict access) */}
               <Route 
                 path="/license-generator" 
-                element={isLicensed ? <LicenseGenerator /> : <Navigate to="/license" replace />} 
+                element={isLicensed ? <LicenseGenerator /> : <LicenseActivation />} 
               />
+
+              {/* WooCommerce Callback Route - should be accessible without license for OAuth flow */}
+              <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
 
               {/* Protected Routes */}
               {isLicensed ? (
                 <Route element={<MainLayout />}>
-                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/brands" element={<BrandsManager />} />
                   <Route path="/categories" element={<CategoriesPage />} />
                   <Route path="/products" element={<ProductsPage />} />
@@ -86,14 +99,11 @@ const App = () => {
                   <Route path="/web-performance" element={<WebPerformancePage />} />
                 </Route>
               ) : (
-                <Route path="*" element={<Navigate to="/license" replace />} />
+                <Route path="*" element={<LicenseActivation />} />
               )}
 
               {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
-
-              {/* WooCommerce Callback Route - should be accessible without license for OAuth flow */}
-              <Route path="/api/woocommerce-callback" element={<WooCommerceCallback />} />
             </Routes>
           </div>
         </TooltipProvider>

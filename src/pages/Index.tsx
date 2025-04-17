@@ -5,21 +5,20 @@ import { isLicenseValid } from '@/utils/licenseManager';
 import { toast } from 'sonner';
 
 const Index = () => {
-  const [isLicensed, setIsLicensed] = useState(false);
+  const [isLicensed, setIsLicensed] = useState<boolean | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // Check if the user has a valid license
   useEffect(() => {
     const checkLicense = async () => {
-      const valid = await isLicenseValid();
-      setIsLicensed(valid);
-      setIsLoading(false);
-      
-      if (!valid) {
-        toast.warning('Valid license required to access the application', {
-          description: 'Please enter your license key to continue',
-          duration: 5000
-        });
+      try {
+        const valid = await isLicenseValid();
+        setIsLicensed(valid);
+      } catch (error) {
+        console.error("License check error:", error);
+        setIsLicensed(false);
+      } finally {
+        setIsLoading(false);
       }
     };
     
@@ -61,17 +60,23 @@ const Index = () => {
     }
   }, []);
 
+  // Show loading state while checking license
   if (isLoading) {
     return null; // Show nothing while loading
   }
 
   // If not licensed, redirect to license page
-  if (!isLicensed) {
+  if (isLicensed === false) {
     return <Navigate to="/license" replace />;
   }
 
   // If licensed, redirect to dashboard
-  return <Navigate to="/brand-logo-uploader" replace />;
+  if (isLicensed === true) {
+    return <Navigate to="/brand-logo-uploader" replace />;
+  }
+
+  // Default fallback - should never reach here if state management is working correctly
+  return null;
 };
 
 export default Index;
