@@ -1,9 +1,11 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+
+// Existing imports
 import MainLayout from "./components/Layout/MainLayout";
 import Dashboard from "./pages/Dashboard";
 import BrandsManager from "./pages/BrandsManager";
@@ -23,6 +25,8 @@ import WooCommerceCallback from "./pages/WooCommerceCallback";
 import WebPerformancePage from "./pages/WebPerformancePage";
 import BulkProductSeoPage from "./pages/BulkProductSeoPage";
 import WebToolsPage from "./pages/WebToolsPage";
+import AuthPage from "./pages/AuthPage";
+import ActivationPage from "./pages/ActivationPage";
 import { useEffect, useState } from "react";
 import { isLicenseValid } from "./utils/licenseManager";
 import Index from "./pages/Index";
@@ -30,10 +34,25 @@ import Index from "./pages/Index";
 const queryClient = new QueryClient();
 
 const App = () => {
+  const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLicensed, setIsLicensed] = useState(false);
 
   useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoading(false);
+    });
+
     const checkLicense = async () => {
       try {
         const valid = await isLicenseValid();
@@ -47,6 +66,9 @@ const App = () => {
     };
 
     checkLicense();
+
+    // Cleanup subscription
+    return () => subscription.unsubscribe();
   }, []);
 
   if (isLoading) {
@@ -65,6 +87,10 @@ const App = () => {
           <Sonner />
           <div className="min-h-screen flex flex-col w-full text-base md:text-base">
             <Routes>
+              {/* Authentication Routes */}
+              <Route path="/auth" element={!session ? <AuthPage /> : <Navigate to="/" replace />} />
+              <Route path="/activation" element={session ? <ActivationPage /> : <Navigate to="/auth" replace />} />
+              
               {/* Root Index Route - Handles redirects */}
               <Route path="/" element={<Index />} />
               
