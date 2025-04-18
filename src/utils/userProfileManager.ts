@@ -30,7 +30,10 @@ export const getUserProfile = async (): Promise<UserProfile | null> => {
       full_name: data.full_name,
       activated: data.activated,
       activation_serial: data.activation_serial,
-      settings: data.settings || {}
+      // Ensure settings is an object, defaulting to empty object if null or not an object
+      settings: (typeof data.settings === 'object' && data.settings !== null) 
+                ? data.settings as Record<string, any> 
+                : {}
     };
   } catch (error) {
     console.error('Error fetching user profile:', error);
