@@ -1,40 +1,191 @@
 
-/**
- * AI Service for generating content using different AI models
- * This file re-exports all functionality from the modularized AI service
- */
+import { getAiConfig } from "./ai/config";
+import { toast } from "sonner";
 
-// Re-export types
-import { AIModel, BatchPrompt, ApiTestResponse, ModelInfo } from './ai/types';
-export type { AIModel, BatchPrompt, ApiTestResponse, ModelInfo };
+// Define available AI models
+export type AIModel = 
+  | 'gpt3'
+  | 'gpt4'
+  | 'gpt4o'
+  | 'claude2'
+  | 'claude3_haiku'
+  | 'claude35_sonnet'
+  | 'claude3_opus'
+  | 'gemini_pro';
 
-// Re-export core functionality
-import { generateContent, generateContentBatch } from './ai/generator';
-export { generateContent, generateContentBatch };
+// Generate content using AI
+export const generateContent = async (
+  prompt: string,
+  model: AIModel
+): Promise<string> => {
+  const config = getAiConfig();
+  
+  try {
+    // Determine which AI service to use based on model
+    if (model.startsWith('gpt')) {
+      return await generateWithOpenAI(prompt, model, config.openaiApiKey);
+    } else if (model.startsWith('claude')) {
+      return await generateWithClaude(prompt, model, config.claudeApiKey);
+    } else if (model.startsWith('gemini')) {
+      return await generateWithGemini(prompt, model, config.geminiApiKey);
+    } else {
+      throw new Error(`Unsupported model: ${model}`);
+    }
+  } catch (error) {
+    console.error(`AI generation error with ${model}:`, error);
+    toast.error(`AI generation failed: ${error.message || 'Unknown error'}`);
+    throw error;
+  }
+};
 
-// Re-export configuration utilities
-import { getAvailableModels, isValidAPIKey } from './ai/config';
-export { getAvailableModels, isValidAPIKey };
+// OpenAI implementation
+const generateWithOpenAI = async (
+  prompt: string,
+  model: string,
+  apiKey?: string
+): Promise<string> => {
+  if (!apiKey) {
+    throw new Error('OpenAI API key is not configured');
+  }
+  
+  let modelName = 'gpt-4';
+  if (model === 'gpt3') modelName = 'gpt-3.5-turbo';
+  if (model === 'gpt4o') modelName = 'gpt-4o';
+  
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          { role: 'system', content: 'You are a skilled SEO expert who provides output in valid JSON format only. Your responses should always be valid JSON objects without any additional text before or after the JSON object.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'OpenAI API Error');
+    }
+    
+    const data = await response.json();
+    const result = data.choices[0]?.message?.content?.trim();
+    
+    console.log('OpenAI response:', result);
+    return result;
+  } catch (error) {
+    console.error('OpenAI API Error:', error);
+    throw error;
+  }
+};
 
-// Re-export logging utilities
-import { getAllLogs, exportLogsToExcel } from './ai/logs';
-export { getAllLogs, exportLogsToExcel };
+// Claude implementation
+const generateWithClaude = async (
+  prompt: string,
+  model: string,
+  apiKey?: string
+): Promise<string> => {
+  if (!apiKey) {
+    throw new Error('Claude API key is not configured');
+  }
+  
+  let modelName = 'claude-2';
+  if (model === 'claude35_sonnet') modelName = 'claude-3-5-sonnet-20240620';
+  if (model === 'claude3_haiku') modelName = 'claude-3-haiku-20240307';
+  if (model === 'claude3_opus') modelName = 'claude-3-opus-20240229';
+  
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: modelName,
+        system: 'You are a skilled SEO expert who provides output in valid JSON format only. Your responses should always be valid JSON objects without any additional text before or after the JSON object.',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 4000
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Claude API Error');
+    }
+    
+    const data = await response.json();
+    const result = data.content?.[0]?.text?.trim();
+    
+    console.log('Claude response:', result);
+    return result;
+  } catch (error) {
+    console.error('Claude API Error:', error);
+    throw error;
+  }
+};
 
-// Re-export connection testing utilities
-import { testOpenAIConnection } from './ai/providers/openai';
-import { testClaudeConnection } from './ai/providers/claude';
-import { testGeminiConnection } from './ai/providers/gemini';
-export { testOpenAIConnection, testClaudeConnection, testGeminiConnection };
+// Gemini implementation
+const generateWithGemini = async (
+  prompt: string,
+  model: string,
+  apiKey?: string
+): Promise<string> => {
+  if (!apiKey) {
+    throw new Error('Gemini API key is not configured');
+  }
+  
+  const modelName = 'gemini-pro';
+  
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: `You are a skilled SEO expert who provides output in valid JSON format only. Your responses should always be valid JSON objects without any additional text before or after the JSON object.\n\n${prompt}`
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 4000
+        }
+      })
+    });
+    
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error?.message || 'Gemini API Error');
+    }
+    
+    const data = await response.json();
+    const result = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    
+    console.log('Gemini response:', result);
+    return result;
+  } catch (error) {
+    console.error('Gemini API Error:', error);
+    throw error;
+  }
+};
 
-// Export default object for backward compatibility
 export default {
-  generateContent,
-  generateContentBatch,
-  getAvailableModels,
-  getAllLogs,
-  exportLogsToExcel,
-  testOpenAIConnection,
-  testClaudeConnection,
-  testGeminiConnection,
-  isValidAPIKey
+  generateContent
 };
