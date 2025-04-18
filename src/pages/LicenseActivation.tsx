@@ -1,32 +1,32 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { LockKeyhole, RefreshCw, Shield } from "lucide-react";
+import { LockKeyhole, RefreshCw, Shield, Mail, User, KeyRound } from "lucide-react";
 import { activateLicense, getLicenseInfo, isLicenseValid } from "@/utils/licenseManager";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const LicenseActivation = () => {
   const navigate = useNavigate();
   const [licenseKey, setLicenseKey] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
   const [isActivating, setIsActivating] = useState(false);
   const [error, setError] = useState('');
   const [attemptsLeft, setAttemptsLeft] = useState(5);
   const [isLocked, setIsLocked] = useState(false);
 
-  // Check if the app is already licensed
   useEffect(() => {
     const checkExistingLicense = async () => {
       const valid = await isLicenseValid();
       if (valid) {
-        // If the app is already licensed, redirect to dashboard
         navigate('/');
       }
 
-      // Check for remaining attempts
       const attempts = localStorage.getItem('license_attempts');
       if (attempts) {
         const remaining = parseInt(attempts);
@@ -36,7 +36,6 @@ const LicenseActivation = () => {
           setError('Too many failed attempts. Please contact the administrator.');
         }
       } else {
-        // Initialize attempts counter
         localStorage.setItem('license_attempts', '5');
       }
     };
@@ -61,14 +60,15 @@ const LicenseActivation = () => {
     setIsLocked(false);
   };
 
-  const handleActivation = async () => {
+  const handleRegistrationAndActivation = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLocked) {
       toast.error('License activation is locked. Please contact the administrator.');
       return;
     }
 
-    if (!licenseKey) {
-      setError('Please enter a license key');
+    if (!licenseKey || !email || !password || !username) {
+      setError('Please fill in all fields');
       return;
     }
 
@@ -76,14 +76,24 @@ const LicenseActivation = () => {
     setError('');
 
     try {
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: username
+          }
+        }
+      });
+
+      if (signUpError) throw signUpError;
+
       const activated = await activateLicense(licenseKey);
       
       if (activated) {
-        // Reset attempts on successful activation
         resetAttempts();
-        toast.success('License successfully activated!');
-        
-        // Redirect to dashboard
+        toast.success('Account created and license activated successfully!');
+        toast.info('Please check your email to verify your account.');
         navigate('/');
       } else {
         decreaseAttempts();
@@ -91,8 +101,8 @@ const LicenseActivation = () => {
       }
     } catch (error) {
       decreaseAttempts();
-      setError(`An error occurred during activation. ${attemptsLeft > 1 ? `${attemptsLeft - 1} attempts remaining.` : 'This is your last attempt.'}`);
-      console.error('Activation error:', error);
+      setError(`Registration or activation error: ${error instanceof Error ? error.message : 'An unknown error occurred'}`);
+      console.error('Registration/Activation error:', error);
     } finally {
       setIsActivating(false);
     }
@@ -115,15 +125,62 @@ const LicenseActivation = () => {
                 <LockKeyhole className="h-6 w-6 text-blue-600 dark:text-blue-300" />
               )}
             </div>
-            <CardTitle className="text-center text-xl md:text-2xl">License Activation</CardTitle>
+            <CardTitle className="text-center text-xl md:text-2xl">Register & Activate</CardTitle>
             <CardDescription className="text-center text-sm md:text-base">
               {isLocked 
                 ? 'Account locked due to too many failed attempts' 
-                : 'Enter your license key to activate the application'}
+                : 'Create your account and activate your license'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <form onSubmit={handleRegistrationAndActivation} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="username"
+                    placeholder="Your username"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    className="pl-10"
+                    disabled={isLocked || isActivating}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="your.email@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    disabled={isLocked || isActivating}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-2.5 h-5 w-5 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Your secure password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    disabled={isLocked || isActivating}
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="license-key">License Key</Label>
                 <Input
@@ -144,7 +201,7 @@ const LicenseActivation = () => {
               
               <Button 
                 className="w-full text-base" 
-                onClick={handleActivation}
+                type="submit"
                 disabled={isActivating || isLocked}
                 size="lg"
                 variant={isLocked ? "destructive" : "default"}
@@ -152,15 +209,15 @@ const LicenseActivation = () => {
                 {isActivating ? (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                    Activating...
+                    Processing...
                   </>
                 ) : isLocked ? (
-                  'Activation Locked'
+                  'Account Locked'
                 ) : (
-                  'Activate License'
+                  'Register & Activate License'
                 )}
               </Button>
-            </div>
+            </form>
           </CardContent>
           <CardFooter className="flex flex-col items-center space-y-2">
             {isLocked && (
@@ -168,6 +225,9 @@ const LicenseActivation = () => {
                 Please contact the administrator to receive a valid license key or unlock your account
               </p>
             )}
+            <p className="text-xs text-muted-foreground">
+              Already have an account? <Button variant="link" className="p-0 h-auto" onClick={() => navigate('/auth')}>Login here</Button>
+            </p>
             <p className="text-xs text-muted-foreground">
               &copy; {new Date().getFullYear()} Waleed Mohamed. All rights reserved.
             </p>
