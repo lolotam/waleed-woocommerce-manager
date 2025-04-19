@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -293,7 +294,7 @@ Make sure your response is ONLY valid JSON. Do not include any other text, expla
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use {"{{"}{"{"}id{"}"}{"}}}, {"{{"}{"{"}title{"}"}{"}}}, and {"{{"}{"{"}url{"}"}{"}}}} as placeholders for product data
+              Use &#123;&#123;id&#125;&#125;, &#123;&#123;title&#125;&#125;, and &#123;&#123;url&#125;&#125; as placeholders for product data
             </div>
             <Textarea 
               id="prompt"
