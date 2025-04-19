@@ -5,14 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowDownToLine, Search } from "lucide-react";
-import { exportLogsToExcel, getAllLogs } from "@/utils/aiService";
-
-interface LogEntry {
-  timestamp: string;
-  prompt: string;
-  result: string;
-  model: string;
-}
+import { exportLogsToExcel, getAllLogs, LogEntry } from "@/utils/aiService";
 
 const AiLogViewer = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
@@ -21,6 +14,7 @@ const AiLogViewer = () => {
 
   // Load logs from localStorage
   useEffect(() => {
+    // Get logs directly, getAllLogs() returns LogEntry[] not a Promise
     setLogs(getAllLogs());
   }, []);
 

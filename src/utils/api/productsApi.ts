@@ -16,6 +16,27 @@ export const extractData = (response: any) => {
   return response.data;
 };
 
+// Get all products with pagination (getAll alias for other components)
+export const getAll = async (params = {}) => {
+  try {
+    const page = params.page ? parseInt(params.page as string) : 1;
+    const perPage = params.per_page ? parseInt(params.per_page as string) : 10;
+    
+    const response = await woocommerceApi('products', 'GET', null, {
+      ...params
+    });
+    
+    return {
+      data: response.data,
+      totalItems: response.totalItems || 0,
+      totalPages: response.totalPages || 0
+    };
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+};
+
 // Get all products with pagination
 export const getProducts = async (
   page: number = 1,
@@ -47,6 +68,54 @@ export const getProduct = async (id: number) => {
     return response.data;
   } catch (error) {
     console.error(`Error fetching product ${id}:`, error);
+    throw error;
+  }
+};
+
+// Create a product
+export const create = async (productData: any) => {
+  try {
+    const response = await woocommerceApi('products', 'POST', productData);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating product:', error);
+    throw error;
+  }
+};
+
+// Update a product
+export const update = async (productId: number | string, productData: any) => {
+  try {
+    const response = await woocommerceApi(`products/${productId}`, 'PUT', productData);
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating product ${productId}:`, error);
+    throw error;
+  }
+};
+
+// Delete a product
+export const deleteProduct = async (productId: number | string) => {
+  try {
+    const response = await woocommerceApi(`products/${productId}`, 'DELETE');
+    return response.data;
+  } catch (error) {
+    console.error(`Error deleting product ${productId}:`, error);
+    throw error;
+  }
+};
+
+// Get product tags
+export const getTags = async (params = {}) => {
+  try {
+    const response = await woocommerceApi('products/tags', 'GET', null, params);
+    return {
+      data: response.data,
+      totalItems: response.totalItems || 0,
+      totalPages: response.totalPages || 0
+    };
+  } catch (error) {
+    console.error('Error fetching product tags:', error);
     throw error;
   }
 };
@@ -125,6 +194,11 @@ export const updateProductSeo = async (productId: number | string, seoData: any)
 const productsApi = {
   getProducts,
   getProduct,
+  getAll,
+  create,
+  update,
+  delete: deleteProduct, // Aliasing deleteProduct as delete for the API
+  getTags,
   updateProductSeo
 };
 

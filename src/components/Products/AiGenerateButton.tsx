@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { 
@@ -19,7 +18,7 @@ import {
 } from '@/components/ui/select';
 import { Wand2, Book, BookOpen, AlertTriangle } from 'lucide-react';
 import { toast } from "sonner";
-import { generateContent, getAvailableModels } from '@/utils/aiService';
+import { generateContent, getAvailableModels, AiModel } from '@/utils/aiService';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -350,7 +349,7 @@ Format your response with these section headings:
                       <SelectValue placeholder="Select AI model" />
                     </SelectTrigger>
                     <SelectContent>
-                      {availableModels.map((model) => (
+                      {availableModels.map((model: AiModel) => (
                         <SelectItem key={model.id} value={model.id}>
                           {model.description}
                         </SelectItem>

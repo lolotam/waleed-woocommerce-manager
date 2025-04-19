@@ -36,7 +36,7 @@ const ProductsPage = () => {
     queryFn: async () => {
       try {
         const response = await productsApi.getTags({ per_page: "100" });
-        return extractData(response);
+        return response.data;
       } catch (error) {
         console.error('Error fetching product tags:', error);
         return [];
@@ -55,14 +55,13 @@ const ProductsPage = () => {
           page: currentPage.toString()
         };
         
-        const response = await productsApi.getAll(params);
-        const { data, totalItems, totalPages: responseTotalPages } = extractDataWithPagination(response);
+        const response = await productsApi.getProducts(currentPage, safePerPage, params);
         
-        const products = Array.isArray(data) ? data : [];
-        const total = totalItems || products.length;
+        const products = response.products || [];
+        const total = response.totalItems || products.length;
         
         setTotalProducts(total);
-        setTotalPages(responseTotalPages || Math.max(1, Math.ceil(total / safePerPage)));
+        setTotalPages(response.totalPages || Math.max(1, Math.ceil(total / safePerPage)));
         
         return products;
       } catch (err) {
@@ -105,15 +104,15 @@ const ProductsPage = () => {
         page: '1'
       };
       
-      const firstPageResponse = await productsApi.getAll(params);
+      const firstPageResponse = await productsApi.getProducts(1, MAX_PER_PAGE, params);
       
-      if (!Array.isArray(firstPageResponse.data)) {
+      if (!Array.isArray(firstPageResponse.products)) {
         throw new Error('Invalid response format from WooCommerce API');
       }
       
-      allProductsArray.push(...firstPageResponse.data);
+      allProductsArray.push(...firstPageResponse.products);
       
-      let totalProductCount = firstPageResponse.totalItems || firstPageResponse.data.length;
+      let totalProductCount = firstPageResponse.totalItems || firstPageResponse.products.length;
       
       const estimatedTotalPages = Math.ceil(totalProductCount / MAX_PER_PAGE);
       setLoadAllProgress(Math.round((1 / estimatedTotalPages) * 100));
@@ -129,10 +128,10 @@ const ProductsPage = () => {
         };
         
         try {
-          const response = await productsApi.getAll(nextParams);
+          const response = await productsApi.getProducts(page, MAX_PER_PAGE, nextParams);
           
-          if (Array.isArray(response.data) && response.data.length > 0) {
-            allProductsArray.push(...response.data);
+          if (Array.isArray(response.products) && response.products.length > 0) {
+            allProductsArray.push(...response.products);
             setLoadAllProgress(Math.min(95, Math.round((page / estimatedTotalPages) * 100)));
           } else {
             hasMoreProducts = false;

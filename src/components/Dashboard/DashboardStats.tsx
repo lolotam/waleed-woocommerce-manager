@@ -40,7 +40,7 @@ const DashboardStats = () => {
     queryFn: async () => {
       try {
         // Just fetch with smallest per_page possible to get the header with total count
-        const response = await productsApi.getAll({ per_page: "1" });
+        const response = await productsApi.getProducts(1, 1);
         return response.totalItems || 0;
       } catch (error) {
         console.error('Error fetching products count:', error);
