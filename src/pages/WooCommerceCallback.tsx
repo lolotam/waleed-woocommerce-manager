@@ -13,10 +13,15 @@ const WooCommerceCallback = () => {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  // Use ref to prevent multiple redirects
+  const redirectAttempted = React.useRef(false);
 
   useEffect(() => {
     console.log("WooCommerce callback page loaded");
     console.log("URL params:", window.location.search);
+    
+    // Only process once
+    if (redirectAttempted.current) return;
     
     const processCallback = async () => {
       try {
@@ -75,10 +80,13 @@ const WooCommerceCallback = () => {
           const returnPage = localStorage.getItem('wc_auth_return_page') || '/brand-logo-uploader?tab=config';
           localStorage.removeItem('wc_auth_return_page');
           
-          // Redirect after a short delay
-          setTimeout(() => {
-            navigate(returnPage);
-          }, 2000);
+          // Redirect after a short delay - but only once
+          if (!redirectAttempted.current) {
+            redirectAttempted.current = true;
+            setTimeout(() => {
+              navigate(returnPage, { replace: true });
+            }, 2000);
+          }
         } else {
           setStatus('error');
           setMessage('Failed to save authentication credentials.');
@@ -94,7 +102,8 @@ const WooCommerceCallback = () => {
   }, [navigate, searchParams]);
 
   const handleBackToConfig = () => {
-    navigate('/brand-logo-uploader?tab=config');
+    // Use replace instead of push to prevent adding to history
+    navigate('/brand-logo-uploader?tab=config', { replace: true });
   };
   
   const getIcon = () => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,8 +39,9 @@ const BrandLogoUploader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   
+  const [lastNavigationTime, setLastNavigationTime] = useState(0);
+  
   useEffect(() => {
-    // Get WooCommerce config from main settings
     const wcConfig = getWooCommerceConfig();
     const isConfigValid = Boolean(
       (wcConfig.authMethod === 'app_password' && wcConfig.wpUsername && wcConfig.wpAppPassword) ||
@@ -56,24 +56,20 @@ const BrandLogoUploader = () => {
     if (tabParam && ['upload', 'mapping', 'processing'].includes(tabParam)) {
       setActiveTab(tabParam);
     } else if (!isConfigValid) {
-      // If not configured, stay on upload tab but show warning
       setActiveTab('upload');
     }
     
-    // Load brand logo specific settings (not WooCommerce connection settings)
     const savedConfig = localStorage.getItem('brand_logo_config');
     if (savedConfig) {
       try {
         const parsedConfig = JSON.parse(savedConfig);
-        // Only take the logo-specific settings, not the WooCommerce connection settings
-        const { targetType, addToDescription, fuzzyMatching, saveConfigurations, allowFolderUpload } = parsedConfig;
         setConfig(prev => ({
           ...prev, 
-          targetType: targetType || prev.targetType,
-          addToDescription: addToDescription !== undefined ? addToDescription : prev.addToDescription,
-          fuzzyMatching: fuzzyMatching !== undefined ? fuzzyMatching : prev.fuzzyMatching,
-          saveConfigurations: saveConfigurations !== undefined ? saveConfigurations : prev.saveConfigurations,
-          allowFolderUpload: allowFolderUpload !== undefined ? allowFolderUpload : prev.allowFolderUpload
+          targetType: parsedConfig.targetType || prev.targetType,
+          addToDescription: parsedConfig.addToDescription !== undefined ? parsedConfig.addToDescription : prev.addToDescription,
+          fuzzyMatching: parsedConfig.fuzzyMatching !== undefined ? parsedConfig.fuzzyMatching : prev.fuzzyMatching,
+          saveConfigurations: parsedConfig.saveConfigurations !== undefined ? parsedConfig.saveConfigurations : prev.saveConfigurations,
+          allowFolderUpload: parsedConfig.allowFolderUpload !== undefined ? parsedConfig.allowFolderUpload : prev.allowFolderUpload
         }));
       } catch (error) {
         console.error("Error loading saved configuration:", error);
@@ -83,7 +79,12 @@ const BrandLogoUploader = () => {
   
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    navigate(`/brand-logo-uploader?tab=${value}`, { replace: true });
+    
+    const now = Date.now();
+    if (now - lastNavigationTime > 300) {
+      navigate(`/brand-logo-uploader?tab=${value}`, { replace: true });
+      setLastNavigationTime(now);
+    }
   };
   
   const handleFilesAdded = (files: File[]) => {
@@ -128,7 +129,6 @@ const BrandLogoUploader = () => {
   const handleUpdateConfig = (newConfig: Partial<BrandLogoConfigType>) => {
     setConfig(prev => ({...prev, ...newConfig}));
     
-    // Save only logo-specific settings to localStorage
     if (config.saveConfigurations) {
       const { targetType, addToDescription, fuzzyMatching, saveConfigurations, allowFolderUpload } = {
         ...config,
