@@ -2,6 +2,20 @@
 import { toast } from "sonner";
 import { woocommerceApi } from "./woocommerceCore";
 
+// Helper function to extract data with pagination
+export const extractDataWithPagination = (response: any) => {
+  return {
+    products: response.data,
+    totalItems: response.totalItems || 0,
+    totalPages: response.totalPages || 0
+  };
+};
+
+// Helper function to extract data without pagination
+export const extractData = (response: any) => {
+  return response.data;
+};
+
 // Get all products with pagination
 export const getProducts = async (
   page: number = 1,
@@ -106,3 +120,12 @@ export const updateProductSeo = async (productId: number | string, seoData: any)
     throw error;
   }
 };
+
+// Create a default export for the productsApi
+const productsApi = {
+  getProducts,
+  getProduct,
+  updateProductSeo
+};
+
+export default productsApi;

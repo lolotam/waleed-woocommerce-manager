@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -46,18 +45,34 @@ const PromptSettings = ({
   const [isOpenAIConfigured, setIsOpenAIConfigured] = useState(false);
   const [isClaudeConfigured, setIsClaudeConfigured] = useState(false);
   const [isGeminiConfigured, setIsGeminiConfigured] = useState(false);
-  const { savePrompt } = usePrompts();
+  const { prompts } = usePrompts();
   const [promptTitle, setPromptTitle] = useState("");
   const [showSavePrompt, setShowSavePrompt] = useState(false);
   const [promptDescription, setPromptDescription] = useState("");
 
-  // Check which AI providers are configured
+  const savePrompt = (promptData: any) => {
+    try {
+      const existingPrompts = localStorage.getItem('savedPrompts');
+      const prompts = existingPrompts ? JSON.parse(existingPrompts) : [];
+      
+      prompts.push({
+        ...promptData,
+        id: Date.now().toString(),
+      });
+      
+      localStorage.setItem('savedPrompts', JSON.stringify(prompts));
+      return true;
+    } catch (error) {
+      console.error('Error saving prompt:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     setIsOpenAIConfigured(!!config.openaiApiKey);
     setIsClaudeConfigured(!!config.claudeApiKey);
     setIsGeminiConfigured(!!config.geminiApiKey);
     
-    // Set default provider based on what's available
     if (provider === "" && config.openaiApiKey) {
       onProviderChange("openai");
     } else if (provider === "" && config.claudeApiKey) {
@@ -67,7 +82,6 @@ const PromptSettings = ({
     }
   }, [config, provider, onProviderChange]);
 
-  // Default template prompt
   const getDefaultPrompt = () => {
     return `You are an expert SEO copywriter for ${productType || "general"} products.
 
@@ -88,7 +102,6 @@ Please provide the following in a valid JSON format:
 Make sure your response is ONLY valid JSON. Do not include any other text, explanations, or markdown.`;
   };
 
-  // Set default prompt when component loads if empty
   useEffect(() => {
     if (!prompt) {
       onPromptChange(getDefaultPrompt());
@@ -280,7 +293,7 @@ Make sure your response is ONLY valid JSON. Do not include any other text, expla
               </Button>
             </div>
             <div className="text-xs text-muted-foreground mb-2">
-              Use {{id}}, {{title}}, and {{url}} as placeholders for product data
+              Use {"{{"}{"{"}id{"}"}{"}}}, {"{{"}{"{"}title{"}"}{"}}}, and {"{{"}{"{"}url{"}"}{"}}}} as placeholders for product data
             </div>
             <Textarea 
               id="prompt"

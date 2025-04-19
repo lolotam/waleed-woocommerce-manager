@@ -186,6 +186,66 @@ const generateWithGemini = async (
   }
 };
 
+// Add additional exports needed by components
+export const testOpenAIConnection = async (apiKey: string): Promise<boolean> => {
+  try {
+    await generateWithOpenAI("Test connection", "gpt3", apiKey);
+    return true;
+  } catch (error) {
+    console.error("OpenAI connection test failed:", error);
+    return false;
+  }
+};
+
+export const testClaudeConnection = async (apiKey: string): Promise<boolean> => {
+  try {
+    await generateWithClaude("Test connection", "claude2", apiKey);
+    return true;
+  } catch (error) {
+    console.error("Claude connection test failed:", error);
+    return false;
+  }
+};
+
+export const testGeminiConnection = async (apiKey: string): Promise<boolean> => {
+  try {
+    await generateWithGemini("Test connection", "gemini_pro", apiKey);
+    return true;
+  } catch (error) {
+    console.error("Gemini connection test failed:", error);
+    return false;
+  }
+};
+
+export const getAvailableModels = (): { id: string, name: string, provider: string }[] => {
+  return [
+    { id: 'gpt3', name: 'GPT-3.5 Turbo', provider: 'openai' },
+    { id: 'gpt4', name: 'GPT-4', provider: 'openai' },
+    { id: 'gpt4o', name: 'GPT-4o', provider: 'openai' },
+    { id: 'claude2', name: 'Claude 2', provider: 'anthropic' },
+    { id: 'claude3_haiku', name: 'Claude 3 Haiku', provider: 'anthropic' },
+    { id: 'claude35_sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic' },
+    { id: 'claude3_opus', name: 'Claude 3 Opus', provider: 'anthropic' },
+    { id: 'gemini_pro', name: 'Gemini Pro', provider: 'google' }
+  ];
+};
+
+// Placeholder functions for log-related operations
+export const getAllLogs = async () => {
+  return []; // Return empty array for now
+};
+
+export const exportLogsToExcel = async () => {
+  toast.info("Export logs functionality not implemented yet");
+  return false;
+};
+
 export default {
-  generateContent
+  generateContent,
+  testOpenAIConnection,
+  testClaudeConnection,
+  testGeminiConnection,
+  getAvailableModels,
+  getAllLogs,
+  exportLogsToExcel
 };
