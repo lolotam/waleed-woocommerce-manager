@@ -2,6 +2,13 @@
 import { toast } from "sonner";
 import { woocommerceApi } from "./woocommerceCore";
 
+// Define interface for pagination params
+interface PaginationParams {
+  page?: string | number;
+  per_page?: string | number;
+  [key: string]: any; // Allow for other properties
+}
+
 // Helper function to extract data with pagination
 export const extractDataWithPagination = (response: any) => {
   return {
@@ -17,10 +24,10 @@ export const extractData = (response: any) => {
 };
 
 // Get all products with pagination (getAll alias for other components)
-export const getAll = async (params = {}) => {
+export const getAll = async (params: PaginationParams = {}) => {
   try {
-    const page = params.page ? parseInt(params.page as string) : 1;
-    const perPage = params.per_page ? parseInt(params.per_page as string) : 10;
+    const page = params.page ? parseInt(params.page.toString()) : 1;
+    const perPage = params.per_page ? parseInt(params.per_page.toString()) : 10;
     
     const response = await woocommerceApi('products', 'GET', null, {
       ...params

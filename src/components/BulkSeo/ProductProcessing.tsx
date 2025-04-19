@@ -5,9 +5,10 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AIModel, generateContent } from "@/utils/aiService";
+import { generateContent } from "@/utils/aiService";
 import { toast } from "sonner";
 import { updateProductSeo } from "@/utils/api/productsApi";
+import { AIModel } from "@/utils/ai/types"; // Correct import from types
 
 interface ProductProcessingProps {
   products: any[];
