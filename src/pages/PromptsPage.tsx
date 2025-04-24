@@ -1,5 +1,5 @@
 
-import PromptManager from "@/components/Prompts/PromptManager";
+import PromptManager from "@/modules/prompts/components/PromptManager";
 import { Helmet } from "react-helmet";
 
 const PromptsPage = () => {

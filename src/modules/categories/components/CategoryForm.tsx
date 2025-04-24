@@ -19,7 +19,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import ImageUploader from '@/components/Products/ImageUploader';
+import ImageUploader from '@/modules/products/components/ImageUploader';
 import { useQuery } from '@tanstack/react-query';
 import { Loader2, X } from 'lucide-react';
 

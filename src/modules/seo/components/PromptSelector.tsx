@@ -2,7 +2,8 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SavedPrompt, usePrompts } from "@/hooks/usePrompts";
+import { usePrompts } from "@/modules/prompts/hooks/usePrompts";
+import { SavedPrompt } from "@/modules/prompts/types/prompts";
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
