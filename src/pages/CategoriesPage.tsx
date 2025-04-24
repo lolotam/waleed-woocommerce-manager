@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { Button } from '@/components/ui/button';
 import { Plus, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import CategoriesList from '@/components/Categories/CategoriesList';
-import CategoryForm from '@/components/Categories/CategoryForm';
+import CategoriesList from '@/modules/categories/components/CategoriesList';
+import CategoryForm from '@/modules/categories/components/CategoryForm';
 import { Category } from '@/types/category';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 

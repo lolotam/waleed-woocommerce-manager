@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { getAiConfig } from "@/utils/ai/config";
 import { AlertCircle, Sparkles, Save } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { usePrompts } from "@/hooks/usePrompts";
+import { usePrompts } from "@/modules/prompts/hooks/usePrompts";
 
 interface PromptSettingsProps {
   provider: string;

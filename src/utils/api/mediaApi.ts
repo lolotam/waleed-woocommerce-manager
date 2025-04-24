@@ -4,7 +4,6 @@
 import { toast } from "sonner";
 import { getWooCommerceConfig } from "./woocommerceCore";
 import brandsApi from "./brandsApi";
-import categoriesApi from "./categoriesApi";
 import { fuzzyMatch } from "@/utils/brandMatchingUtils";
 import { detectPermissionError, formatApiError } from "@/utils/errorUtils";
 

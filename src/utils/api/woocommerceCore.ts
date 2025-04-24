@@ -219,6 +219,10 @@ export const woocommerceApi = async <T = any>(
   }
 };
 
+export const extractData = (response: WooCommerceResponse) => {
+  return response.data;
+};
+
 export const testConnection = async (): Promise<boolean> => {
   try {
     // Use a simpler endpoint for testing connection

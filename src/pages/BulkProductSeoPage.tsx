@@ -2,13 +2,13 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ExcelUploader from "@/components/BulkSeo/ExcelUploader";
-import PromptSettings from "@/components/BulkSeo/PromptSettings";
-import ProductProcessing from "@/components/BulkSeo/ProductProcessing";
-import CompletionProgress from "@/components/BulkSeo/CompletionProgress";
+import ExcelUploader from "@/modules/seo/components/ExcelUploader";
+import PromptSettings from "@/modules/seo/components/PromptSettings";
+import ProductProcessing from "@/modules/seo/components/ProductProcessing";
+import CompletionProgress from "@/modules/seo/components/CompletionProgress";
 import { getAiConfig } from "@/utils/ai/config";
-import PromptSelector from "@/components/BulkSeo/PromptSelector";
-import { SavedPrompt } from "@/hooks/usePrompts";
+import PromptSelector from "@/modules/seo/components/PromptSelector";
+import { SavedPrompt } from "@/modules/prompts/types/prompts";
 import { Helmet } from "react-helmet";
 import { useIsMobile } from "@/hooks/use-mobile";
 

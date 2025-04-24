@@ -4,25 +4,26 @@
  * Combines all API modules into a single export
  */
 import { testConnection } from "./woocommerceCore";
-import productsApi, { extractData, extractDataWithPagination } from "./productsApi";
-import categoriesApi from "./categoriesApi";
 import brandsApi from "./brandsApi";
+import categoriesApi from "../../modules/categories/utils/categoriesApi";
+import productsApi from "./productsApi";
 import mediaApi from "./mediaApi";
+import { extractData } from "./woocommerceCore";
 
 export {
-  productsApi,
-  categoriesApi,
   brandsApi,
+  categoriesApi,
   mediaApi,
-  testConnection,
+  productsApi,
   extractData,
-  extractDataWithPagination
+  testConnection,
 };
 
 export default {
-  products: productsApi,
-  categories: categoriesApi,
   brands: brandsApi,
+  categories: categoriesApi,
+  extractData: extractData,
+  products: productsApi,
   media: mediaApi,
   testConnection,
 };

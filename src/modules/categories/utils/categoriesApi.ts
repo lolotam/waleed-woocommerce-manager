@@ -2,7 +2,7 @@
 /**
  * WooCommerce Categories API
  */
-import { woocommerceApi, WooCommerceResponse } from "./woocommerceCore";
+import { woocommerceApi, WooCommerceResponse } from '@/utils/api/woocommerceCore';
 import { Category } from "@/types/category";
 
 // Define a type for the params to ensure TypeScript recognizes the properties

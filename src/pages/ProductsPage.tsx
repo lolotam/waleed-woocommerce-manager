@@ -3,18 +3,18 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card } from '@/components/ui/card';
-import ProductForm from '@/components/Products/ProductForm';
-import { BulkEditForm } from '@/components/Products/BulkEditForm';
+import ProductForm from '@/modules/products/components/ProductForm';
+import BulkEditForm from '@/modules/products/components/BulkEditForm';
 import { productsApi, extractData, extractDataWithPagination } from '@/utils/api';
 import { Product, ProductTag } from '@/types/product';
 import { toast } from 'sonner';
 
 // Import refactored components
-import PageHeader from '@/components/Products/Page/PageHeader';
-import ProductPerPageControls from '@/components/Products/Page/ProductPerPageControls';
-import GoToPageControl from '@/components/Products/Page/GoToPageControl';
-import LoadAllControl from '@/components/Products/Page/LoadAllControl';
-import ProductListRefactored from '@/components/Products/List/ProductListRefactored';
+import PageHeader from '@/modules/products/components/Page/PageHeader';
+import ProductPerPageControls from '@/modules/products/components/Page/ProductPerPageControls';
+import GoToPageControl from '@/modules/products/components/Page/GoToPageControl';
+import LoadAllControl from '@/modules/products/components/Page/LoadAllControl';
+import ProductListRefactored from '@/modules/products/components/List/ProductListRefactored';
 
 const ProductsPage = () => {
   const [activeTab, setActiveTab] = useState('list');
